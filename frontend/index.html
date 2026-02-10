@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Gym Tracker</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    button { margin: 5px; }
+    table, th, td { border: 1px solid black; border-collapse: collapse; padding: 5px; }
+    table { margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Gym Tracker</h1>
+
+  <div id="tabs">
+    <button onclick="loadCategory('Upper A')">Upper A</button>
+    <button onclick="loadCategory('Upper B')">Upper B</button>
+    <button onclick="loadCategory('Upper C')">Upper C</button>
+    <button onclick="loadCategory('Lower A')">Lower A</button>
+    <button onclick="loadCategory('Lower B')">Lower B</button>
+  </div>
+
+  <div id="exercises"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
