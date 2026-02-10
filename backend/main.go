@@ -4,11 +4,12 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	_ "modernc.org/sqlite"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 // Exercise struktura ćwiczenia
@@ -30,28 +31,38 @@ type LogEntry struct {
 }
 
 func main() {
-	r := gin.Default()
-	r.Use(cors.Default())
+	// ---------- DB PATH ----------
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "./db.sqlite"
+	}
 
-	// otwarcie bazy
-	db, err := sql.Open("sqlite", "./db.sqlite")
+	// ---------- DB ----------
+	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-	// inicjalizacja tabel i danych
 	initDB(db)
 
-	// testowy endpoint
+	// ---------- GIN ----------
+	r := gin.Default()
+	r.Use(cors.Default())
+
+	// ---------- ROUTES ----------
+
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	// pobranie ćwiczeń wg zakładki
 	r.GET("/exercises/:category", func(c *gin.Context) {
 		category := c.Param("category")
-		rows, err := db.Query("SELECT id, name, category, sets FROM exercises WHERE category = ?", category)
+
+		rows, err := db.Query(
+			"SELECT id, name, category, sets FROM exercises WHERE category = ?",
+			category,
+		)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -61,29 +72,41 @@ func main() {
 		var exercises []Exercise
 		for rows.Next() {
 			var e Exercise
-			rows.Scan(&e.ID, &e.Name, &e.Category, &e.Sets)
+			if err := rows.Scan(&e.ID, &e.Name, &e.Category, &e.Sets); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
 			exercises = append(exercises, e)
 		}
+
 		c.JSON(http.StatusOK, exercises)
 	})
 
-	// pobranie ostatniego wyniku ćwiczenia
 	r.GET("/last/:exercise_id", func(c *gin.Context) {
 		exID := c.Param("exercise_id")
-		row := db.QueryRow("SELECT set_number, reps, weight, date FROM workout_log WHERE exercise_id = ? ORDER BY date DESC, set_number DESC LIMIT 1", exID)
+
+		row := db.QueryRow(`
+			SELECT set_number, reps, weight, date
+			FROM workout_log
+			WHERE exercise_id = ?
+			ORDER BY date DESC, set_number DESC
+			LIMIT 1
+		`, exID)
 
 		var setNumber, reps int
 		var weight float64
 		var date string
+
 		err := row.Scan(&setNumber, &reps, &weight, &date)
+		if err == sql.ErrNoRows {
+			c.JSON(http.StatusOK, gin.H{"message": "No previous data"})
+			return
+		}
 		if err != nil {
-			if err == sql.ErrNoRows {
-				c.JSON(http.StatusOK, gin.H{"message": "No previous data"})
-				return
-			}
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
+
 		c.JSON(http.StatusOK, gin.H{
 			"set_number": setNumber,
 			"reps":       reps,
@@ -92,28 +115,40 @@ func main() {
 		})
 	})
 
-	// zapis logu ćwiczenia
 	r.POST("/log", func(c *gin.Context) {
-		var logEntry LogEntry
-		if err := c.ShouldBindJSON(&logEntry); err != nil {
+		var entry LogEntry
+		if err := c.ShouldBindJSON(&entry); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		logEntry.Date = time.Now().Format("2006-01-02 15:04:05")
-		_, err := db.Exec("INSERT INTO workout_log (exercise_id, date, set_number, reps, weight) VALUES (?, ?, ?, ?, ?)",
-			logEntry.ExerciseID, logEntry.Date, logEntry.SetNumber, logEntry.Reps, logEntry.Weight)
+
+		entry.Date = time.Now().Format("2006-01-02 15:04:05")
+
+		_, err := db.Exec(`
+			INSERT INTO workout_log (exercise_id, date, set_number, reps, weight)
+			VALUES (?, ?, ?, ?, ?)
+		`,
+			entry.ExerciseID,
+			entry.Date,
+			entry.SetNumber,
+			entry.Reps,
+			entry.Weight,
+		)
+
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
+
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	// uruchomienie serwera
-	r.Run(":3000")
+	// ---------- START ----------
+	log.Println("Backend running on :4000")
+	r.Run("0.0.0.0:4000")
 }
 
-// initDB tworzy tabele i dodaje hardcodowane ćwiczenia
+// ---------- DB INIT ----------
 func initDB(db *sql.DB) {
 	_, err := db.Exec(`
 	CREATE TABLE IF NOT EXISTS exercises (
@@ -122,6 +157,7 @@ func initDB(db *sql.DB) {
 		category TEXT,
 		sets INTEGER
 	);
+
 	CREATE TABLE IF NOT EXISTS workout_log (
 		id INTEGER PRIMARY KEY,
 		exercise_id INTEGER,
@@ -135,10 +171,10 @@ func initDB(db *sql.DB) {
 		log.Fatal(err)
 	}
 
-	// dodanie przykładowych ćwiczeń
-	db.Exec(`INSERT OR IGNORE INTO exercises (id, name, category, sets) VALUES (1,'Bench Press','Upper A',3)`)
-	db.Exec(`INSERT OR IGNORE INTO exercises (id, name, category, sets) VALUES (2,'Pull-ups','Upper B',3)`)
-	db.Exec(`INSERT OR IGNORE INTO exercises (id, name, category, sets) VALUES (3,'Squat','Lower A',3)`)
-	db.Exec(`INSERT OR IGNORE INTO exercises (id, name, category, sets) VALUES (4,'Deadlift','Lower B',3)`)
-	db.Exec(`INSERT OR IGNORE INTO exercises (id, name, category, sets) VALUES (5,'Overhead Press','Upper C',3)`)
+	// przykładowe dane
+	db.Exec(`INSERT OR IGNORE INTO exercises VALUES (1,'Bench Press','Upper A',3)`)
+	db.Exec(`INSERT OR IGNORE INTO exercises VALUES (2,'Pull-ups','Upper B',3)`)
+	db.Exec(`INSERT OR IGNORE INTO exercises VALUES (3,'Squat','Lower A',3)`)
+	db.Exec(`INSERT OR IGNORE INTO exercises VALUES (4,'Deadlift','Lower B',3)`)
+	db.Exec(`INSERT OR IGNORE INTO exercises VALUES (5,'Overhead Press','Upper C',3)`)
 }
