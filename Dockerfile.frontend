@@ -1,0 +1,7 @@
+# Frontend serwowany przez nginx
+FROM nginx:alpine
+
+COPY frontend/ /usr/share/nginx/html
+
+# expose niestandardowy port
+EXPOSE 8081

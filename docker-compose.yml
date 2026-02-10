@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "5001:4000"  # niestandardowy port na serwerze
+    volumes:
+      - backend_data:/app  # plik db.sqlite będzie w wolumenie
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "5000:8081"  # frontend dostępny na http://your-server:5000
+    depends_on:
+      - backend
+
+volumes:
+  backend_data:

@@ -1,0 +1,17 @@
+# Backend Go
+FROM golang:1.21
+
+WORKDIR /app
+
+# kopiowanie kodu
+COPY backend/ .
+
+# pobranie zależności
+RUN go mod init gym-tracker || true
+RUN go get github.com/gin-gonic/gin github.com/gin-contrib/cors modernc.org/sqlite
+RUN go mod tidy
+
+# expose niestandardowy port wewnątrz kontenera
+EXPOSE 4000
+
+CMD ["go", "run", "main.go"]
