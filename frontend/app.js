@@ -1,4 +1,4 @@
-const API_URL = "http://192.168.1.166/5001";
+const API_URL = "http://192.168.1.166:5001";
 
 async function loadCategory(category) {
   const res = await fetch(`${API_URL}/exercises/${encodeURIComponent(category)}`);
