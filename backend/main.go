@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"os"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -9,13 +10,18 @@ import (
 )
 
 func main() {
-	db, err := sql.Open("sqlite3", "./db.sqlite")
+	// Pobieramy ścieżkę bazy z env (zdefiniowane w docker-compose)
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "./db.sqlite"
+	}
+
+	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		panic(err)
 	}
 	defer db.Close()
 
-	// Inicjalizacja tabel z typem REAL dla wagi
 	_, err = db.Exec(`
 	CREATE TABLE IF NOT EXISTS exercises (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -37,9 +43,9 @@ func main() {
 
 	r := gin.Default()
 
-	// CORS ujednolicony z portami frontendu
+	// CORS musi pozwalać na port frontendu (5000)
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://192.168.1.166:5000", "http://localhost:5000", "http://127.0.0.1:5500"},
+		AllowOrigins:     []string{"http://192.168.1.166:5000", "http://localhost:5000"},
 		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type"},
 		AllowCredentials: true,
@@ -54,7 +60,7 @@ func main() {
 		}
 		defer rows.Close()
 
-		var result []gin.H
+		var result []gin.H = []gin.H{} // Inicjalizacja pustej tablicy zamiast nil
 		for rows.Next() {
 			var id, sets int
 			var name string
@@ -64,18 +70,12 @@ func main() {
 		c.JSON(200, result)
 	})
 
-	// Pobieranie ostatniego wyniku dla konkretnej serii ćwiczenia
 	r.GET("/last/:id/:set", func(c *gin.Context) {
 		id := c.Param("id")
 		set := c.Param("set")
-
 		var reps int
 		var weight float64
-		err := db.QueryRow(`
-			SELECT reps, weight FROM logs 
-			WHERE exercise_id = ? AND set_number = ? 
-			ORDER BY created_at DESC LIMIT 1`, id, set).Scan(&reps, &weight)
-
+		err := db.QueryRow(`SELECT reps, weight FROM logs WHERE exercise_id = ? AND set_number = ? ORDER BY created_at DESC LIMIT 1`, id, set).Scan(&reps, &weight)
 		if err != nil {
 			c.JSON(200, gin.H{"reps": 0, "weight": 0})
 			return
@@ -90,15 +90,12 @@ func main() {
 			Reps       int     `json:"reps"`
 			Weight     float64 `json:"weight"`
 		}
-
 		if err := c.BindJSON(&body); err != nil {
 			c.JSON(400, gin.H{"error": "invalid json"})
 			return
 		}
-
 		_, err := db.Exec(`INSERT INTO logs (exercise_id, set_number, reps, weight) VALUES (?, ?, ?, ?)`,
 			body.ExerciseID, body.SetNumber, body.Reps, body.Weight)
-
 		if err != nil {
 			c.JSON(500, gin.H{"error": err.Error()})
 			return
@@ -106,5 +103,6 @@ func main() {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
-	r.Run(":5001")
+	// Słuchamy na 4000 (wewnątrz kontenera)
+	r.Run(":4000")
 }
