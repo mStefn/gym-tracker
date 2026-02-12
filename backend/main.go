@@ -104,5 +104,5 @@ func main() {
 	})
 
 	// Słuchamy na 4000 (wewnątrz kontenera)
-	r.Run(":4000")
+	r.Run("0.0.0.0:4000")
 }
