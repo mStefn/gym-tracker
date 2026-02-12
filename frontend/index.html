@@ -5,27 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gym Tracker</title>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; background-color: #f4f4f9; }
-        #tabs { margin-bottom: 20px; }
-        button { padding: 10px 15px; margin: 5px; cursor: pointer; border: none; background: #007bff; color: white; border-radius: 4px; }
-        button:hover { background: #0056b3; }
-        .exercise-card { background: white; padding: 15px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-        th { background-color: #f8f9fa; }
-        input { width: 60px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
-        .save-btn { background: #28a745; }
-        .save-btn:hover { background: #218838; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; background-color: #f4f4f9; color: #333; }
+        h1 { text-align: center; color: #2c3e50; }
+        #tabs { display: flex; justify-content: center; flex-wrap: wrap; margin-bottom: 20px; }
+        button { padding: 12px 20px; margin: 5px; cursor: pointer; border: none; background: #3498db; color: white; border-radius: 5px; font-weight: bold; transition: background 0.3s; }
+        button:hover { background: #2980b9; }
+        .exercise-card { background: white; padding: 20px; margin-bottom: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h3 { margin-top: 0; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #eee; padding: 12px; text-align: center; }
+        th { background-color: #f8f9fa; color: #7f8c8d; text-transform: uppercase; font-size: 0.85em; }
+        input { width: 70px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; text-align: center; }
+        .save-btn { background: #2ecc71; width: 100%; }
+        .save-btn:hover { background: #27ae60; }
+        @media (max-width: 600px) {
+            table { font-size: 14px; }
+            input { width: 50px; }
+            body { padding: 10px; }
+        }
     </style>
 </head>
 <body>
     <h1>Gym Tracker</h1>
+
     <div id="tabs">
         <button onclick="loadCategory('Upper A')">Upper A</button>
         <button onclick="loadCategory('Upper B')">Upper B</button>
         <button onclick="loadCategory('Upper C')">Upper C</button>
-        <button onclick="loadCategory('Lower A')">Lower A</button>
-        <button onclick="loadCategory('Lower B')">Lower B</button>
+        <button onclick="loadCategory('Lower A')">Lower Day</button>
+        <button onclick="loadCategory('Lower B')">Arm Day</button>
     </div>
 
     <div id="exercises"></div>
