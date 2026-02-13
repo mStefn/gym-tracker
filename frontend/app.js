@@ -1,4 +1,3 @@
-// Dynamicznie wykrywa adres IP, pod którym otworzyłeś stronę
 const API_URL = `http://${window.location.hostname}:5001`;
 
 async function loadCategory(category) {
@@ -26,8 +25,7 @@ async function loadCategory(category) {
             await loadExerciseRows(ex.id, ex.sets);
         }
     } catch (err) {
-        console.error(err);
-        container.innerHTML = `<p style='color:red; text-align:center;'>Błąd połączenia z backendem (${API_URL})</p>`;
+        container.innerHTML = `<p style='color:red; text-align:center;'>Błąd: Nie można połączyć z backendem na ${API_URL}</p>`;
     }
 }
 
@@ -106,6 +104,6 @@ async function logSet(btn, exId, setNumber) {
             }, 2000);
         }
     } catch (err) {
-        alert("Błąd połączenia z serwerem Tailscale!");
+        alert("Błąd połączenia!");
     }
 }

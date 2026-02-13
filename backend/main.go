@@ -18,15 +18,14 @@ func main() {
 
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
-		log.Fatal("Błąd bazy:", err)
+		log.Fatal(err)
 	}
 	defer db.Close()
 
-	// Tabele
 	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS exercises (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, category TEXT NOT NULL, sets INTEGER NOT NULL);`)
 	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, exercise_id INTEGER NOT NULL, set_number INTEGER NOT NULL, reps INTEGER NOT NULL, weight REAL NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`)
 
-	// Smart Seeder (nie usuwa starych ID)
+	// Smart Seeder
 	type Ex struct {
 		Name     string
 		Category string
@@ -41,36 +40,33 @@ func main() {
 	}
 
 	for _, e := range plan {
-		var existingID int
-		err := db.QueryRow("SELECT id FROM exercises WHERE name = ? AND category = ?", e.Name, e.Category).Scan(&existingID)
+		var id int
+		err := db.QueryRow("SELECT id FROM exercises WHERE name = ? AND category = ?", e.Name, e.Category).Scan(&id)
 		if err == sql.ErrNoRows {
 			db.Exec("INSERT INTO exercises (name, category, sets) VALUES (?, ?, ?)", e.Name, e.Category, e.Sets)
 		} else {
-			db.Exec("UPDATE exercises SET sets = ? WHERE id = ?", e.Sets, existingID)
+			db.Exec("UPDATE exercises SET sets = ? WHERE id = ?", e.Sets, id)
 		}
 	}
 
 	r := gin.Default()
-
-	// Konfiguracja CORS pod Tailscale
 	r.Use(cors.New(cors.Config{
-		AllowAllOrigins:  true,
-		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type"},
-		AllowCredentials: true,
+		AllowAllOrigins: true, // Bezpieczne wewnątrz Tailscale
+		AllowMethods:    []string{"GET", "POST", "OPTIONS"},
+		AllowHeaders:    []string{"Origin", "Content-Type"},
 	}))
 
 	r.GET("/exercises/:category", func(c *gin.Context) {
 		rows, _ := db.Query("SELECT id, name, sets FROM exercises WHERE category = ?", c.Param("category"))
 		defer rows.Close()
-		result := []gin.H{}
+		res := []gin.H{}
 		for rows.Next() {
 			var id, sets int
 			var name string
 			rows.Scan(&id, &name, &sets)
-			result = append(result, gin.H{"id": id, "name": name, "sets": sets})
+			res = append(res, gin.H{"id": id, "name": name, "sets": sets})
 		}
-		c.JSON(200, result)
+		c.JSON(200, res)
 	})
 
 	r.GET("/last/:id/:set", func(c *gin.Context) {
@@ -91,10 +87,7 @@ func main() {
 			Reps int     `json:"reps"`
 			W    float64 `json:"weight"`
 		}
-		if err := c.BindJSON(&b); err != nil {
-			c.JSON(400, gin.H{"error": "invalid json"})
-			return
-		}
+		c.BindJSON(&b)
 		db.Exec(`INSERT INTO logs (exercise_id, set_number, reps, weight) VALUES (?, ?, ?, ?)`, b.ExID, b.Set, b.Reps, b.W)
 		c.JSON(200, gin.H{"status": "ok"})
 	})

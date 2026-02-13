@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Gym Tracker Pro</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Gym Tracker">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2964/2964514.png">
+
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -17,7 +24,7 @@
             padding: 15px; background-color: var(--bg-color); margin: 0;
             -webkit-font-smoothing: antialiased;
         }
-        h1 { text-align: center; font-size: 22px; margin: 10px 0 20px; color: var(--text); }
+        h1 { text-align: center; font-size: 22px; margin: 15px 0 20px; color: var(--text); }
         #tabs { display: flex; overflow-x: auto; gap: 8px; padding-bottom: 10px; margin-bottom: 15px; }
         #tabs::-webkit-scrollbar { display: none; }
         #tabs button { 
@@ -36,7 +43,7 @@
         }
         .set-row:last-child { border-bottom: none; }
         .label-small { font-size: 10px; color: #8E8E93; display: block; margin-bottom: 2px; }
-        .history-val { font-size: 13px; font-weight: 600; color: #8E8E93; }
+        .history-val { font-size: 13px; font-weight: 600; color: #8E8E93; transition: color 0.3s; }
         input { 
             width: 100%; padding: 10px 0; border: 1px solid #d1d1d6; 
             border-radius: 8px; text-align: center; font-size: 16px; background: #f8f8fa;
