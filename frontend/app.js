@@ -2,7 +2,7 @@ const API_URL = "http://192.168.1.166:5001";
 
 async function loadCategory(category) {
     const container = document.getElementById("exercises");
-    container.innerHTML = "Loading...";
+    container.innerHTML = "<p style='text-align:center'>Ładowanie...</p>";
 
     try {
         const res = await fetch(`${API_URL}/exercises/${encodeURIComponent(category)}`);
@@ -13,25 +13,14 @@ async function loadCategory(category) {
             const div = document.createElement("div");
             div.className = "exercise-card";
             div.innerHTML = `
-                <h3>${ex.name} (${ex.sets} series)</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Set</th>
-                            <th>Last Reps</th>
-                            <th>Last Weight</th>
-                            <th>Reps</th>
-                            <th>Weight</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="exercise-${ex.id}"></tbody>
-                </table>`;
+                <h3>${ex.name}</h3>
+                <div id="exercise-${ex.id}"></div>
+            `;
             container.appendChild(div);
             await loadExerciseRows(ex.id, ex.sets);
         }
     } catch (err) {
-        container.innerHTML = "Error loading exercises. Check backend connection.";
+        container.innerHTML = "<p style='color:red; text-align:center'>Błąd połączenia z serwerem</p>";
     }
 }
 
@@ -39,20 +28,30 @@ async function loadExerciseRows(exId, sets) {
     const tbody = document.getElementById(`exercise-${exId}`);
 
     for (let i = 1; i <= sets; i++) {
-        // Pobieramy ostatni wynik dla konkretnej serii (set_number = i)
         const lastRes = await fetch(`${API_URL}/last/${exId}/${i}`);
         const last = await lastRes.json();
 
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td>${i}</td>
-            <td style="color: gray">${last.reps || '-'}</td>
-            <td style="color: gray">${last.weight ? last.weight + 'kg' : '-'}</td>
-            <td><input type="number" id="reps-${exId}-${i}" placeholder="0"></td>
-            <td><input type="number" step="0.5" id="weight-${exId}-${i}" placeholder="kg"></td>
-            <td><button class="save-btn" onclick="logSet(${exId}, ${i})">Save</button></td>
+        const row = document.createElement("div");
+        row.className = "set-row";
+        row.innerHTML = `
+            <div style="font-weight:bold; color:var(--primary)">S${i}</div>
+            <div>
+                <span class="label-small">Poprzednio</span>
+                <span class="history-val">${last.reps || 0} x ${last.weight || 0}kg</span>
+            </div>
+            <div>
+                <span class="label-small">Reps</span>
+                <input type="number" pattern="[0-9]*" id="reps-${exId}-${i}" placeholder="0">
+            </div>
+            <div>
+                <span class="label-small">Kg</span>
+                <input type="number" step="0.5" id="weight-${exId}-${i}" placeholder="0">
+            </div>
+            <div style="grid-column: span 4; margin-top: 5px;">
+                <button class="save-btn" onclick="logSet(${exId}, ${i})">Zapisz Serię ${i}</button>
+            </div>
         `;
-        tbody.appendChild(tr);
+        tbody.appendChild(row);
     }
 }
 
@@ -63,25 +62,30 @@ async function logSet(exId, setNumber) {
     const reps = parseInt(repsInput.value);
     const weight = parseFloat(weightInput.value);
 
-    if (!reps || isNaN(weight)) {
-        alert("Enter reps and weight");
+    if (isNaN(reps) || isNaN(weight)) {
+        alert("Wpisz powtórzenia i ciężar!");
         return;
     }
 
-    const res = await fetch(`${API_URL}/log`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-            exercise_id: exId, 
-            set_number: setNumber, 
-            reps: reps, 
-            weight: weight 
-        })
-    });
+    try {
+        const res = await fetch(`${API_URL}/log`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ exercise_id: exId, set_number: setNumber, reps, weight })
+        });
 
-    if (res.ok) {
-        alert(`Set ${setNumber} saved!`);
-    } else {
-        alert("Error saving data");
+        if (res.ok) {
+            // Wizualne potwierdzenie zapisu
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = "Zapisano! ✓";
+            btn.style.background = "#28a745";
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.style.background = "";
+            }, 2000);
+        }
+    } catch (err) {
+        alert("Błąd połączenia!");
     }
 }
