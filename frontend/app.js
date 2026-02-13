@@ -44,23 +44,15 @@ async function loadExerciseRows(exId, sets) {
                 <div style="font-weight:bold; color:var(--primary)">S${i}</div>
                 <div>
                     <span class="label-small">Poprzednio</span>
-                    <span class="history-val">${last.reps || 0} x ${last.weight || 0}kg</span>
+                    <span class="history-val" id="history-${exId}-${i}">${last.reps || 0} x ${last.weight || 0}kg</span>
                 </div>
                 <div>
                     <span class="label-small">Reps</span>
-                    <input type="number" 
-                           inputmode="numeric" 
-                           pattern="[0-9]*" 
-                           id="reps-${exId}-${i}" 
-                           placeholder="0">
+                    <input type="number" inputmode="numeric" pattern="[0-9]*" id="reps-${exId}-${i}" placeholder="0">
                 </div>
                 <div>
                     <span class="label-small">Kg</span>
-                    <input type="number" 
-                           inputmode="decimal" 
-                           step="0.5" 
-                           id="weight-${exId}-${i}" 
-                           placeholder="0">
+                    <input type="number" inputmode="decimal" step="0.5" id="weight-${exId}-${i}" placeholder="0">
                 </div>
                 <div style="grid-column: span 4; margin-top: 5px;">
                     <button class="save-btn" onclick="logSet(this, ${exId}, ${i})">Zapisz Serię ${i}</button>
@@ -68,7 +60,7 @@ async function loadExerciseRows(exId, sets) {
             `;
             container.appendChild(row);
         } catch (e) {
-            console.error("Błąd ładowania wiersza:", e);
+            console.error("Błąd wiersza:", e);
         }
     }
 }
@@ -77,9 +69,7 @@ async function logSet(btn, exId, setNumber) {
     const repsInput = document.getElementById(`reps-${exId}-${setNumber}`);
     const weightInput = document.getElementById(`weight-${exId}-${setNumber}`);
     
-    // Obsługa iPhone: zamiana przecinka na kropkę przed parsowaniem
     const weightRaw = weightInput.value.replace(',', '.');
-    
     const reps = parseInt(repsInput.value);
     const weight = parseFloat(weightRaw);
 
@@ -92,34 +82,31 @@ async function logSet(btn, exId, setNumber) {
         const res = await fetch(`${API_URL}/log`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-                exercise_id: exId, 
-                set_number: setNumber, 
-                reps: reps, 
-                weight: weight 
-            })
+            body: JSON.stringify({ exercise_id: exId, set_number: setNumber, reps, weight })
         });
 
         if (res.ok) {
-            // Sukces: animacja przycisku
-            const originalText = btn.innerText;
-            const originalBG = btn.style.background;
+            // 1. Natychmiastowa aktualizacja napisu "Poprzednio" na ekranie
+            const historySpan = document.getElementById(`history-${exId}-${setNumber}`);
+            if (historySpan) {
+                historySpan.innerText = `${reps} x ${weight}kg`;
+                historySpan.style.color = "#007AFF"; // Zmiana koloru na niebieski, by zasygnalizować zmianę
+            }
 
+            // 2. Animacja przycisku
+            const originalText = btn.innerText;
             btn.innerText = "Zapisano! ✓";
-            btn.style.background = "#34C759"; // Apple Green
+            btn.style.background = "#34C759";
             btn.disabled = true;
 
             setTimeout(() => {
                 btn.innerText = originalText;
-                btn.style.background = originalBG;
+                btn.style.background = "";
                 btn.disabled = false;
+                if (historySpan) historySpan.style.color = ""; // Powrót do standardowego koloru historii
             }, 2000);
-        } else {
-            const data = await res.json();
-            alert("Błąd serwera: " + (data.error || "Nieznany błąd"));
         }
     } catch (err) {
-        console.error("Błąd wysyłania:", err);
-        alert("Błąd połączenia! Sprawdź Docker logs.");
+        alert("Błąd połączenia!");
     }
 }
