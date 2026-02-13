@@ -2,12 +2,17 @@ const API_URL = "http://192.168.1.166:5001";
 
 async function loadCategory(category) {
     const container = document.getElementById("exercises");
-    container.innerHTML = "<p style='text-align:center'>Ładowanie...</p>";
+    container.innerHTML = "<p style='text-align:center; padding: 20px;'>Ładowanie planu...</p>";
 
     try {
         const res = await fetch(`${API_URL}/exercises/${encodeURIComponent(category)}`);
         const exercises = await res.json();
         container.innerHTML = ""; 
+
+        if (exercises.length === 0) {
+            container.innerHTML = "<p style='text-align:center;'>Brak ćwiczeń w tej kategorii.</p>";
+            return;
+        }
 
         for (const ex of exercises) {
             const div = document.createElement("div");
@@ -20,50 +25,66 @@ async function loadCategory(category) {
             await loadExerciseRows(ex.id, ex.sets);
         }
     } catch (err) {
-        container.innerHTML = "<p style='color:red; text-align:center'>Błąd połączenia z serwerem</p>";
+        console.error(err);
+        container.innerHTML = "<p style='color:red; text-align:center;'>Błąd połączenia z backendem (5001)</p>";
     }
 }
 
 async function loadExerciseRows(exId, sets) {
-    const tbody = document.getElementById(`exercise-${exId}`);
+    const container = document.getElementById(`exercise-${exId}`);
 
     for (let i = 1; i <= sets; i++) {
-        const lastRes = await fetch(`${API_URL}/last/${exId}/${i}`);
-        const last = await lastRes.json();
+        try {
+            const lastRes = await fetch(`${API_URL}/last/${exId}/${i}`);
+            const last = await lastRes.json();
 
-        const row = document.createElement("div");
-        row.className = "set-row";
-        row.innerHTML = `
-            <div style="font-weight:bold; color:var(--primary)">S${i}</div>
-            <div>
-                <span class="label-small">Poprzednio</span>
-                <span class="history-val">${last.reps || 0} x ${last.weight || 0}kg</span>
-            </div>
-            <div>
-                <span class="label-small">Reps</span>
-                <input type="number" pattern="[0-9]*" id="reps-${exId}-${i}" placeholder="0">
-            </div>
-            <div>
-                <span class="label-small">Kg</span>
-                <input type="number" step="0.5" id="weight-${exId}-${i}" placeholder="0">
-            </div>
-            <div style="grid-column: span 4; margin-top: 5px;">
-                <button class="save-btn" onclick="logSet(${exId}, ${i})">Zapisz Serię ${i}</button>
-            </div>
-        `;
-        tbody.appendChild(row);
+            const row = document.createElement("div");
+            row.className = "set-row";
+            row.innerHTML = `
+                <div style="font-weight:bold; color:var(--primary)">S${i}</div>
+                <div>
+                    <span class="label-small">Poprzednio</span>
+                    <span class="history-val">${last.reps || 0} x ${last.weight || 0}kg</span>
+                </div>
+                <div>
+                    <span class="label-small">Reps</span>
+                    <input type="number" 
+                           inputmode="numeric" 
+                           pattern="[0-9]*" 
+                           id="reps-${exId}-${i}" 
+                           placeholder="0">
+                </div>
+                <div>
+                    <span class="label-small">Kg</span>
+                    <input type="number" 
+                           inputmode="decimal" 
+                           step="0.5" 
+                           id="weight-${exId}-${i}" 
+                           placeholder="0">
+                </div>
+                <div style="grid-column: span 4; margin-top: 5px;">
+                    <button class="save-btn" onclick="logSet(this, ${exId}, ${i})">Zapisz Serię ${i}</button>
+                </div>
+            `;
+            container.appendChild(row);
+        } catch (e) {
+            console.error("Błąd ładowania wiersza:", e);
+        }
     }
 }
 
-async function logSet(exId, setNumber) {
+async function logSet(btn, exId, setNumber) {
     const repsInput = document.getElementById(`reps-${exId}-${setNumber}`);
     const weightInput = document.getElementById(`weight-${exId}-${setNumber}`);
     
+    // Obsługa iPhone: zamiana przecinka na kropkę przed parsowaniem
+    const weightRaw = weightInput.value.replace(',', '.');
+    
     const reps = parseInt(repsInput.value);
-    const weight = parseFloat(weightInput.value);
+    const weight = parseFloat(weightRaw);
 
     if (isNaN(reps) || isNaN(weight)) {
-        alert("Wpisz powtórzenia i ciężar!");
+        alert("Wpisz poprawne liczby!");
         return;
     }
 
@@ -71,21 +92,34 @@ async function logSet(exId, setNumber) {
         const res = await fetch(`${API_URL}/log`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ exercise_id: exId, set_number: setNumber, reps, weight })
+            body: JSON.stringify({ 
+                exercise_id: exId, 
+                set_number: setNumber, 
+                reps: reps, 
+                weight: weight 
+            })
         });
 
         if (res.ok) {
-            // Wizualne potwierdzenie zapisu
-            const btn = event.target;
+            // Sukces: animacja przycisku
             const originalText = btn.innerText;
+            const originalBG = btn.style.background;
+
             btn.innerText = "Zapisano! ✓";
-            btn.style.background = "#28a745";
+            btn.style.background = "#34C759"; // Apple Green
+            btn.disabled = true;
+
             setTimeout(() => {
                 btn.innerText = originalText;
-                btn.style.background = "";
+                btn.style.background = originalBG;
+                btn.disabled = false;
             }, 2000);
+        } else {
+            const data = await res.json();
+            alert("Błąd serwera: " + (data.error || "Nieznany błąd"));
         }
     } catch (err) {
-        alert("Błąd połączenia!");
+        console.error("Błąd wysyłania:", err);
+        alert("Błąd połączenia! Sprawdź Docker logs.");
     }
 }
