@@ -11,45 +11,27 @@ import (
 )
 
 func main() {
-	// 1. Pobieranie ścieżki bazy z env (zdefiniowane w docker-compose)
 	dbPath := os.Getenv("DB_PATH")
 	if dbPath == "" {
-		dbPath = "/data/db.sqlite" // Domyślna ścieżka wewnątrz kontenera
+		dbPath = "/data/db.sqlite"
 	}
 
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
-		log.Fatal("Błąd otwarcia bazy:", err)
+		log.Fatal("Błąd bazy:", err)
 	}
 	defer db.Close()
 
-	// 2. Tworzenie tabel
-	_, err = db.Exec(`
-	CREATE TABLE IF NOT EXISTS exercises (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		name TEXT NOT NULL,
-		category TEXT NOT NULL,
-		sets INTEGER NOT NULL
-	);
-	CREATE TABLE IF NOT EXISTS logs (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		exercise_id INTEGER NOT NULL,
-		set_number INTEGER NOT NULL,
-		reps INTEGER NOT NULL,
-		weight REAL NOT NULL, 
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);`)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// Tabele
+	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS exercises (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, category TEXT NOT NULL, sets INTEGER NOT NULL);`)
+	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, exercise_id INTEGER NOT NULL, set_number INTEGER NOT NULL, reps INTEGER NOT NULL, weight REAL NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`)
 
-	// 3. INTELIGENTNY SEEDER (Doda nowe, ale nie usunie starych ID)
+	// Smart Seeder (nie usuwa starych ID)
 	type Ex struct {
 		Name     string
 		Category string
 		Sets     int
 	}
-
 	plan := []Ex{
 		{"Pull-ups", "Upper A", 3}, {"Incline Chest Press (Machine)", "Upper A", 3}, {"Dumbbell Lateral Raises", "Upper A", 3}, {"Triceps Rope Pushdown", "Upper A", 3}, {"Cable Biceps Curl", "Upper A", 3},
 		{"Seated Machine Row", "Upper B", 3}, {"Machine Chest Fly", "Upper B", 3}, {"Machine Shoulder Press", "Upper B", 3}, {"Machine Assisted Dips", "Upper B", 3}, {"Machine Biceps Curl", "Upper B", 3},
@@ -60,29 +42,26 @@ func main() {
 
 	for _, e := range plan {
 		var existingID int
-		// Szukamy po nazwie i kategorii
 		err := db.QueryRow("SELECT id FROM exercises WHERE name = ? AND category = ?", e.Name, e.Category).Scan(&existingID)
-
 		if err == sql.ErrNoRows {
-			// Jeśli nie ma – dodaj
 			db.Exec("INSERT INTO exercises (name, category, sets) VALUES (?, ?, ?)", e.Name, e.Category, e.Sets)
 		} else {
-			// Jeśli jest – tylko aktualizuj liczbę serii (na wypadek zmiany w planie)
 			db.Exec("UPDATE exercises SET sets = ? WHERE id = ?", e.Sets, existingID)
 		}
 	}
 
-	// 4. GIN SETUP
 	r := gin.Default()
+
+	// Konfiguracja CORS pod Tailscale
 	r.Use(cors.New(cors.Config{
-		AllowOrigins: []string{"http://192.168.1.166:5000", "http://localhost:5000"},
-		AllowMethods: []string{"GET", "POST", "OPTIONS"},
-		AllowHeaders: []string{"Origin", "Content-Type"},
+		AllowAllOrigins:  true,
+		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type"},
+		AllowCredentials: true,
 	}))
 
 	r.GET("/exercises/:category", func(c *gin.Context) {
-		category := c.Param("category")
-		rows, _ := db.Query("SELECT id, name, sets FROM exercises WHERE category = ?", category)
+		rows, _ := db.Query("SELECT id, name, sets FROM exercises WHERE category = ?", c.Param("category"))
 		defer rows.Close()
 		result := []gin.H{}
 		for rows.Next() {

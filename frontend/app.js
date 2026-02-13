@@ -1,4 +1,5 @@
-const API_URL = "http://192.168.1.166:5001";
+// Dynamicznie wykrywa adres IP, pod którym otworzyłeś stronę
+const API_URL = `http://${window.location.hostname}:5001`;
 
 async function loadCategory(category) {
     const container = document.getElementById("exercises");
@@ -26,7 +27,7 @@ async function loadCategory(category) {
         }
     } catch (err) {
         console.error(err);
-        container.innerHTML = "<p style='color:red; text-align:center;'>Błąd połączenia z backendem (5001)</p>";
+        container.innerHTML = `<p style='color:red; text-align:center;'>Błąd połączenia z backendem (${API_URL})</p>`;
     }
 }
 
@@ -86,14 +87,12 @@ async function logSet(btn, exId, setNumber) {
         });
 
         if (res.ok) {
-            // 1. Natychmiastowa aktualizacja napisu "Poprzednio" na ekranie
             const historySpan = document.getElementById(`history-${exId}-${setNumber}`);
             if (historySpan) {
                 historySpan.innerText = `${reps} x ${weight}kg`;
-                historySpan.style.color = "#007AFF"; // Zmiana koloru na niebieski, by zasygnalizować zmianę
+                historySpan.style.color = "#007AFF";
             }
 
-            // 2. Animacja przycisku
             const originalText = btn.innerText;
             btn.innerText = "Zapisano! ✓";
             btn.style.background = "#34C759";
@@ -103,10 +102,10 @@ async function logSet(btn, exId, setNumber) {
                 btn.innerText = originalText;
                 btn.style.background = "";
                 btn.disabled = false;
-                if (historySpan) historySpan.style.color = ""; // Powrót do standardowego koloru historii
+                if (historySpan) historySpan.style.color = "";
             }, 2000);
         }
     } catch (err) {
-        alert("Błąd połączenia!");
+        alert("Błąd połączenia z serwerem Tailscale!");
     }
 }
