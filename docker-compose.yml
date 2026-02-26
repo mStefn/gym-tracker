@@ -1,15 +1,25 @@
 services:
+  db:
+    image: mariadb:10.11
+    restart: always
+    environment:
+      MYSQL_DATABASE: gym_tracker
+      MYSQL_ROOT_PASSWORD: root_password_stefan
+      MYSQL_USER: gym_user
+      MYSQL_PASSWORD: gym_password_stefan
+    volumes:
+      - mariadb_data:/var/lib/mysql
+
   backend:
     build:
       context: .
       dockerfile: Dockerfile.backend
     ports:
       - "5001:4000"
-    volumes:
-      - backend_data:/data
     environment:
-      - DB_PATH=/data/db.sqlite
-    restart: always
+      - DB_DSN=gym_user:gym_password_stefan@tcp(db:3306)/gym_tracker?parseTime=true
+    depends_on:
+      - db
 
   frontend:
     build:
@@ -17,9 +27,7 @@ services:
       dockerfile: Dockerfile.frontend
     ports:
       - "5000:8081"
-    depends_on:
-      - backend
     restart: always
 
 volumes:
-  backend_data:
+  mariadb_data:

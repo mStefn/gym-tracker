@@ -1,20 +1,17 @@
 FROM golang:1.21-bullseye
 
-# potrzebne dla sqlite3 (CGO)
-RUN apt-get update && apt-get install -y gcc libsqlite3-dev
-
 WORKDIR /app
+
 COPY backend/ .
 
-# inicjalizacja modułu (jeśli brak)
 RUN go mod init gym-tracker || true
 
-# 🔒 PRZYPINAMY WERSJE (KLUCZOWE)
 RUN go get github.com/gin-gonic/gin@v1.10.0
 RUN go get github.com/gin-contrib/cors@v1.7.2
-RUN go get github.com/mattn/go-sqlite3@v1.14.22
+RUN go get github.com/go-sql-driver/mysql@v1.7.1
 
 RUN go mod tidy
 
 EXPOSE 4000
+
 CMD ["go", "run", "main.go"]
