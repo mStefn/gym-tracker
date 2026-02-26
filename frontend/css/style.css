@@ -1,0 +1,76 @@
+:root {
+    --bg-color: #f2f2f7;
+    --primary: #007AFF;
+    --success: #34C759;
+    --text: #1c1c1e;
+    --card-bg: #ffffff;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-color);
+    color: var(--text);
+    padding: 15px;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+}
+
+#exercises {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.exercise-card {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+h3 {
+    margin: 0 0 15px 0;
+    font-size: 18px;
+    border-left: 4px solid var(--primary);
+    padding-left: 10px;
+}
+
+.set-row {
+    display: grid;
+    grid-template-columns: 35px 1.2fr 1fr 1fr;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 0;
+    border-bottom: 1px solid #f2f2f7;
+}
+
+.label-small { font-size: 10px; color: #8E8E93; display: block; }
+.history-val { font-size: 13px; font-weight: 600; color: #8E8E93; }
+
+input {
+    width: 100%;
+    padding: 10px 0;
+    border: 1px solid #d1d1d6;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 16px;
+    background: #f8f8fa;
+}
+
+.save-btn {
+    width: 100%;
+    padding: 15px;
+    border-radius: 12px;
+    border: none;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 700;
+    transition: 0.2s;
+}
+
+.nav-link {
+    background: none;
+    border: none;
+    color: var(--primary);
+    font-weight: 600;
+}
