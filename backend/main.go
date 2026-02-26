@@ -15,11 +15,15 @@ func main() {
 		AllowHeaders:    []string{"Origin", "Content-Type"},
 	}))
 
-	// API Routes
-	r.GET("/users", GetUsers)
-	r.POST("/auth", AuthUser)
+	// API Routes for Authentication
+	r.POST("/login", Login)
+	r.POST("/signup", SignUp)
+
+	// Data Routes
 	r.GET("/plans/:user_id", GetUserPlans)
-	// We will add more routes as we develop new features
+	r.GET("/plan-exercises/:plan_id", GetPlanExercises)
+	r.POST("/log", LogSet)
+	r.GET("/last/:user_id/:ex_id/:set", GetLastResult)
 
 	r.Run("0.0.0.0:4000")
 }

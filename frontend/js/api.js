@@ -1,17 +1,21 @@
 const API_URL = `http://${window.location.hostname}:5001`;
 
 export const API = {
-    async fetchUsers() {
-        const res = await fetch(`${API_URL}/users`);
-        return res.json();
-    },
-    async auth(userId, pin) {
-        const res = await fetch(`${API_URL}/auth`, {
+    async login(name, pin) {
+        const res = await fetch(`${API_URL}/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ user_id: userId, pin: pin })
+            body: JSON.stringify({ name, pin })
         });
-        return { ok: res.ok, status: res.status, data: await res.json() };
+        return { ok: res.ok, data: await res.json() };
+    },
+    async signup(name, pin) {
+        const res = await fetch(`${API_URL}/signup`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, pin })
+        });
+        return { ok: res.ok, data: await res.json() };
     },
     async fetchPlans(userId) {
         const res = await fetch(`${API_URL}/plans/${userId}`);
