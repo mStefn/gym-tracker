@@ -17,6 +17,7 @@ func main() {
 	r.POST("/login", Login)
 	r.POST("/signup", SignUp)
 	r.POST("/change-pin", ChangePin)
+	r.POST("/admin/reset-pin", AdminResetPin)
 	r.DELETE("/user/:id", DeleteAccount)
 	r.GET("/admin/users", AdminListUsers)
 

@@ -51,15 +51,44 @@ func SignUp(c *gin.Context) {
 func ChangePin(c *gin.Context) {
 	var b struct {
 		UserID int    `json:"user_id"`
+		OldPin string `json:"old_pin"`
 		NewPin string `json:"new_pin"`
 	}
 	c.BindJSON(&b)
+
+	var currentPin string
+	db.QueryRow("SELECT pin FROM users WHERE id = ?", b.UserID).Scan(&currentPin)
+
+	if currentPin != b.OldPin {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Old PIN is incorrect"})
+		return
+	}
+
 	db.Exec("UPDATE users SET pin = ? WHERE id = ?", b.NewPin, b.UserID)
 	c.JSON(http.StatusOK, gin.H{"status": "updated"})
 }
 
+func AdminResetPin(c *gin.Context) {
+	var b struct {
+		UserID int    `json:"user_id"`
+		NewPin string `json:"new_pin"`
+	}
+	c.BindJSON(&b)
+	db.Exec("UPDATE users SET pin = ? WHERE id = ?", b.NewPin, b.UserID)
+	c.JSON(http.StatusOK, gin.H{"status": "reset_success"})
+}
+
 func DeleteAccount(c *gin.Context) {
 	id := c.Param("id")
+
+	var isAdmin bool
+	db.QueryRow("SELECT is_admin FROM users WHERE id = ?", id).Scan(&isAdmin)
+
+	if isAdmin {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot delete admin account"})
+		return
+	}
+
 	db.Exec("DELETE FROM users WHERE id = ?", id)
 	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
 }
@@ -78,7 +107,7 @@ func AdminListUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, users)
 }
 
-// Keep existing Workout/Log handlers below...
+// Workout/Log handlers remain the same
 func GetUserPlans(c *gin.Context) {
 	rows, _ := db.Query("SELECT id, name FROM workout_plans WHERE user_id = ?", c.Param("user_id"))
 	defer rows.Close()
