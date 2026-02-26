@@ -7,19 +7,19 @@ import (
 
 func main() {
 	initDB()
-
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
 		AllowAllOrigins: true,
-		AllowMethods:    []string{"GET", "POST", "OPTIONS"},
+		AllowMethods:    []string{"GET", "POST", "DELETE", "OPTIONS"},
 		AllowHeaders:    []string{"Origin", "Content-Type"},
 	}))
 
-	// API Routes for Authentication
 	r.POST("/login", Login)
 	r.POST("/signup", SignUp)
+	r.POST("/change-pin", ChangePin)
+	r.DELETE("/user/:id", DeleteAccount)
+	r.GET("/admin/users", AdminListUsers)
 
-	// Data Routes
 	r.GET("/plans/:user_id", GetUserPlans)
 	r.GET("/plan-exercises/:plan_id", GetPlanExercises)
 	r.POST("/log", LogSet)

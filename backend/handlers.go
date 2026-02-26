@@ -6,66 +6,79 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Login verifies credentials and returns user data
 func Login(c *gin.Context) {
 	var b struct {
 		Name string `json:"name"`
 		Pin  string `json:"pin"`
 	}
-	if err := c.BindJSON(&b); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
-		return
-	}
+	c.BindJSON(&b)
 
-	var u User
-	err := db.QueryRow("SELECT id, name FROM users WHERE name = ? AND pin = ?", b.Name, b.Pin).Scan(&u.ID, &u.Name)
+	var u struct {
+		ID      int
+		Name    string
+		IsAdmin bool
+	}
+	err := db.QueryRow("SELECT id, name, is_admin FROM users WHERE name = ? AND pin = ?", b.Name, b.Pin).Scan(&u.ID, &u.Name, &u.IsAdmin)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
-
-	c.JSON(http.StatusOK, u)
+	c.JSON(http.StatusOK, gin.H{"id": u.ID, "name": u.Name, "is_admin": u.IsAdmin})
 }
 
-// SignUp creates a new account if limit (5) is not exceeded
 func SignUp(c *gin.Context) {
 	var b struct {
 		Name string `json:"name"`
 		Pin  string `json:"pin"`
 	}
-	if err := c.BindJSON(&b); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
-		return
-	}
+	c.BindJSON(&b)
 
-	// 1. Check user limit
 	var count int
-	db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	db.QueryRow("SELECT COUNT(*) FROM users WHERE is_admin = FALSE").Scan(&count)
 	if count >= 5 {
-		c.JSON(http.StatusForbidden, gin.H{"error": "User limit reached (max 5)"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "User limit reached (5)"})
 		return
 	}
 
-	// 2. Check if username exists
-	var exists int
-	db.QueryRow("SELECT COUNT(*) FROM users WHERE name = ?", b.Name).Scan(&exists)
-	if exists > 0 {
-		c.JSON(http.StatusConflict, gin.H{"error": "Username already taken"})
-		return
-	}
-
-	// 3. Insert new user
-	res, err := db.Exec("INSERT INTO users (name, pin) VALUES (?, ?)", b.Name, b.Pin)
+	_, err := db.Exec("INSERT INTO users (name, pin) VALUES (?, ?)", b.Name, b.Pin)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		c.JSON(http.StatusConflict, gin.H{"error": "Username taken"})
 		return
 	}
-
-	newID, _ := res.LastInsertId()
-	c.JSON(http.StatusOK, gin.H{"id": newID, "name": b.Name})
+	c.JSON(http.StatusOK, gin.H{"status": "created"})
 }
 
-// GetUserPlans returns workout plans for the user
+func ChangePin(c *gin.Context) {
+	var b struct {
+		UserID int    `json:"user_id"`
+		NewPin string `json:"new_pin"`
+	}
+	c.BindJSON(&b)
+	db.Exec("UPDATE users SET pin = ? WHERE id = ?", b.NewPin, b.UserID)
+	c.JSON(http.StatusOK, gin.H{"status": "updated"})
+}
+
+func DeleteAccount(c *gin.Context) {
+	id := c.Param("id")
+	db.Exec("DELETE FROM users WHERE id = ?", id)
+	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
+}
+
+func AdminListUsers(c *gin.Context) {
+	rows, _ := db.Query("SELECT id, name, is_admin FROM users")
+	defer rows.Close()
+	var users []map[string]interface{}
+	for rows.Next() {
+		var id int
+		var name string
+		var isAdmin bool
+		rows.Scan(&id, &name, &isAdmin)
+		users = append(users, map[string]interface{}{"id": id, "name": name, "is_admin": isAdmin})
+	}
+	c.JSON(http.StatusOK, users)
+}
+
+// Keep existing Workout/Log handlers below...
 func GetUserPlans(c *gin.Context) {
 	rows, _ := db.Query("SELECT id, name FROM workout_plans WHERE user_id = ?", c.Param("user_id"))
 	defer rows.Close()
@@ -78,7 +91,6 @@ func GetUserPlans(c *gin.Context) {
 	c.JSON(http.StatusOK, plans)
 }
 
-// GetPlanExercises returns exercises for a specific plan
 func GetPlanExercises(c *gin.Context) {
 	query := `SELECT e.id, e.name, pe.target_sets FROM exercises e 
               JOIN plan_exercises pe ON e.id = pe.exercise_id WHERE pe.plan_id = ?`
@@ -93,27 +105,23 @@ func GetPlanExercises(c *gin.Context) {
 	c.JSON(http.StatusOK, exercises)
 }
 
-// LogSet saves a workout set
 func LogSet(c *gin.Context) {
 	var b struct {
-		UserID int     `json:"user_id"`
-		ExID   int     `json:"exercise_id"`
-		Set    int     `json:"set_number"`
-		Reps   int     `json:"reps"`
-		W      float64 `json:"weight"`
+		UserID int
+		ExID   int
+		Set    int
+		Reps   int
+		W      float64
 	}
 	c.BindJSON(&b)
-	db.Exec(`INSERT INTO logs (user_id, exercise_id, set_number, reps, weight) VALUES (?, ?, ?, ?, ?)`,
-		b.UserID, b.ExID, b.Set, b.Reps, b.W)
+	db.Exec(`INSERT INTO logs (user_id, exercise_id, set_number, reps, weight) VALUES (?, ?, ?, ?, ?)`, b.UserID, b.ExID, b.Set, b.Reps, b.W)
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
 
-// GetLastResult returns the most recent result for an exercise/set
 func GetLastResult(c *gin.Context) {
 	var reps int
 	var weight float64
-	err := db.QueryRow(`SELECT reps, weight FROM logs WHERE user_id = ? AND exercise_id = ? AND set_number = ? 
-                        ORDER BY created_at DESC LIMIT 1`, c.Param("user_id"), c.Param("ex_id"), c.Param("set")).Scan(&reps, &weight)
+	err := db.QueryRow(`SELECT reps, weight FROM logs WHERE user_id = ? AND exercise_id = ? AND set_number = ? ORDER BY created_at DESC LIMIT 1`, c.Param("user_id"), c.Param("ex_id"), c.Param("set")).Scan(&reps, &weight)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{"reps": 0, "weight": 0})
 		return
