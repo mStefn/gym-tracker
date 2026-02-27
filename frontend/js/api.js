@@ -1,4 +1,4 @@
-const API_URL = `http://${window.location.hostname}:5001`;
+import { API_URL } from './state.js';
 
 export const API = {
     async login(name, pin) {
@@ -35,5 +35,15 @@ export const API = {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
         });
+    },
+    async changePin(payload) {
+        return fetch(`${API_URL}/change-pin`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+    },
+    async deleteAccount(userId) {
+        return fetch(`${API_URL}/user/${userId}`, { method: "DELETE" });
     }
 };

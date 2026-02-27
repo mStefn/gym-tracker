@@ -1,4 +1,4 @@
-const API_URL = `http://${window.location.hostname}:5001`;
+import { API_URL } from './state.js';
 
 // Sprawdź sesję przy starcie
 window.onload = () => {
@@ -8,7 +8,7 @@ window.onload = () => {
     }
 };
 
-async function adminLogin() {
+window.adminLogin = async () => {
     const pass = document.getElementById("admin-pass").value;
     const res = await fetch(`${API_URL}/login`, {
         method: "POST",
@@ -24,24 +24,28 @@ async function adminLogin() {
     } else {
         alert("Access Denied");
     }
-}
+};
 
 function showConsole() {
-    document.getElementById("login-zone").style.display = "none";
-    document.getElementById("console-zone").style.display = "block";
+    const loginZone = document.getElementById("login-zone");
+    const consoleZone = document.getElementById("console-zone");
+    if (loginZone) loginZone.style.display = "none";
+    if (consoleZone) consoleZone.style.display = "block";
     loadUsers();
 }
 
-function adminLogout() {
+window.adminLogout = () => {
     localStorage.removeItem('adminAuth');
     localStorage.removeItem('adminId');
     location.reload();
-}
+};
 
 async function loadUsers() {
     const res = await fetch(`${API_URL}/admin/users`);
     const users = await res.json();
     const list = document.getElementById("user-list");
+    if (!list) return;
+
     list.innerHTML = users.map(u => `
         <div class="admin-card">
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -57,7 +61,7 @@ async function loadUsers() {
     `).join('');
 }
 
-async function changeAdminPassword() {
+window.changeAdminPassword = async () => {
     const oldP = document.getElementById("old-pass").value;
     const newP = document.getElementById("new-pass").value;
     const confP = document.getElementById("conf-pass").value;
@@ -73,16 +77,14 @@ async function changeAdminPassword() {
     });
 
     if (res.ok) {
-        alert("Password updated successfully!");
-        document.getElementById("old-pass").value = "";
-        document.getElementById("new-pass").value = "";
-        document.getElementById("conf-pass").value = "";
+        alert("Password updated!");
+        location.reload();
     } else {
         alert("Error: Current password incorrect");
     }
-}
+};
 
-async function resetPin(id) {
+window.resetPin = async (id) => {
     const pin = document.getElementById(`res-${id}`).value;
     if(pin.length !== 4) return alert("PIN must be 4 digits");
     await fetch(`${API_URL}/admin/reset-pin`, {
@@ -90,13 +92,13 @@ async function resetPin(id) {
         headers: {"Content-Type":"application/json"},
         body: JSON.stringify({user_id: id, new_pin: pin})
     });
-    alert("PIN updated for user");
-    document.getElementById(`res-${id}`).value = "";
-}
+    alert("User PIN updated");
+    loadUsers();
+};
 
-async function deleteUser(id) {
-    if(confirm("Delete user and all history?")) {
+window.deleteUser = async (id) => {
+    if(confirm("Delete user and history?")) {
         await fetch(`${API_URL}/user/${id}`, { method: "DELETE" });
         loadUsers();
     }
-}
+};
