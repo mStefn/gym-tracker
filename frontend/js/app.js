@@ -21,11 +21,9 @@ function renderLoginScreen() {
             <div style="font-size:60px; margin-bottom:20px;">🏋️‍♂️</div>
             <h1>Gym Tracker</h1>
             <input type="text" id="login-name" placeholder="Username" oninput="toggleAuthUI()" style="margin-bottom:15px;">
-            
             <div id="auth-area">
                 <p style="color:#8e8e93">Enter username to continue</p>
             </div>
-
             <button onclick="renderSignUpScreen()" class="nav-link" style="margin-top:20px;">Create Account</button>
         </div>
     `;
@@ -138,18 +136,22 @@ async function renderDashboard() {
     });
 }
 
-// --- SETTINGS (Advanced PIN change) ---
+// --- SETTINGS (Advanced PIN/Password change) ---
 window.renderSettings = () => {
+    const label = window.state.isAdmin ? "Password" : "PIN";
+    const type = window.state.isAdmin ? "text" : "password";
+    const extra = window.state.isAdmin ? "" : 'maxlength="4" inputmode="numeric"';
+
     document.getElementById("exercises").innerHTML = `
         <div style="padding: 20px;">
             <button onclick="location.reload()" class="nav-link">← Back</button>
             <h2 style="margin-top:20px;">Settings</h2>
             <div class="exercise-card">
-                <h3>Change PIN</h3>
-                <input type="password" id="old-pin" placeholder="Current PIN" style="margin-bottom:10px;">
-                <input type="password" id="new-pin" maxlength="4" placeholder="New 4-digit PIN" style="margin-bottom:10px;">
-                <input type="password" id="confirm-pin" maxlength="4" placeholder="Confirm New PIN" style="margin-bottom:15px;">
-                <button onclick="updatePin()" class="save-btn">Secure Update</button>
+                <h3>Change ${label}</h3>
+                <input type="${type}" id="old-pin" placeholder="Current ${label}" style="margin-bottom:10px;">
+                <input type="${type}" id="new-pin" ${extra} placeholder="New ${label}" style="margin-bottom:10px;">
+                <input type="${type}" id="confirm-pin" ${extra} placeholder="Confirm New ${label}" style="margin-bottom:15px;">
+                <button onclick="updatePin()" class="save-btn">Update ${label}</button>
             </div>
             ${!window.state.isAdmin ? `
             <div class="exercise-card" style="margin-top:30px; border:1px solid red;">
@@ -165,8 +167,9 @@ window.updatePin = async () => {
     const newPin = document.getElementById("new-pin").value;
     const confirmPin = document.getElementById("confirm-pin").value;
 
-    if (newPin !== confirmPin) return alert("New PINs do not match");
-    if (newPin.length !== 4 && !window.state.isAdmin) return alert("PIN must be 4 digits");
+    if (newPin !== confirmPin) return alert("Values do not match");
+    if (!window.state.isAdmin && newPin.length !== 4) return alert("PIN must be 4 digits");
+    if (window.state.isAdmin && newPin.length < 6) return alert("Admin password should be at least 6 characters");
 
     const res = await fetch(`${API_URL}/change-pin`, {
         method: "POST",
@@ -175,7 +178,7 @@ window.updatePin = async () => {
     });
 
     if (res.ok) { alert("Success!"); location.reload(); }
-    else alert("Incorrect current PIN");
+    else alert("Incorrect current " + (window.state.isAdmin ? "password" : "PIN"));
 };
 
 window.deleteMyAccount = async () => {
@@ -185,7 +188,7 @@ window.deleteMyAccount = async () => {
     }
 };
 
-// --- ADMIN PANEL (Reset PINs & List) ---
+// --- ADMIN PANEL ---
 window.renderAdminPanel = async () => {
     const res = await fetch(`${API_URL}/admin/users`);
     const users = await res.json();
@@ -201,8 +204,8 @@ window.renderAdminPanel = async () => {
                     </div>
                     ${!u.is_admin ? `
                     <div style="margin-top:10px; display:flex; gap:10px;">
-                        <input type="text" id="reset-pin-${u.id}" placeholder="New PIN" style="padding:5px;">
-                        <button onclick="adminResetPin(${u.id})" style="background:var(--primary); color:white; border:none; border-radius:5px; padding:0 10px;">Reset</button>
+                        <input type="password" maxlength="4" inputmode="numeric" id="reset-pin-${u.id}" placeholder="New PIN" style="padding:5px; width:100px;">
+                        <button onclick="adminResetPin(${u.id})" style="background:var(--primary); color:white; border:none; border-radius:5px; padding:0 10px;">Reset PIN</button>
                     </div>` : ''}
                 </div>
             `).join('')}
@@ -212,7 +215,7 @@ window.renderAdminPanel = async () => {
 
 window.adminResetPin = async (id) => {
     const newPin = document.getElementById(`reset-pin-${id}`).value;
-    if (newPin.length !== 4) return alert("Must be 4 digits");
+    if (newPin.length !== 4) return alert("PIN must be 4 digits");
     await fetch(`${API_URL}/admin/reset-pin`, {
         method: "POST",
         headers: {"Content-Type":"application/json"},
@@ -241,7 +244,7 @@ async function renderWorkout(planId, planName) {
         card.innerHTML = `<h3>${ex.name}</h3><div id="ex-${ex.id}"></div>`;
         content.appendChild(card);
         const list = document.getElementById(`ex-${ex.id}`);
-        for (let i = 1; i <= ex.sets; i++) {
+        for (let i = 1; i <= ex.target_sets; i++) {
             const lRes = await fetch(`${API_URL}/last/${window.state.currentUserId}/${ex.id}/${i}`);
             const last = await lRes.json();
             const row = document.createElement("div"); row.className = "set-row";
