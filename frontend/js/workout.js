@@ -1,39 +1,99 @@
 import { state, API_URL } from './state.js';
 
-window.renderWorkout = async (planId, planName) => {
+export async function renderWorkout(planId, planName) {
     const container = document.getElementById("exercises");
-    container.innerHTML = `<div style="display:flex; align-items:center; margin-bottom:25px"><button onclick="location.reload()" style="background:none; border:none; font-size:24px; margin-right:15px">←</button><h2 style="margin:0">${planName}</h2></div><div id='plan-content'></div>`;
-    
-    const res = await fetch(`${API_URL}/plan-exercises/${planId}`);
-    const exercises = await res.json();
-    const content = document.getElementById("plan-content");
+    container.innerHTML = `<div class="spinner"></div>`;
 
-    for (const ex of exercises) {
-        const card = document.createElement("div"); card.className = "exercise-card";
-        card.innerHTML = `<h3>${ex.name}</h3><div id="ex-${ex.id}"></div>`;
-        content.appendChild(card);
-        const list = document.getElementById(`ex-${ex.id}`);
-        for (let i = 1; i <= ex.sets; i++) {
-            const lRes = await fetch(`${API_URL}/last/${state.currentUserId}/${ex.id}/${i}`);
-            const last = await lRes.json();
-            const row = document.createElement("div"); row.className = "set-row";
-            row.innerHTML = `<div style="font-weight:700; color:var(--primary)">S${i}</div>
-                <div><span class="label-small">Prev</span><span class="history-val">${last.reps}x${last.weight}kg</span></div>
-                <div><span class="label-small">Reps</span><input type="number" id="r-${ex.id}-${i}" placeholder="0"></div>
-                <div><span class="label-small">Kg</span><input type="number" id="w-${ex.id}-${i}" placeholder="0"></div>
-                <div style="grid-column: span 4"><button class="save-btn" style="padding:10px; font-size:14px;" onclick="logSet(this, ${ex.id}, ${i})">Save</button></div>`;
-            list.appendChild(row);
+    try {
+        const res = await fetch(`${API_URL}/plan-exercises/${planId}`);
+        const exercises = await res.json();
+
+        container.innerHTML = `
+            <div style="padding: 10px;">
+                <button onclick="location.reload()" class="nav-link">← Back to Dashboard</button>
+                <h2 style="margin: 15px 0;">${planName}</h2>
+                <div id="workout-content"></div>
+            </div>
+        `;
+
+        for (const ex of exercises) {
+            const card = document.createElement("div");
+            card.className = "exercise-card";
+            card.innerHTML = `<h3>${ex.exercise_name}</h3><div id="ex-${ex.exercise_id}"></div>`;
+            document.getElementById("workout-content").appendChild(card);
+
+            // Generujemy wiersze dla każdej serii
+            for (let s = 1; s <= ex.target_sets; s++) {
+                const histRes = await fetch(`${API_URL}/last/${state.currentUserId}/${ex.exercise_id}/${s}`);
+                const last = await histRes.json();
+                
+                // LOGIKA PROGRESU (Target)
+                let targetInfo = "New Exercise";
+                if (last.weight > 0) {
+                    // Jeśli zrobiłeś 10 lub więcej powtórzeń, sugerujemy +2.5kg
+                    const nextWeight = last.reps >= 10 ? last.weight + 2.5 : last.weight;
+                    targetInfo = `Target: ${nextWeight}kg x ${last.reps}`;
+                }
+
+                const row = document.createElement("div");
+                row.className = "set-row";
+                row.innerHTML = `
+                    <div style="font-weight:bold; color:var(--primary); font-size:18px;">S${s}</div>
+                    <div style="flex: 1.5;">
+                        <span class="label-small">Previous</span>
+                        <span class="history-val">${last.weight}kg x ${last.reps}</span>
+                        <div style="font-size:10px; color:var(--success); font-weight:700; margin-top:2px;">${targetInfo}</div>
+                    </div>
+                    <input type="number" class="reps-in" placeholder="Reps" id="reps-${ex.exercise_id}-${s}" style="flex:0.8; margin:0; padding:10px;">
+                    <input type="number" class="weight-in" placeholder="kg" id="weight-${ex.exercise_id}-${s}" style="flex:0.8; margin:0; padding:10px;">
+                    <button onclick="saveSet(${ex.exercise_id}, ${s})" class="btn-nav btn-login" style="width:45px; height:45px; padding:0; display:flex; align-items:center; justify-content:center;">ok</button>
+                `;
+                document.getElementById(`ex-${ex.exercise_id}`).appendChild(row);
+            }
         }
+    } catch (err) {
+        container.innerHTML = `<p style="color:red; padding:20px;">Error connecting to API. Is backend running?</p>`;
     }
-};
+}
 
-window.logSet = async (btn, exId, setNumber) => {
-    const reps = parseInt(document.getElementById(`r-${exId}-${setNumber}`).value);
-    const weight = parseFloat(document.getElementById(`w-${exId}-${setNumber}`).value);
-    if (isNaN(reps) || isNaN(weight)) return alert("Enter values");
-    const res = await fetch(`${API_URL}/log`, {
-        method: "POST", headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({user_id: parseInt(state.currentUserId), exercise_id: exId, set_number: setNumber, reps, weight})
-    });
-    if (res.ok) { btn.innerText = "Saved ✓"; btn.style.background = "#34C759"; }
+// EKSPORT DO WINDOW (Aby onclick w HTML działał)
+window.saveSet = async (exId, setNum) => {
+    const repsVal = document.getElementById(`reps-${exId}-${setNum}`).value;
+    const weightVal = document.getElementById(`weight-${exId}-${setNum}`).value;
+
+    if (!repsVal || !weightVal) return alert("Enter weight and reps!");
+
+    const btn = event.target.closest('button');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = "...";
+    btn.disabled = true;
+
+    try {
+        const res = await fetch(`${API_URL}/log`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                user_id: parseInt(state.currentUserId),
+                exercise_id: exId,
+                set_number: setNum,
+                reps: parseInt(repsVal),
+                weight: parseFloat(weightVal)
+            })
+        });
+
+        if (res.ok) {
+            btn.innerHTML = "✓";
+            btn.style.background = "var(--success)";
+            btn.style.borderColor = "var(--success)";
+            // Blokujemy inputy po zapisie
+            document.getElementById(`reps-${exId}-${setNum}`).disabled = true;
+            document.getElementById(`weight-${exId}-${setNum}`).disabled = true;
+        } else {
+            throw new Error();
+        }
+    } catch (e) {
+        alert("Error saving!");
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
 };

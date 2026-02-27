@@ -20,10 +20,12 @@ func main() {
 	r.POST("/admin/reset-pin", AdminResetPin)
 	r.DELETE("/user/:id", DeleteAccount)
 	r.GET("/admin/users", AdminListUsers)
+
 	r.GET("/plans/:user_id", GetUserPlans)
 	r.GET("/plan-exercises/:plan_id", GetPlanExercises)
 	r.POST("/log", LogSet)
 	r.GET("/last/:user_id/:ex_id/:set", GetLastResult)
+
 	r.GET("/exercises", getExercises)
 	r.POST("/plans", createPlan)
 	r.POST("/plan-exercises", addExerciseByPool)
@@ -71,4 +73,40 @@ func deletePlan(c *gin.Context) {
 	id := c.Param("id")
 	db.Exec("DELETE FROM workout_plans WHERE id = ?", id)
 	c.JSON(200, gin.H{"status": "deleted"})
+}
+
+func LogSet(c *gin.Context) {
+	var input struct {
+		UserID     int     `json:"user_id"`
+		ExerciseID int     `json:"exercise_id"`
+		SetNumber  int     `json:"set_number"`
+		Reps       int     `json:"reps"`
+		Weight     float64 `json:"weight"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid input"})
+		return
+	}
+	_, err := db.Exec("INSERT INTO logs (user_id, exercise_id, set_number, reps, weight) VALUES (?, ?, ?, ?, ?)",
+		input.UserID, input.ExerciseID, input.SetNumber, input.Reps, input.Weight)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"status": "success"})
+}
+
+func GetLastResult(c *gin.Context) {
+	userID := c.Param("user_id")
+	exID := c.Param("ex_id")
+	setNum := c.Param("set")
+	var reps int
+	var weight float64
+	err := db.QueryRow("SELECT reps, weight FROM logs WHERE user_id = ? AND exercise_id = ? AND set_number = ? ORDER BY created_at DESC LIMIT 1",
+		userID, exID, setNum).Scan(&reps, &weight)
+	if err != nil {
+		c.JSON(200, gin.H{"reps": 0, "weight": 0})
+		return
+	}
+	c.JSON(200, gin.H{"reps": reps, "weight": weight})
 }
