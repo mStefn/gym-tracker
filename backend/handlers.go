@@ -4,7 +4,50 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// --- WORKOUT & LOGS ---
+// --- AUTH HANDLERS ---
+
+func Login(c *gin.Context) {
+	var input struct {
+		Name string `json:"name"`
+		Pin  string `json:"pin"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": "Złe dane"})
+		return
+	}
+
+	var id int
+	var name string
+	err := db.QueryRow("SELECT id, name FROM users WHERE name = ? AND pin = ?", input.Name, input.Pin).Scan(&id, &name)
+	if err != nil {
+		c.JSON(401, gin.H{"error": "Nieprawidłowy PIN"})
+		return
+	}
+
+	c.JSON(200, gin.H{"id": id, "name": name})
+}
+
+func SignUp(c *gin.Context) {
+	var input struct {
+		Name string `json:"name"`
+		Pin  string `json:"pin"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": "Złe dane"})
+		return
+	}
+
+	res, err := db.Exec("INSERT INTO users (name, pin) VALUES (?, ?)", input.Name, input.Pin)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Użytkownik już istnieje"})
+		return
+	}
+
+	id, _ := res.LastInsertId()
+	c.JSON(200, gin.H{"id": id, "name": input.Name})
+}
+
+// --- WORKOUT & PROGRESS ---
 
 func LogSet(c *gin.Context) {
 	var input struct {
@@ -42,7 +85,7 @@ func GetLastResult(c *gin.Context) {
 	c.JSON(200, gin.H{"reps": reps, "weight": weight})
 }
 
-// --- CREATOR ---
+// --- CREATOR & PLANS ---
 
 func getExercises(c *gin.Context) {
 	rows, err := db.Query("SELECT id, name, category FROM exercises ORDER BY category, name ASC")
@@ -51,7 +94,7 @@ func getExercises(c *gin.Context) {
 		return
 	}
 	defer rows.Close()
-	var list []map[string]interface{}
+	list := []map[string]interface{}{}
 	for rows.Next() {
 		var id int
 		var name, cat string
@@ -83,18 +126,46 @@ func addExerciseByPool(c *gin.Context) {
 	c.JSON(200, gin.H{"status": "ok"})
 }
 
+func GetUserPlans(c *gin.Context) {
+	userID := c.Param("user_id")
+	rows, _ := db.Query("SELECT id, name FROM workout_plans WHERE user_id = ?", userID)
+	defer rows.Close()
+	list := []map[string]interface{}{}
+	for rows.Next() {
+		var id int
+		var name string
+		rows.Scan(&id, &name)
+		list = append(list, map[string]interface{}{"id": id, "name": name})
+	}
+	c.JSON(200, list)
+}
+
+func GetPlanExercises(c *gin.Context) {
+	planID := c.Param("plan_id")
+	rows, _ := db.Query(`
+		SELECT e.id, e.name, pe.target_sets 
+		FROM plan_exercises pe 
+		JOIN exercises e ON pe.exercise_id = e.id 
+		WHERE pe.plan_id = ?`, planID)
+	defer rows.Close()
+	list := []map[string]interface{}{}
+	for rows.Next() {
+		var id, sets int
+		var name string
+		rows.Scan(&id, &name, &sets)
+		list = append(list, map[string]interface{}{"exercise_id": id, "exercise_name": name, "target_sets": sets})
+	}
+	c.JSON(200, list)
+}
+
 func deletePlan(c *gin.Context) {
 	id := c.Param("id")
 	db.Exec("DELETE FROM workout_plans WHERE id = ?", id)
 	c.JSON(200, gin.H{"status": "deleted"})
 }
 
-// --- AUTH (Placeholders - upewnij się, że masz tu swoje funkcje Login/SignUp) ---
-func Login(c *gin.Context)            { /* Twoja logika */ }
-func SignUp(c *gin.Context)           { /* Twoja logika */ }
-func ChangePin(c *gin.Context)        { /* Twoja logika */ }
-func AdminResetPin(c *gin.Context)    { /* Twoja logika */ }
-func DeleteAccount(c *gin.Context)    { /* Twoja logika */ }
-func AdminListUsers(c *gin.Context)   { /* Twoja logika */ }
-func GetUserPlans(c *gin.Context)     { /* Twoja logika */ }
-func GetPlanExercises(c *gin.Context) { /* Twoja logika */ }
+// Pozostałe (placeholdery jeśli nie używasz)
+func ChangePin(c *gin.Context)      { c.JSON(200, gin.H{"status": "ok"}) }
+func AdminResetPin(c *gin.Context)  { c.JSON(200, gin.H{"status": "ok"}) }
+func DeleteAccount(c *gin.Context)  { c.JSON(200, gin.H{"status": "ok"}) }
+func AdminListUsers(c *gin.Context) { c.JSON(200, list) } // Tu musiałbyś pobrać listę
