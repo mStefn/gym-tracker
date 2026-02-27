@@ -3,34 +3,52 @@ import { state, API_URL } from './state.js';
 let availableExercises = [];
 
 export async function renderPlanEditor() {
-    const res = await fetch(`${API_URL}/exercises`);
-    availableExercises = await res.json();
-
     const container = document.getElementById("exercises");
-    container.innerHTML = `
-        <div style="padding: 20px;">
-            <button onclick="location.reload()" class="nav-link">← Cancel</button>
-            <h2 style="margin-top:20px;">New Workout</h2>
-            <div class="exercise-card">
-                <input type="text" id="new-plan-name" placeholder="Plan Name (e.g. Push Day)" style="text-align:left; padding-left:15px; margin-bottom:20px;">
-                <div id="exercises-setup"></div>
-                <button onclick="addExerciseField()" class="btn-nav btn-signup" style="width:100%; margin-top:10px; border-style:dashed;">+ Add Exercise</button>
-                <div style="margin-top:30px;">
-                    <button onclick="saveFullPlan()" class="save-btn" style="background:var(--success);">Save Plan</button>
+    
+    try {
+        // 1. Najpierw pobierz dane
+        const res = await fetch(`${API_URL}/exercises`);
+        availableExercises = await res.json();
+
+        // 2. Dopiero gdy mamy dane, buduj interfejs
+        container.innerHTML = `
+            <div style="padding: 20px;">
+                <button onclick="location.reload()" class="nav-link">← Cancel</button>
+                <h2 style="margin-top:20px;">New Workout</h2>
+                <div class="exercise-card">
+                    <input type="text" id="new-plan-name" placeholder="Plan Name (e.g. Push Day)" style="text-align:left; padding-left:15px; margin-bottom:20px;">
+                    <div id="exercises-setup"></div>
+                    <button onclick="window.addExerciseField()" class="btn-nav btn-signup" style="width:100%; margin-top:10px; border-style:dashed;">+ Add Exercise</button>
+                    <div style="margin-top:30px;">
+                        <button onclick="saveFullPlan()" class="save-btn" style="background:var(--success);">Save Plan</button>
+                    </div>
                 </div>
             </div>
-        </div>
-    `;
-    addExerciseField();
+        `;
+        
+        // 3. Dodaj pierwsze pole dopiero teraz
+        window.addExerciseField();
+
+    } catch (err) {
+        console.error("Failed to load exercises:", err);
+        container.innerHTML = `<p style="color:red">Error loading exercises. Check backend.</p>`;
+    }
 }
 
 window.addExerciseField = () => {
+    // Zabezpieczenie: jeśli lista jest pusta, nie rób nic
+    if (!availableExercises || availableExercises.length === 0) {
+        console.warn("Exercises not loaded yet");
+        return;
+    }
+
     const div = document.createElement("div");
     div.className = "exercise-row-setup";
     div.style = "display:flex; gap:10px; margin-bottom:12px; align-items:center;";
     
     const categories = [...new Set(availableExercises.map(ex => ex.category))];
     let optionsHtml = '<option value="">Select...</option>';
+    
     categories.forEach(cat => {
         optionsHtml += `<optgroup label="${cat}">`;
         availableExercises.filter(ex => ex.category === cat).forEach(ex => {
