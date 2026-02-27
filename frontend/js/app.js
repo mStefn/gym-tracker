@@ -3,7 +3,6 @@ import { API } from './api.js';
 window.state = {
     currentUserId: localStorage.getItem('selectedUserId'),
     currentUserName: localStorage.getItem('selectedUserName'),
-    isAdmin: localStorage.getItem('isAdmin') === 'true',
     tempPin: ""
 };
 
@@ -14,42 +13,28 @@ window.onload = () => {
     else renderDashboard();
 };
 
-// --- LOGIN SCREEN ---
 function renderLoginScreen() {
     document.getElementById("exercises").innerHTML = `
         <div style="text-align:center; margin-top:80px; padding: 20px;">
             <div style="font-size:60px; margin-bottom:20px;">🏋️‍♂️</div>
             <h1>Gym Tracker</h1>
-            <input type="text" id="login-name" placeholder="Username" oninput="toggleAuthUI()" style="margin-bottom:15px;">
-            <div id="auth-area">
-                <p style="color:#8e8e93">Enter username to continue</p>
+            <input type="text" id="login-name" placeholder="Username" oninput="showPinPad()" style="margin-bottom:15px;">
+            <div id="pin-area" style="display:none;">
+                <div id="pin-display" style="font-size:30px; margin:20px 0; letter-spacing:10px; color:var(--primary);">○ ○ ○ ○</div>
+                <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; max-width:250px; margin: 0 auto;">
+                    ${[1,2,3,4,5,6,7,8,9,'C',0,'OK'].map(k => `
+                        <button class="save-btn" style="background:#fff; color:#000; padding:15px; border-radius:50%;" onclick="handlePinKey('${k}')">${k}</button>
+                    `).join('')}
+                </div>
             </div>
             <button onclick="renderSignUpScreen()" class="nav-link" style="margin-top:20px;">Create Account</button>
         </div>
     `;
 }
 
-window.toggleAuthUI = () => {
-    const name = document.getElementById("login-name").value.toLowerCase();
-    const area = document.getElementById("auth-area");
-    
-    if (name === "admin") {
-        area.innerHTML = `
-            <input type="password" id="login-pin" placeholder="Admin Password" style="margin-bottom:15px;">
-            <button onclick="handleLogin()" class="save-btn">Admin Login</button>
-        `;
-    } else if (name.length >= 2) {
-        area.innerHTML = `
-            <div id="pin-display" style="font-size:30px; margin:20px 0; letter-spacing:10px;">○ ○ ○ ○</div>
-            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; max-width:250px; margin: 0 auto;">
-                ${[1,2,3,4,5,6,7,8,9,'C',0,'OK'].map(k => `
-                    <button class="save-btn" style="background:#fff; color:#000; padding:15px; border-radius:50%;" onclick="handlePinKey('${k}')">${k}</button>
-                `).join('')}
-            </div>
-        `;
-    } else {
-        area.innerHTML = `<p style="color:#8e8e93">Enter username to continue</p>`;
-    }
+window.showPinPad = () => {
+    const name = document.getElementById("login-name").value;
+    document.getElementById("pin-area").style.display = name.length >= 2 ? "block" : "none";
 };
 
 window.handlePinKey = (k) => {
@@ -65,10 +50,8 @@ window.handlePinKey = (k) => {
     document.getElementById("pin-display").innerText = dots.trim();
 };
 
-window.handleLogin = async (providedPin = null) => {
+window.handleLogin = async (pin) => {
     const name = document.getElementById("login-name").value;
-    const pin = providedPin || document.getElementById("login-pin").value;
-    
     const res = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: {"Content-Type":"application/json"},
@@ -79,12 +62,14 @@ window.handleLogin = async (providedPin = null) => {
         const data = await res.json();
         localStorage.setItem('selectedUserId', data.id);
         localStorage.setItem('selectedUserName', data.name);
-        localStorage.setItem('isAdmin', data.is_admin);
         location.reload();
-    } else alert("Invalid credentials");
+    } else {
+        alert("Incorrect PIN");
+        window.state.tempPin = "";
+        document.getElementById("pin-display").innerText = "○ ○ ○ ○";
+    }
 };
 
-// --- SIGN UP ---
 window.renderSignUpScreen = () => {
     document.getElementById("exercises").innerHTML = `
         <div style="text-align:center; margin-top:80px; padding: 20px;">
@@ -100,25 +85,21 @@ window.renderSignUpScreen = () => {
 window.handleSignUp = async () => {
     const name = document.getElementById("signup-name").value;
     const pin = document.getElementById("signup-pin").value;
-    if (pin.length !== 4) return alert("PIN must be 4 digits");
     const res = await fetch(`${API_URL}/signup`, {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
+        method: "POST", headers: {"Content-Type":"application/json"},
         body: JSON.stringify({name, pin})
     });
-    if (res.ok) { alert("Created! Please login."); location.reload(); }
-    else alert("Error (Limit reached or name taken)");
+    if (res.ok) { alert("Created!"); location.reload(); }
+    else alert("Limit reached or name taken");
 };
 
-// --- DASHBOARD ---
 async function renderDashboard() {
     const container = document.getElementById("exercises");
     container.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
             <h2 style="margin:0">Hi, ${window.state.currentUserName}</h2>
             <div>
-                ${window.state.isAdmin ? '<button onclick="renderAdminPanel()" style="background:none; border:none; font-size:24px;">⚙️</button>' : ''}
-                <button onclick="renderSettings()" style="background:none; border:none; font-size:24px; margin-left:10px;">👤</button>
+                <button onclick="renderSettings()" style="background:none; border:none; font-size:24px;">👤</button>
                 <button onclick="logout()" class="nav-link" style="margin-left:10px;">Logout</button>
             </div>
         </div>
@@ -136,28 +117,22 @@ async function renderDashboard() {
     });
 }
 
-// --- SETTINGS (Advanced PIN/Password change) ---
 window.renderSettings = () => {
-    const label = window.state.isAdmin ? "Password" : "PIN";
-    const type = window.state.isAdmin ? "text" : "password";
-    const extra = window.state.isAdmin ? "" : 'maxlength="4" inputmode="numeric"';
-
     document.getElementById("exercises").innerHTML = `
         <div style="padding: 20px;">
             <button onclick="location.reload()" class="nav-link">← Back</button>
             <h2 style="margin-top:20px;">Settings</h2>
             <div class="exercise-card">
-                <h3>Change ${label}</h3>
-                <input type="${type}" id="old-pin" placeholder="Current ${label}" style="margin-bottom:10px;">
-                <input type="${type}" id="new-pin" ${extra} placeholder="New ${label}" style="margin-bottom:10px;">
-                <input type="${type}" id="confirm-pin" ${extra} placeholder="Confirm New ${label}" style="margin-bottom:15px;">
-                <button onclick="updatePin()" class="save-btn">Update ${label}</button>
+                <h3>Change PIN</h3>
+                <input type="password" id="old-pin" placeholder="Current PIN" style="margin-bottom:10px;">
+                <input type="password" id="new-pin" maxlength="4" placeholder="New 4-digit PIN" style="margin-bottom:10px;">
+                <input type="password" id="confirm-pin" maxlength="4" placeholder="Confirm New PIN" style="margin-bottom:15px;">
+                <button onclick="updatePin()" class="save-btn">Update PIN</button>
             </div>
-            ${!window.state.isAdmin ? `
             <div class="exercise-card" style="margin-top:30px; border:1px solid red;">
                 <h3 style="color:red; border-left-color:red;">Danger Zone</h3>
                 <button onclick="deleteMyAccount()" class="save-btn" style="background:red;">Delete My Account</button>
-            </div>` : ''}
+            </div>
         </div>
     `;
 };
@@ -166,19 +141,13 @@ window.updatePin = async () => {
     const oldPin = document.getElementById("old-pin").value;
     const newPin = document.getElementById("new-pin").value;
     const confirmPin = document.getElementById("confirm-pin").value;
-
-    if (newPin !== confirmPin) return alert("Values do not match");
-    if (!window.state.isAdmin && newPin.length !== 4) return alert("PIN must be 4 digits");
-    if (window.state.isAdmin && newPin.length < 6) return alert("Admin password should be at least 6 characters");
-
+    if (newPin !== confirmPin) return alert("PINs do not match");
     const res = await fetch(`${API_URL}/change-pin`, {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
+        method: "POST", headers: {"Content-Type":"application/json"},
         body: JSON.stringify({user_id: parseInt(window.state.currentUserId), old_pin: oldPin, new_pin: newPin})
     });
-
     if (res.ok) { alert("Success!"); location.reload(); }
-    else alert("Incorrect current " + (window.state.isAdmin ? "password" : "PIN"));
+    else alert("Incorrect current PIN");
 };
 
 window.deleteMyAccount = async () => {
@@ -188,51 +157,6 @@ window.deleteMyAccount = async () => {
     }
 };
 
-// --- ADMIN PANEL ---
-window.renderAdminPanel = async () => {
-    const res = await fetch(`${API_URL}/admin/users`);
-    const users = await res.json();
-    document.getElementById("exercises").innerHTML = `
-        <div style="padding: 20px;">
-            <button onclick="location.reload()" class="nav-link">← Back</button>
-            <h2>Admin Console</h2>
-            ${users.map(u => `
-                <div class="exercise-card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <strong>${u.name} ${u.is_admin ? '(System)' : ''}</strong>
-                        ${!u.is_admin ? `<button onclick="adminDeleteUser(${u.id})" style="background:red; color:white; border:none; padding:5px; border-radius:5px;">Delete</button>` : ''}
-                    </div>
-                    ${!u.is_admin ? `
-                    <div style="margin-top:10px; display:flex; gap:10px;">
-                        <input type="password" maxlength="4" inputmode="numeric" id="reset-pin-${u.id}" placeholder="New PIN" style="padding:5px; width:100px;">
-                        <button onclick="adminResetPin(${u.id})" style="background:var(--primary); color:white; border:none; border-radius:5px; padding:0 10px;">Reset PIN</button>
-                    </div>` : ''}
-                </div>
-            `).join('')}
-        </div>
-    `;
-};
-
-window.adminResetPin = async (id) => {
-    const newPin = document.getElementById(`reset-pin-${id}`).value;
-    if (newPin.length !== 4) return alert("PIN must be 4 digits");
-    await fetch(`${API_URL}/admin/reset-pin`, {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({user_id: id, new_pin: newPin})
-    });
-    alert("User PIN has been reset");
-};
-
-window.adminDeleteUser = async (id) => {
-    if (confirm("Delete this user?")) {
-        const res = await fetch(`${API_URL}/user/${id}`, { method: "DELETE" });
-        if (res.ok) renderAdminPanel();
-        else alert("Cannot delete admin");
-    }
-};
-
-// --- WORKOUT LOGIC ---
 async function renderWorkout(planId, planName) {
     const container = document.getElementById("exercises");
     container.innerHTML = `<div style="display:flex; align-items:center; margin-bottom:25px"><button onclick="location.reload()" style="background:none; border:none; font-size:24px; margin-right:15px">←</button><h2 style="margin:0">${planName}</h2></div><div id='plan-content'></div>`;
@@ -244,7 +168,7 @@ async function renderWorkout(planId, planName) {
         card.innerHTML = `<h3>${ex.name}</h3><div id="ex-${ex.id}"></div>`;
         content.appendChild(card);
         const list = document.getElementById(`ex-${ex.id}`);
-        for (let i = 1; i <= ex.target_sets; i++) {
+        for (let i = 1; i <= ex.sets; i++) {
             const lRes = await fetch(`${API_URL}/last/${window.state.currentUserId}/${ex.id}/${i}`);
             const last = await lRes.json();
             const row = document.createElement("div"); row.className = "set-row";

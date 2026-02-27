@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gym Admin</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body { background: #1c1c1e; color: white; }
+        .admin-card { background: #2c2c2e; padding: 20px; border-radius: 12px; margin-bottom: 15px; }
+        input { background: #3a3a3c; color: white; border: 1px solid #48484a; margin-bottom: 10px; text-align: left; padding-left: 15px; }
+    </style>
+</head>
+<body>
+    <div id="admin-app" style="max-width: 500px; margin: 0 auto; padding: 20px;">
+        <div id="login-zone">
+            <h1>System Admin</h1>
+            <input type="password" id="admin-pass" placeholder="Admin Password">
+            <button onclick="adminLogin()" class="save-btn">Access Console</button>
+        </div>
+        <div id="console-zone" style="display:none;">
+            <h2>User Management</h2>
+            <div id="user-list"></div>
+            <button onclick="location.reload()" class="nav-link" style="color:#ff453a">Logout Admin</button>
+        </div>
+    </div>
+    <script src="js/admin.js"></script>
+</body>
+</html>
