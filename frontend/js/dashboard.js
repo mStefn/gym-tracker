@@ -1,37 +1,63 @@
 import { state, API_URL, logout } from './state.js';
+import { renderPlanEditor } from './editor.js'; // To jest kluczowe!
 
 export async function renderDashboard() {
     document.getElementById("main-nav").innerHTML = "";
     const container = document.getElementById("exercises");
+    
+    // Header i powitanie
     container.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
             <h2 style="margin:0">Hi, ${state.currentUserName}</h2>
             <div>
-                <button onclick="renderSettings()" style="background:none; border:none; font-size:24px;">👤</button>
+                <button onclick="renderSettings()" style="background:none; border:none; font-size:24px; cursor:pointer;">👤</button>
                 <button onclick="window.appLogout()" class="nav-link" style="margin-left:10px;">Logout</button>
             </div>
         </div>
         <div id="plans-list"></div>
+        
+        <button id="add-plan-btn" class="save-btn" style="background:none; color:var(--primary); border:2px dashed var(--primary); margin-top:20px; font-size:16px;">
+            + Create New Training Plan
+        </button>
     `;
-    const res = await fetch(`${API_URL}/plans/${state.currentUserId}`);
-    const plans = await res.json();
-    const list = document.getElementById("plans-list");
-    plans.forEach(plan => {
-        const btn = document.createElement("button");
-        btn.className = "save-btn"; btn.style.marginBottom = "15px";
-        btn.innerText = `Start: ${plan.name}`;
-        btn.onclick = () => window.renderWorkout(plan.id, plan.name);
-        list.appendChild(btn);
-    });
+    
+    // Załadowanie istniejących planów
+    try {
+        const res = await fetch(`${API_URL}/plans/${state.currentUserId}`);
+        const plans = await res.json();
+        const list = document.getElementById("plans-list");
+        
+        if (plans && plans.length > 0) {
+            plans.forEach(plan => {
+                const btn = document.createElement("button");
+                btn.className = "save-btn";
+                btn.style.marginBottom = "15px";
+                btn.innerText = `Start: ${plan.name}`;
+                btn.onclick = () => window.renderWorkout(plan.id, plan.name);
+                list.appendChild(btn);
+            });
+        } else {
+            list.innerHTML = `<p style="text-align:center; color:#8e8e93; margin:20px 0;">No plans yet. Create your first one!</p>`;
+        }
+    } catch (e) {
+        console.error("Error loading plans:", e);
+    }
+
+    // Podpięcie akcji pod przycisk (setTimeout zapewnia, że DOM już istnieje)
+    setTimeout(() => {
+        const btn = document.getElementById("add-plan-btn");
+        if (btn) btn.onclick = renderPlanEditor;
+    }, 0);
 }
 
 window.appLogout = logout;
 
+// Reszta funkcji pozostaje bez zmian
 window.renderSettings = () => {
     document.getElementById("exercises").innerHTML = `
         <div style="padding: 20px;">
             <button onclick="location.reload()" class="nav-link">← Back</button>
-            <h2>Settings</h2>
+            <h2 style="margin-top:20px;">Settings</h2>
             <div class="exercise-card">
                 <h3>Change PIN</h3>
                 <input type="password" id="old-pin" placeholder="Current PIN">
