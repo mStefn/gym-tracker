@@ -24,7 +24,7 @@ func initDB() {
 		if err == nil && db.Ping() == nil {
 			break
 		}
-		time.Sleep(3 * time.Second)
+		time.Sleep(2 * time.Second)
 	}
 
 	db.Exec(`CREATE TABLE IF NOT EXISTS users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(50) UNIQUE, pin VARCHAR(50), is_admin BOOLEAN DEFAULT FALSE);`)
@@ -49,13 +49,10 @@ func seedExercises() {
 			Name     string `json:"name"`
 			Category string `json:"category"`
 		}
-		if err := json.Unmarshal(file, &exercises); err != nil {
-			fmt.Println("Error parsing JSON:", err)
-			return
-		}
+		json.Unmarshal(file, &exercises)
 		for _, ex := range exercises {
 			db.Exec("INSERT IGNORE INTO exercises (name, category) VALUES (?, ?)", ex.Name, ex.Category)
 		}
-		fmt.Printf("✅ Seeded %d exercises from JSON.\n", len(exercises))
+		fmt.Println("✅ Exercises seeded from JSON")
 	}
 }
