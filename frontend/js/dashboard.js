@@ -9,7 +9,8 @@ export async function renderDashboard() {
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
             <h2 style="margin:0">Hi, ${state.currentUserName}</h2>
             <div>
-                <button onclick="renderSettings()" style="background:none; border:none; font-size:24px; cursor:pointer;">👤</button>
+                <button onclick="window.renderHistory()" style="background:none; border:none; font-size:24px; cursor:pointer; margin-right:10px;">📅</button>
+                <button onclick="window.renderSettings()" style="background:none; border:none; font-size:24px; cursor:pointer;">👤</button>
                 <button onclick="window.appLogout()" class="nav-link" style="margin-left:10px;">Logout</button>
             </div>
         </div>
@@ -58,12 +59,12 @@ export async function renderDashboard() {
         console.error("Error loading plans:", e);
     }
 
-    setTimeout(() => {
-        const btn = document.getElementById("add-plan-btn");
-        if (btn) btn.onclick = renderPlanEditor;
-    }, 0);
+    // Obsługa przycisku tworzenia planu
+    const addBtn = document.getElementById("add-plan-btn");
+    if (addBtn) addBtn.onclick = renderPlanEditor;
 }
 
+// Rejestracja globalnych funkcji
 window.appLogout = logout;
 
 window.renderSettings = () => {
@@ -76,7 +77,7 @@ window.renderSettings = () => {
                 <input type="password" id="old-pin" placeholder="Current PIN">
                 <input type="password" id="new-pin" maxlength="4" placeholder="New PIN">
                 <input type="password" id="conf-pin" maxlength="4" placeholder="Confirm PIN">
-                <button onclick="updatePin()" class="save-btn">Update PIN</button>
+                <button onclick="window.updatePin()" class="save-btn">Update PIN</button>
             </div>
         </div>
     `;
@@ -85,10 +86,23 @@ window.renderSettings = () => {
 window.updatePin = async () => {
     const oldPin = document.getElementById("old-pin").value;
     const newPin = document.getElementById("new-pin").value;
-    if (newPin !== document.getElementById("conf-pin").value) return alert("Mismatch");
-    const res = await fetch(`${API_URL}/change-pin`, {
-        method: "POST", headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({user_id: parseInt(state.currentUserId), old_pin: oldPin, new_pin: newPin})
-    });
-    if (res.ok) location.reload(); else alert("Error");
+    const confPin = document.getElementById("conf-pin").value;
+
+    if (newPin !== confPin) return alert("Mismatch");
+    
+    try {
+        const res = await fetch(`${API_URL}/change-pin`, {
+            method: "POST", 
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({user_id: parseInt(state.currentUserId), old_pin: oldPin, new_pin: newPin})
+        });
+        if (res.ok) {
+            alert("PIN updated!");
+            location.reload();
+        } else {
+            alert("Error updating PIN");
+        }
+    } catch (e) {
+        alert("Server error");
+    }
 };

@@ -10,7 +10,7 @@ export async function renderWorkout(planId, planName) {
 
         container.innerHTML = `
             <div style="padding: 10px;">
-                <button onclick="location.reload()" class="nav-link">← Back to Dashboard</button>
+                <button onclick="location.reload()" class="nav-link">← Back</button>
                 <h2 style="margin: 15px 0;">${planName}</h2>
                 <div id="workout-content"></div>
             </div>
@@ -22,15 +22,13 @@ export async function renderWorkout(planId, planName) {
             card.innerHTML = `<h3>${ex.exercise_name}</h3><div id="ex-${ex.exercise_id}"></div>`;
             document.getElementById("workout-content").appendChild(card);
 
-            // Generujemy wiersze dla każdej serii
             for (let s = 1; s <= ex.target_sets; s++) {
                 const histRes = await fetch(`${API_URL}/last/${state.currentUserId}/${ex.exercise_id}/${s}`);
                 const last = await histRes.json();
                 
-                // LOGIKA PROGRESU (Target)
-                let targetInfo = "New Exercise";
+                // LOGIKA TARGETU: +2.5kg jeśli reps >= 10
+                let targetInfo = "Session 1";
                 if (last.weight > 0) {
-                    // Jeśli zrobiłeś 10 lub więcej powtórzeń, sugerujemy +2.5kg
                     const nextWeight = last.reps >= 10 ? last.weight + 2.5 : last.weight;
                     targetInfo = `Target: ${nextWeight}kg x ${last.reps}`;
                 }
@@ -52,19 +50,17 @@ export async function renderWorkout(planId, planName) {
             }
         }
     } catch (err) {
-        container.innerHTML = `<p style="color:red; padding:20px;">Error connecting to API. Is backend running?</p>`;
+        container.innerHTML = `<p style="color:red">Error: Backend connection failed.</p>`;
     }
 }
 
-// EKSPORT DO WINDOW (Aby onclick w HTML działał)
-window.saveSet = async (exId, setNum) => {
+export async function saveSet(exId, setNum) {
     const repsVal = document.getElementById(`reps-${exId}-${setNum}`).value;
     const weightVal = document.getElementById(`weight-${exId}-${setNum}`).value;
 
-    if (!repsVal || !weightVal) return alert("Enter weight and reps!");
+    if (!repsVal || !weightVal) return alert("Fill data!");
 
     const btn = event.target.closest('button');
-    const originalText = btn.innerHTML;
     btn.innerHTML = "...";
     btn.disabled = true;
 
@@ -85,15 +81,16 @@ window.saveSet = async (exId, setNum) => {
             btn.innerHTML = "✓";
             btn.style.background = "var(--success)";
             btn.style.borderColor = "var(--success)";
-            // Blokujemy inputy po zapisie
             document.getElementById(`reps-${exId}-${setNum}`).disabled = true;
             document.getElementById(`weight-${exId}-${setNum}`).disabled = true;
-        } else {
-            throw new Error();
         }
     } catch (e) {
-        alert("Error saving!");
-        btn.innerHTML = originalText;
+        alert("Error!");
+        btn.innerHTML = "ok";
         btn.disabled = false;
     }
-};
+}
+
+// Rejestracja globalna dla dashboardu i przycisków
+window.renderWorkout = renderWorkout;
+window.saveSet = saveSet;

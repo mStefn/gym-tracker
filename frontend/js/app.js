@@ -1,7 +1,11 @@
 import { state } from './state.js';
 import { renderAuthScreen } from './auth.js';
 import { renderDashboard } from './dashboard.js';
-import './workout.js'; // Załaduj widok treningu
+import { renderWorkout } from './workout.js';
+
+// Globalne funkcje dostępne dla HTML
+window.openAuth = (mode) => renderAuthScreen(mode);
+window.renderWorkout = renderWorkout;
 
 window.onload = () => {
     if (!state.currentUserId) {
@@ -24,5 +28,3 @@ function renderLandingPage() {
         </div>
     `;
 }
-
-window.openAuth = (mode) => renderAuthScreen(mode);
