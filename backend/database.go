@@ -45,17 +45,14 @@ func seedExercises() {
 			fmt.Println("Error reading exercises.json:", err)
 			return
 		}
-
 		var exercises []struct {
 			Name     string `json:"name"`
 			Category string `json:"category"`
 		}
-
 		if err := json.Unmarshal(file, &exercises); err != nil {
 			fmt.Println("Error parsing JSON:", err)
 			return
 		}
-
 		for _, ex := range exercises {
 			db.Exec("INSERT IGNORE INTO exercises (name, category) VALUES (?, ?)", ex.Name, ex.Category)
 		}

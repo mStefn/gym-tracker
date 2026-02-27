@@ -20,12 +20,10 @@ func main() {
 	r.POST("/admin/reset-pin", AdminResetPin)
 	r.DELETE("/user/:id", DeleteAccount)
 	r.GET("/admin/users", AdminListUsers)
-
 	r.GET("/plans/:user_id", GetUserPlans)
 	r.GET("/plan-exercises/:plan_id", GetPlanExercises)
 	r.POST("/log", LogSet)
 	r.GET("/last/:user_id/:ex_id/:set", GetLastResult)
-
 	r.GET("/exercises", getExercises)
 	r.POST("/plans", createPlan)
 	r.POST("/plan-exercises", addExerciseByPool)
