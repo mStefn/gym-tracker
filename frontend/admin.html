@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gym Admin</title>
+    <title>Gym Admin Console</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
         body { background: #1c1c1e; color: white; }
-        .admin-card { background: #2c2c2e; padding: 20px; border-radius: 12px; margin-bottom: 15px; }
-        input { background: #3a3a3c; color: white; border: 1px solid #48484a; margin-bottom: 10px; text-align: left; padding-left: 15px; }
+        .admin-card { background: #2c2c2e; padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #3a3a3c; }
+        input { background: #3a3a3c; color: white; border: 1px solid #48484a; margin-bottom: 10px; text-align: left; padding-left: 15px; width: 100%; box-sizing: border-box; }
+        h2 { color: #0a84ff; border-bottom: 1px solid #3a3a3c; padding-bottom: 10px; margin-top: 30px; }
+        .danger { border: 1px solid #ff453a; }
     </style>
 </head>
 <body>
@@ -18,10 +20,24 @@
             <input type="password" id="admin-pass" placeholder="Admin Password">
             <button onclick="adminLogin()" class="save-btn">Access Console</button>
         </div>
+
         <div id="console-zone" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h1>Admin Console</h1>
+                <button onclick="adminLogout()" class="nav-link" style="color:#ff453a">Logout</button>
+            </div>
+
             <h2>User Management</h2>
             <div id="user-list"></div>
-            <button onclick="location.reload()" class="nav-link" style="color:#ff453a">Logout Admin</button>
+
+            <h2>Account Settings</h2>
+            <div class="admin-card">
+                <h3>Change Admin Password</h3>
+                <input type="password" id="old-pass" placeholder="Current Password">
+                <input type="password" id="new-pass" placeholder="New Password">
+                <input type="password" id="conf-pass" placeholder="Confirm New Password">
+                <button onclick="changeAdminPassword()" class="save-btn">Update Password</button>
+            </div>
         </div>
     </div>
     <script src="js/admin.js"></script>
