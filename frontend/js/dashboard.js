@@ -1,11 +1,10 @@
 import { state, API_URL, logout } from './state.js';
-import { renderPlanEditor } from './editor.js'; // To jest kluczowe!
+import { renderPlanEditor } from './editor.js';
 
 export async function renderDashboard() {
     document.getElementById("main-nav").innerHTML = "";
     const container = document.getElementById("exercises");
     
-    // Header i powitanie
     container.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
             <h2 style="margin:0">Hi, ${state.currentUserName}</h2>
@@ -21,7 +20,6 @@ export async function renderDashboard() {
         </button>
     `;
     
-    // Załadowanie istniejących planów
     try {
         const res = await fetch(`${API_URL}/plans/${state.currentUserId}`);
         const plans = await res.json();
@@ -29,12 +27,29 @@ export async function renderDashboard() {
         
         if (plans && plans.length > 0) {
             plans.forEach(plan => {
-                const btn = document.createElement("button");
-                btn.className = "save-btn";
-                btn.style.marginBottom = "15px";
-                btn.innerText = `Start: ${plan.name}`;
-                btn.onclick = () => window.renderWorkout(plan.id, plan.name);
-                list.appendChild(btn);
+                const wrapper = document.createElement("div");
+                wrapper.style = "display: flex; gap: 10px; margin-bottom: 15px;";
+
+                const startBtn = document.createElement("button");
+                startBtn.className = "save-btn";
+                startBtn.style = "margin: 0; flex: 1; text-align: left; padding-left: 20px;";
+                startBtn.innerText = `Start: ${plan.name}`;
+                startBtn.onclick = () => window.renderWorkout(plan.id, plan.name);
+
+                const deleteBtn = document.createElement("button");
+                deleteBtn.innerHTML = "🗑️";
+                deleteBtn.style = "background: #ff453a; border: none; border-radius: 12px; width: 55px; cursor: pointer; color: white; font-size: 18px; display: flex; align-items: center; justify-content: center;";
+                deleteBtn.onclick = async () => {
+                    if (confirm(`Delete plan "${plan.name}"?`)) {
+                        const delRes = await fetch(`${API_URL}/plans/${plan.id}`, { method: "DELETE" });
+                        if (delRes.ok) location.reload();
+                        else alert("Error deleting plan");
+                    }
+                };
+
+                wrapper.appendChild(startBtn);
+                wrapper.appendChild(deleteBtn);
+                list.appendChild(wrapper);
             });
         } else {
             list.innerHTML = `<p style="text-align:center; color:#8e8e93; margin:20px 0;">No plans yet. Create your first one!</p>`;
@@ -43,7 +58,6 @@ export async function renderDashboard() {
         console.error("Error loading plans:", e);
     }
 
-    // Podpięcie akcji pod przycisk (setTimeout zapewnia, że DOM już istnieje)
     setTimeout(() => {
         const btn = document.getElementById("add-plan-btn");
         if (btn) btn.onclick = renderPlanEditor;
@@ -52,7 +66,6 @@ export async function renderDashboard() {
 
 window.appLogout = logout;
 
-// Reszta funkcji pozostaje bez zmian
 window.renderSettings = () => {
     document.getElementById("exercises").innerHTML = `
         <div style="padding: 20px;">

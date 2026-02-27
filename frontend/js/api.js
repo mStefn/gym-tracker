@@ -21,6 +21,9 @@ export const API = {
         const res = await fetch(`${API_URL}/plans/${userId}`);
         return res.json();
     },
+    async deletePlan(planId) {
+        return fetch(`${API_URL}/plans/${planId}`, { method: "DELETE" });
+    },
     async fetchPlanExercises(planId) {
         const res = await fetch(`${API_URL}/plan-exercises/${planId}`);
         return res.json();

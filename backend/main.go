@@ -31,9 +31,10 @@ func main() {
 	r.POST("/log", LogSet)
 	r.GET("/last/:user_id/:ex_id/:set", GetLastResult)
 
-	// --- PLAN CREATOR ROUTES (Punkt 2) ---
+	// --- PLAN CREATOR ROUTES ---
 	r.POST("/plans", createPlan)
 	r.POST("/plan-exercises", addExercise)
+	r.DELETE("/plans/:id", deletePlan)
 
 	r.Run("0.0.0.0:4000")
 }
@@ -71,7 +72,6 @@ func addExercise(c *gin.Context) {
 		return
 	}
 
-	// 1. Sprawdzamy czy ćwiczenie już istnieje w bazie ogólnej, jeśli nie - dodajemy
 	var exerciseID int64
 	err := db.QueryRow("SELECT id FROM exercises WHERE name = ?", input.Name).Scan(&exerciseID)
 	if err != nil {
@@ -79,7 +79,6 @@ func addExercise(c *gin.Context) {
 		exerciseID, _ = res.LastInsertId()
 	}
 
-	// 2. Łączymy ćwiczenie z planem
 	_, err = db.Exec("INSERT INTO plan_exercises (plan_id, exercise_id, target_sets) VALUES (?, ?, ?)",
 		input.PlanID, exerciseID, input.TargetSets)
 
@@ -89,4 +88,14 @@ func addExercise(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "success"})
+}
+
+func deletePlan(c *gin.Context) {
+	id := c.Param("id")
+	_, err := db.Exec("DELETE FROM workout_plans WHERE id = ?", id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not delete plan"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
 }
