@@ -1,47 +1,47 @@
-import { state, API_URL } from './state.js';
+import { state, API_URL, authFetch } from './state.js';
 
-// Zmienna modułowa
+// Module-level cache
 let exercisesCache = null;
 
 export async function renderPlanEditor() {
     const container = document.getElementById("exercises");
     
-    // 1. Loader
+    // 1. Show loader
     container.innerHTML = `
         <div style="text-align:center; margin-top:100px;">
             <div class="spinner"></div>
-            <p style="color:#8e8e93; margin-top:20px;">Wczytywanie bazy ćwiczeń...</p>
+            <p style="color:#8e8e93; margin-top:20px;">Loading exercise database...</p>
         </div>
     `;
 
     try {
-        // 2. Pobieranie danych
-        const res = await fetch(`${API_URL}/exercises`);
-        if (!res.ok) throw new Error("Błąd serwera");
+        // 2. Fetch data
+        const res = await authFetch(`${API_URL}/exercises`);
+        if (!res.ok) throw new Error("Server error");
         exercisesCache = await res.json();
 
-        // 3. Renderowanie szkieletu
+        // 3. Render editor skeleton
         container.innerHTML = `
             <div style="padding: 20px;">
-                <button onclick="location.reload()" class="nav-link">← Anuluj</button>
-                <h2 style="margin-top:20px;">Nowy Plan</h2>
+                <button onclick="location.reload()" class="nav-link">← Cancel</button>
+                <h2 style="margin-top:20px;">New Plan</h2>
                 <div class="exercise-card">
-                    <input type="text" id="new-plan-name" placeholder="Nazwa planu (np. Klatka + Biceps)" style="text-align:left; padding-left:15px; margin-bottom:20px;">
+                    <input type="text" id="new-plan-name" placeholder="Plan name (e.g. Chest + Biceps)" style="text-align:left; padding-left:15px; margin-bottom:20px;">
                     
                     <div id="exercises-setup"></div>
                     
                     <button id="add-ex-btn" class="btn-nav btn-signup" style="width:100%; margin-top:10px; border-style:dashed;">
-                        + Dodaj ćwiczenie
+                        + Add Exercise
                     </button>
                     
                     <div style="margin-top:30px;">
-                        <button id="save-plan-btn" class="save-btn" style="background:var(--success);">Zapisz Trening</button>
+                        <button id="save-plan-btn" class="save-btn" style="background:var(--success);">Save Workout</button>
                     </div>
                 </div>
             </div>
         `;
 
-        // 4. Podpięcie zdarzeń (rezygnujemy z onclick w HTML na rzecz addEventListener)
+    // 4. Attach event listeners
         document.getElementById('add-ex-btn').addEventListener('click', () => {
             window.addExerciseField();
         });
@@ -50,19 +50,19 @@ export async function renderPlanEditor() {
             window.saveFullPlan();
         });
         
-        // 5. Dodaj pierwszy wiersz na start
+        // 5. Add first exercise row on start
         window.addExerciseField();
 
     } catch (err) {
-        console.error("Błąd edytora:", err);
-        container.innerHTML = `<p style="color:red; text-align:center;">Nie udało się pobrać ćwiczeń. Sprawdź połączenie z bazą.</p>`;
+        console.error("Editor error:", err);
+        container.innerHTML = `<p style="color:red; text-align:center;">Failed to load exercises. Check server connection.</p>`;
     }
 }
 
 window.addExerciseField = () => {
     const setupArea = document.getElementById("exercises-setup");
     if (!setupArea || !exercisesCache) {
-        console.error("Błąd: Próba dodania pola bez załadowanych danych!");
+        console.error("Error: Attempted to add field without loaded data!");
         return;
     }
 
@@ -70,9 +70,8 @@ window.addExerciseField = () => {
     div.className = "exercise-row-setup";
     div.style = "display:flex; gap:10px; margin-bottom:12px; align-items:center;";
     
-    // Generowanie HTML opcji (optgroup)
     const categories = [...new Set(exercisesCache.map(ex => ex.category))];
-    let optionsHtml = '<option value="">Wybierz ćwiczenie...</option>';
+    let optionsHtml = '<option value="">Select exercise...</option>';
     
     categories.forEach(cat => {
         optionsHtml += `<optgroup label="${cat}">`;
@@ -90,7 +89,7 @@ window.addExerciseField = () => {
         <button type="button" class="remove-row-btn" style="background:none; border:none; color:#ff453a; font-size:22px; padding:0 5px;">✕</button>
     `;
 
-    // Obsługa usuwania wiersza
+    // Handle row removal
     div.querySelector('.remove-row-btn').onclick = () => div.remove();
     
     setupArea.appendChild(div);
@@ -99,7 +98,7 @@ window.addExerciseField = () => {
 window.saveFullPlan = async () => {
     const nameInput = document.getElementById("new-plan-name");
     const planName = nameInput.value.trim();
-    if (!planName) return alert("Podaj nazwę planu");
+    if (!planName) return alert("Enter a plan name");
 
     const rows = document.querySelectorAll(".exercise-row-setup");
     const selections = [];
@@ -109,14 +108,14 @@ window.saveFullPlan = async () => {
         if (id && sets) selections.push({ id, sets });
     });
 
-    if (selections.length === 0) return alert("Dodaj przynajmniej jedno ćwiczenie");
+    if (selections.length === 0) return alert("Add at least one exercise");
 
     const saveBtn = document.getElementById('save-plan-btn');
-    saveBtn.innerText = "Zapisywanie...";
+    saveBtn.innerText = "Saving...";
     saveBtn.disabled = true;
 
     try {
-        const res = await fetch(`${API_URL}/plans`, {
+        const res = await authFetch(`${API_URL}/plans`, {
             method: "POST",
             headers: {"Content-Type":"application/json"},
             body: JSON.stringify({ name: planName, user_id: parseInt(state.currentUserId) })
@@ -124,7 +123,7 @@ window.saveFullPlan = async () => {
         
         const planData = await res.json();
         for (const s of selections) {
-            await fetch(`${API_URL}/plan-exercises`, {
+            await authFetch(`${API_URL}/plan-exercises`, {
                 method: "POST",
                 headers: {"Content-Type":"application/json"},
                 body: JSON.stringify({ plan_id: planData.id, exercise_id: parseInt(s.id), target_sets: s.sets })
@@ -132,8 +131,8 @@ window.saveFullPlan = async () => {
         }
         location.reload();
     } catch (e) {
-        alert("Błąd zapisu");
-        saveBtn.innerText = "Zapisz Trening";
+        alert("Save failed");
+        saveBtn.innerText = "Save Workout";
         saveBtn.disabled = false;
     }
 };

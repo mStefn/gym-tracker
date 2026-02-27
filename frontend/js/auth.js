@@ -1,5 +1,4 @@
 import { state, API_URL } from './state.js';
-import { renderDashboard } from './dashboard.js';
 
 export function renderAuthScreen(mode) {
     state.mode = mode;
@@ -48,6 +47,7 @@ async function handleLogin(pin) {
         const data = await res.json();
         localStorage.setItem('selectedUserId', data.id);
         localStorage.setItem('selectedUserName', data.name);
+        localStorage.setItem('authToken', data.token);
         location.reload();
     } else alert("Invalid credentials");
 }

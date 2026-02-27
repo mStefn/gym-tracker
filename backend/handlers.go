@@ -1,6 +1,7 @@
 package main
 
 import (
+	"golang.org/x/crypto/bcrypt"
 	"github.com/gin-gonic/gin"
 )
 
@@ -12,19 +13,25 @@ func Login(c *gin.Context) {
 		Pin  string `json:"pin"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(400, gin.H{"error": "Złe dane"})
+		c.JSON(400, gin.H{"error": "Invalid input"})
 		return
 	}
 
 	var id int
-	var name string
-	err := db.QueryRow("SELECT id, name FROM users WHERE name = ? AND pin = ?", input.Name, input.Pin).Scan(&id, &name)
+	var name, hashedPin string
+	err := db.QueryRow("SELECT id, name, pin FROM users WHERE name = ?", input.Name).Scan(&id, &name, &hashedPin)
 	if err != nil {
-		c.JSON(401, gin.H{"error": "Nieprawidłowy PIN"})
+		c.JSON(401, gin.H{"error": "Invalid credentials"})
 		return
 	}
 
-	c.JSON(200, gin.H{"id": id, "name": name})
+	if bcrypt.CompareHashAndPassword([]byte(hashedPin), []byte(input.Pin)) != nil {
+		c.JSON(401, gin.H{"error": "Invalid credentials"})
+		return
+	}
+
+	token := GenerateToken(id)
+	c.JSON(200, gin.H{"id": id, "name": name, "token": token})
 }
 
 func SignUp(c *gin.Context) {
@@ -33,13 +40,19 @@ func SignUp(c *gin.Context) {
 		Pin  string `json:"pin"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(400, gin.H{"error": "Złe dane"})
+		c.JSON(400, gin.H{"error": "Invalid input"})
 		return
 	}
 
-	res, err := db.Exec("INSERT INTO users (name, pin) VALUES (?, ?)", input.Name, input.Pin)
+	hashed, err := bcrypt.GenerateFromPassword([]byte(input.Pin), bcrypt.DefaultCost)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Użytkownik już istnieje"})
+		c.JSON(500, gin.H{"error": "Server error"})
+		return
+	}
+
+	res, err := db.Exec("INSERT INTO users (name, pin) VALUES (?, ?)", input.Name, string(hashed))
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Username already exists"})
 		return
 	}
 
@@ -87,10 +100,10 @@ func GetLastResult(c *gin.Context) {
 
 // --- CREATOR & PLANS ---
 
-func getExercises(c *gin.Context) {
+func GetExercises(c *gin.Context) {
 	rows, err := db.Query("SELECT id, name, category FROM exercises ORDER BY category, name ASC")
 	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
+		c.JSON(500, gin.H{"error": "Failed to fetch exercises"})
 		return
 	}
 	defer rows.Close()
@@ -98,43 +111,65 @@ func getExercises(c *gin.Context) {
 	for rows.Next() {
 		var id int
 		var name, cat string
-		rows.Scan(&id, &name, &cat)
+		if err := rows.Scan(&id, &name, &cat); err != nil {
+			continue
+		}
 		list = append(list, map[string]interface{}{"id": id, "name": name, "category": cat})
 	}
 	c.JSON(200, list)
 }
 
-func createPlan(c *gin.Context) {
+func CreatePlan(c *gin.Context) {
 	var input struct {
 		Name   string `json:"name"`
 		UserID int    `json:"user_id"`
 	}
-	c.BindJSON(&input)
-	res, _ := db.Exec("INSERT INTO workout_plans (user_id, name) VALUES (?, ?)", input.UserID, input.Name)
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid input"})
+		return
+	}
+	res, err := db.Exec("INSERT INTO workout_plans (user_id, name) VALUES (?, ?)", input.UserID, input.Name)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to create plan"})
+		return
+	}
 	id, _ := res.LastInsertId()
 	c.JSON(200, gin.H{"id": id, "name": input.Name})
 }
 
-func addExerciseByPool(c *gin.Context) {
+func AddExerciseToPlan(c *gin.Context) {
 	var input struct {
 		PlanID     int `json:"plan_id"`
 		ExerciseID int `json:"exercise_id"`
 		TargetSets int `json:"target_sets"`
 	}
-	c.BindJSON(&input)
-	db.Exec("INSERT INTO plan_exercises (plan_id, exercise_id, target_sets) VALUES (?, ?, ?)", input.PlanID, input.ExerciseID, input.TargetSets)
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid input"})
+		return
+	}
+	_, err := db.Exec("INSERT INTO plan_exercises (plan_id, exercise_id, target_sets) VALUES (?, ?, ?)", input.PlanID, input.ExerciseID, input.TargetSets)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to add exercise to plan"})
+		return
+	}
 	c.JSON(200, gin.H{"status": "ok"})
 }
 
 func GetUserPlans(c *gin.Context) {
 	userID := c.Param("user_id")
-	rows, _ := db.Query("SELECT id, name FROM workout_plans WHERE user_id = ?", userID)
+	rows, err := db.Query("SELECT id, name FROM workout_plans WHERE user_id = ?", userID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to fetch plans"})
+		return
+	}
 	defer rows.Close()
 	list := []map[string]interface{}{}
 	for rows.Next() {
 		var id int
 		var name string
-		rows.Scan(&id, &name)
+		if err := rows.Scan(&id, &name); err != nil {
+			continue
+		}
 		list = append(list, map[string]interface{}{"id": id, "name": name})
 	}
 	c.JSON(200, list)
@@ -142,34 +177,140 @@ func GetUserPlans(c *gin.Context) {
 
 func GetPlanExercises(c *gin.Context) {
 	planID := c.Param("plan_id")
-	rows, _ := db.Query(`
+	rows, err := db.Query(`
         SELECT e.id, e.name, pe.target_sets 
         FROM plan_exercises pe 
         JOIN exercises e ON pe.exercise_id = e.id 
         WHERE pe.plan_id = ?`, planID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to fetch plan exercises"})
+		return
+	}
 	defer rows.Close()
 	list := []map[string]interface{}{}
 	for rows.Next() {
 		var id, sets int
 		var name string
-		rows.Scan(&id, &name, &sets)
+		if err := rows.Scan(&id, &name, &sets); err != nil {
+			continue
+		}
 		list = append(list, map[string]interface{}{"exercise_id": id, "exercise_name": name, "target_sets": sets})
 	}
 	c.JSON(200, list)
 }
 
-func deletePlan(c *gin.Context) {
+func DeletePlan(c *gin.Context) {
 	id := c.Param("id")
-	db.Exec("DELETE FROM workout_plans WHERE id = ?", id)
+	result, err := db.Exec("DELETE FROM workout_plans WHERE id = ?", id)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to delete plan"})
+		return
+	}
+	affected, _ := result.RowsAffected()
+	if affected == 0 {
+		c.JSON(404, gin.H{"error": "Plan not found"})
+		return
+	}
 	c.JSON(200, gin.H{"status": "deleted"})
 }
 
-// Pozostałe (naprawione funkcje)
-func ChangePin(c *gin.Context)     { c.JSON(200, gin.H{"status": "ok"}) }
-func AdminResetPin(c *gin.Context) { c.JSON(200, gin.H{"status": "ok"}) }
-func DeleteAccount(c *gin.Context) { c.JSON(200, gin.H{"status": "ok"}) }
+// --- HEALTH CHECK ---
+
+func HealthCheck(c *gin.Context) {
+	if err := db.Ping(); err != nil {
+		c.JSON(500, gin.H{"status": "unhealthy", "error": "Database unreachable"})
+		return
+	}
+	c.JSON(200, gin.H{"status": "healthy"})
+}
+
+func ChangePin(c *gin.Context) {
+	var input struct {
+		UserID int    `json:"user_id"`
+		OldPin string `json:"old_pin"`
+		NewPin string `json:"new_pin"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	var hashedPin string
+	err := db.QueryRow("SELECT pin FROM users WHERE id = ?", input.UserID).Scan(&hashedPin)
+	if err != nil {
+		c.JSON(404, gin.H{"error": "User not found"})
+		return
+	}
+
+	if bcrypt.CompareHashAndPassword([]byte(hashedPin), []byte(input.OldPin)) != nil {
+		c.JSON(401, gin.H{"error": "Current PIN is incorrect"})
+		return
+	}
+
+	newHashed, err := bcrypt.GenerateFromPassword([]byte(input.NewPin), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Server error"})
+		return
+	}
+
+	_, err = db.Exec("UPDATE users SET pin = ? WHERE id = ?", string(newHashed), input.UserID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to update PIN"})
+		return
+	}
+	c.JSON(200, gin.H{"status": "ok"})
+}
+
+func AdminResetPin(c *gin.Context) {
+	var input struct {
+		UserID int    `json:"user_id"`
+		NewPin string `json:"new_pin"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	newHashed, err := bcrypt.GenerateFromPassword([]byte(input.NewPin), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Server error"})
+		return
+	}
+
+	result, err := db.Exec("UPDATE users SET pin = ? WHERE id = ?", string(newHashed), input.UserID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to reset PIN"})
+		return
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		c.JSON(404, gin.H{"error": "User not found"})
+		return
+	}
+	c.JSON(200, gin.H{"status": "ok"})
+}
+
+func DeleteAccount(c *gin.Context) {
+	id := c.Param("id")
+	result, err := db.Exec("DELETE FROM users WHERE id = ?", id)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to delete user"})
+		return
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		c.JSON(404, gin.H{"error": "User not found"})
+		return
+	}
+	c.JSON(200, gin.H{"status": "deleted"})
+}
+
 func AdminListUsers(c *gin.Context) {
-	rows, _ := db.Query("SELECT id, name FROM users")
+	rows, err := db.Query("SELECT id, name FROM users")
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
 	defer rows.Close()
 	list := []map[string]interface{}{}
 	for rows.Next() {

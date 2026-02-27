@@ -2,11 +2,12 @@ services:
   db:
     image: mariadb:10.11
     restart: always
+    env_file: .env
     environment:
-      MYSQL_DATABASE: gym_tracker
-      MYSQL_ROOT_PASSWORD: root_password_stefan
-      MYSQL_USER: gym_user
-      MYSQL_PASSWORD: gym_password_stefan
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - mariadb_data:/var/lib/mysql
 
@@ -16,8 +17,11 @@ services:
       dockerfile: Dockerfile.backend
     ports:
       - "5001:4000"
+    env_file: .env
     environment:
-      - DB_DSN=gym_user:gym_password_stefan@tcp(db:3306)/gym_tracker?parseTime=true
+      - DB_DSN=${DB_DSN}
+      - AUTH_SECRET=${AUTH_SECRET}
+      - CORS_ORIGIN=${CORS_ORIGIN}
     depends_on:
       - db
 

@@ -1,4 +1,4 @@
-import { API_URL } from './state.js';
+import { API_URL, authFetch } from './state.js';
 
 // Sprawdź sesję przy starcie
 window.onload = () => {
@@ -20,6 +20,7 @@ window.adminLogin = async () => {
         const data = await res.json();
         localStorage.setItem('adminAuth', 'true');
         localStorage.setItem('adminId', data.id);
+        localStorage.setItem('authToken', data.token);
         showConsole();
     } else {
         alert("Access Denied");
@@ -37,11 +38,12 @@ function showConsole() {
 window.adminLogout = () => {
     localStorage.removeItem('adminAuth');
     localStorage.removeItem('adminId');
+    localStorage.removeItem('authToken');
     location.reload();
 };
 
 async function loadUsers() {
-    const res = await fetch(`${API_URL}/admin/users`);
+    const res = await authFetch(`${API_URL}/admin/users`);
     const users = await res.json();
     const list = document.getElementById("user-list");
     if (!list) return;
@@ -70,7 +72,7 @@ window.changeAdminPassword = async () => {
     if (newP !== confP) return alert("Passwords do not match");
     if (newP.length < 6) return alert("Password too short (min 6 chars)");
 
-    const res = await fetch(`${API_URL}/change-pin`, {
+    const res = await authFetch(`${API_URL}/change-pin`, {
         method: "POST",
         headers: {"Content-Type":"application/json"},
         body: JSON.stringify({user_id: parseInt(adminId), old_pin: oldP, new_pin: newP})
@@ -87,7 +89,7 @@ window.changeAdminPassword = async () => {
 window.resetPin = async (id) => {
     const pin = document.getElementById(`res-${id}`).value;
     if(pin.length !== 4) return alert("PIN must be 4 digits");
-    await fetch(`${API_URL}/admin/reset-pin`, {
+    await authFetch(`${API_URL}/admin/reset-pin`, {
         method: "POST",
         headers: {"Content-Type":"application/json"},
         body: JSON.stringify({user_id: id, new_pin: pin})
@@ -98,7 +100,7 @@ window.resetPin = async (id) => {
 
 window.deleteUser = async (id) => {
     if(confirm("Delete user and history?")) {
-        await fetch(`${API_URL}/user/${id}`, { method: "DELETE" });
+        await authFetch(`${API_URL}/user/${id}`, { method: "DELETE" });
         loadUsers();
     }
 };

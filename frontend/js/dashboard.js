@@ -1,4 +1,4 @@
-import { state, API_URL, logout } from './state.js';
+import { state, API_URL, authFetch, logout } from './state.js';
 import { renderPlanEditor } from './editor.js';
 
 export async function renderDashboard() {
@@ -22,7 +22,7 @@ export async function renderDashboard() {
     `;
     
     try {
-        const res = await fetch(`${API_URL}/plans/${state.currentUserId}`);
+        const res = await authFetch(`${API_URL}/plans/${state.currentUserId}`);
         const plans = await res.json();
         const list = document.getElementById("plans-list");
         
@@ -42,7 +42,7 @@ export async function renderDashboard() {
                 deleteBtn.style = "background: #ff453a; border: none; border-radius: 12px; width: 55px; cursor: pointer; color: white; font-size: 18px; display: flex; align-items: center; justify-content: center;";
                 deleteBtn.onclick = async () => {
                     if (confirm(`Delete plan "${plan.name}"?`)) {
-                        const delRes = await fetch(`${API_URL}/plans/${plan.id}`, { method: "DELETE" });
+                        const delRes = await authFetch(`${API_URL}/plan/${plan.id}`, { method: "DELETE" });
                         if (delRes.ok) location.reload();
                         else alert("Error deleting plan");
                     }
@@ -59,12 +59,12 @@ export async function renderDashboard() {
         console.error("Error loading plans:", e);
     }
 
-    // Obsługa przycisku tworzenia planu
+    // Handle create plan button
     const addBtn = document.getElementById("add-plan-btn");
     if (addBtn) addBtn.onclick = renderPlanEditor;
 }
 
-// Rejestracja globalnych funkcji
+// Register global functions
 window.appLogout = logout;
 
 window.renderSettings = () => {
@@ -91,7 +91,7 @@ window.updatePin = async () => {
     if (newPin !== confPin) return alert("Mismatch");
     
     try {
-        const res = await fetch(`${API_URL}/change-pin`, {
+        const res = await authFetch(`${API_URL}/change-pin`, {
             method: "POST", 
             headers: {"Content-Type":"application/json"},
             body: JSON.stringify({user_id: parseInt(state.currentUserId), old_pin: oldPin, new_pin: newPin})

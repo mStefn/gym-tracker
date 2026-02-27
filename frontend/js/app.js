@@ -3,7 +3,7 @@ import { renderAuthScreen } from './auth.js';
 import { renderDashboard } from './dashboard.js';
 import { renderWorkout } from './workout.js';
 
-// Globalne funkcje dostępne dla HTML
+// Global functions accessible from HTML
 window.openAuth = (mode) => renderAuthScreen(mode);
 window.renderWorkout = renderWorkout;
 
