@@ -3,7 +3,8 @@ import { API } from './api.js';
 window.state = {
     currentUserId: localStorage.getItem('selectedUserId'),
     currentUserName: localStorage.getItem('selectedUserName'),
-    tempPin: ""
+    tempPin: "",
+    mode: "" // "login" lub "signup"
 };
 
 const API_URL = `http://${window.location.hostname}:5001`;
@@ -23,8 +24,8 @@ function renderLandingPage() {
     const container = document.getElementById("exercises");
 
     nav.innerHTML = `
-        <button onclick="renderLoginScreen()" class="btn-nav btn-login">Login</button>
-        <button onclick="renderSignUpScreen()" class="btn-nav btn-signup">Sign Up</button>
+        <button onclick="renderAuthScreen('login')" class="btn-nav btn-login">Login</button>
+        <button onclick="renderAuthScreen('signup')" class="btn-nav btn-signup">Sign Up</button>
     `;
 
     container.innerHTML = `
@@ -36,17 +37,21 @@ function renderLandingPage() {
     `;
 }
 
-// --- AUTH SCREENS ---
+// --- UNIFIED AUTH SCREEN (LOGIN & SIGNUP) ---
 
-window.renderLoginScreen = () => {
-    window.state.tempPin = ""; // Reset pin state
+window.renderAuthScreen = (mode) => {
+    window.state.mode = mode;
+    window.state.tempPin = ""; 
+    const isLogin = mode === 'login';
+
     document.getElementById("main-nav").innerHTML = `<button onclick="location.reload()" class="btn-nav btn-signup">← Back</button>`;
+    
     document.getElementById("exercises").innerHTML = `
         <div style="text-align:center; margin-top:40px;">
-            <h2>Welcome Back</h2>
-            <p style="color:#8e8e93; margin-bottom:30px;">Login to your account</p>
+            <h2>${isLogin ? 'Welcome Back' : 'Create Account'}</h2>
+            <p style="color:#8e8e93; margin-bottom:30px;">${isLogin ? 'Login to your account' : 'Join our community (Max 5 users)'}</p>
             
-            <input type="text" id="login-name" placeholder="Username" style="margin-bottom:20px;">
+            <input type="text" id="auth-name" placeholder="${isLogin ? 'Username' : 'Choose Username'}" style="margin-bottom:20px;">
             
             <div id="pin-area">
                 <div id="pin-display" style="font-size:30px; margin:20px 0; letter-spacing:10px; color:var(--primary);">○ ○ ○ ○</div>
@@ -60,44 +65,34 @@ window.renderLoginScreen = () => {
     `;
 };
 
-window.renderSignUpScreen = () => {
-    document.getElementById("main-nav").innerHTML = `<button onclick="location.reload()" class="btn-nav btn-signup">← Back</button>`;
-    document.getElementById("exercises").innerHTML = `
-        <div style="text-align:center; margin-top:40px;">
-            <h2>Create Account</h2>
-            <p style="color:#8e8e93; margin-bottom:30px;">Join our community (Max 5 users)</p>
-            
-            <input type="text" id="signup-name" placeholder="Choose Username">
-            <input type="password" id="signup-pin" maxlength="4" inputmode="numeric" placeholder="Create 4-digit PIN">
-            
-            <div style="margin-top:20px;">
-                <button onclick="handleSignUp()" class="save-btn">Create My Profile</button>
-            </div>
-        </div>
-    `;
-};
-
-// --- LOGIC HANDLERS ---
+// --- PIN PAD LOGIC ---
 
 window.handlePinKey = (k) => {
     if (k === 'C') window.state.tempPin = "";
     else if (k === 'OK') {
-        if (window.state.tempPin.length === 4) handleLogin(window.state.tempPin);
-        else alert("Enter 4 digits");
+        if (window.state.tempPin.length === 4) {
+            if (window.state.mode === 'login') handleLogin(window.state.tempPin);
+            else handleSignUp(window.state.tempPin);
+        } else {
+            alert("Enter 4 digits");
+        }
         return;
     } else {
         if (window.state.tempPin.length < 4) window.state.tempPin += k;
     }
+    
     const dots = "● ".repeat(window.state.tempPin.length) + "○ ".repeat(4 - window.state.tempPin.length);
     const display = document.getElementById("pin-display");
     if (display) display.innerText = dots.trim();
 };
 
-window.handleLogin = async (pin) => {
-    const name = document.getElementById("login-name").value;
-    if (!name) return alert("Please enter username first");
+// --- ACTION HANDLERS ---
 
-    const res = await fetch(`http://${window.location.hostname}:5001/login`, {
+window.handleLogin = async (pin) => {
+    const name = document.getElementById("auth-name").value;
+    if (!name) return alert("Please enter username");
+
+    const res = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: {"Content-Type":"application/json"},
         body: JSON.stringify({name, pin})
@@ -110,25 +105,34 @@ window.handleLogin = async (pin) => {
         location.reload();
     } else {
         alert("Incorrect username or PIN");
-        window.state.tempPin = "";
-        const display = document.getElementById("pin-display");
-        if (display) display.innerText = "○ ○ ○ ○";
+        resetPinDisplay();
     }
 };
 
-window.handleSignUp = async () => {
-    const name = document.getElementById("signup-name").value;
-    const pin = document.getElementById("signup-pin").value;
-    
-    if (!name || pin.length !== 4) return alert("Username required and PIN must be 4 digits");
+window.handleSignUp = async (pin) => {
+    const name = document.getElementById("auth-name").value;
+    if (!name) return alert("Please choose a username");
 
-    const res = await fetch(`http://${window.location.hostname}:5001/signup`, {
-        method: "POST", headers: {"Content-Type":"application/json"},
+    const res = await fetch(`${API_URL}/signup`, {
+        method: "POST", 
+        headers: {"Content-Type":"application/json"},
         body: JSON.stringify({name, pin})
     });
-    if (res.ok) { alert("Account Created!"); location.reload(); }
-    else alert("Limit reached or name taken");
+
+    if (res.ok) { 
+        alert("Account Created! You can now login."); 
+        location.reload(); 
+    } else {
+        alert("Error: Limit reached or name already taken");
+        resetPinDisplay();
+    }
 };
+
+function resetPinDisplay() {
+    window.state.tempPin = "";
+    const display = document.getElementById("pin-display");
+    if (display) display.innerText = "○ ○ ○ ○";
+}
 
 // --- DASHBOARD ---
 
@@ -145,9 +149,11 @@ async function renderDashboard() {
         </div>
         <div id="plans-list"></div>
     `;
-    const res = await fetch(`http://${window.location.hostname}:5001/plans/${window.state.currentUserId}`);
+    
+    const res = await fetch(`${API_URL}/plans/${window.state.currentUserId}`);
     const plans = await res.json();
     const list = document.getElementById("plans-list");
+    
     plans.forEach(plan => {
         const btn = document.createElement("button");
         btn.className = "save-btn"; btn.style.marginBottom = "15px";
@@ -157,7 +163,7 @@ async function renderDashboard() {
     });
 }
 
-// --- REMAINING FUNCTIONS (Settings, Workout, LogSet, Logout) ---
+// --- SETTINGS, WORKOUT, LOGSET ---
 
 window.renderSettings = () => {
     document.getElementById("exercises").innerHTML = `
@@ -184,7 +190,7 @@ window.updatePin = async () => {
     const newPin = document.getElementById("new-pin").value;
     const confirmPin = document.getElementById("confirm-pin").value;
     if (newPin !== confirmPin) return alert("PINs do not match");
-    const res = await fetch(`http://${window.location.hostname}:5001/change-pin`, {
+    const res = await fetch(`${API_URL}/change-pin`, {
         method: "POST", headers: {"Content-Type":"application/json"},
         body: JSON.stringify({user_id: parseInt(window.state.currentUserId), old_pin: oldPin, new_pin: newPin})
     });
@@ -194,7 +200,7 @@ window.updatePin = async () => {
 
 window.deleteMyAccount = async () => {
     if (confirm("Delete everything?")) {
-        await fetch(`http://${window.location.hostname}:5001/user/${window.state.currentUserId}`, { method: "DELETE" });
+        await fetch(`${API_URL}/user/${window.state.currentUserId}`, { method: "DELETE" });
         logout();
     }
 };
@@ -202,7 +208,7 @@ window.deleteMyAccount = async () => {
 async function renderWorkout(planId, planName) {
     const container = document.getElementById("exercises");
     container.innerHTML = `<div style="display:flex; align-items:center; margin-bottom:25px"><button onclick="location.reload()" style="background:none; border:none; font-size:24px; margin-right:15px">←</button><h2 style="margin:0">${planName}</h2></div><div id='plan-content'></div>`;
-    const res = await fetch(`http://${window.location.hostname}:5001/plan-exercises/${planId}`);
+    const res = await fetch(`${API_URL}/plan-exercises/${planId}`);
     const exercises = await res.json();
     const content = document.getElementById("plan-content");
     for (const ex of exercises) {
@@ -211,10 +217,10 @@ async function renderWorkout(planId, planName) {
         content.appendChild(card);
         const list = document.getElementById(`ex-${ex.id}`);
         for (let i = 1; i <= ex.target_sets; i++) {
-            const lRes = await fetch(`http://${window.location.hostname}:5001/last/${window.state.currentUserId}/${ex.id}/${i}`);
+            const lRes = await fetch(`${API_URL}/last/${window.state.currentUserId}/${ex.id}/${i}`);
             const last = await lRes.json();
             const row = document.createElement("div"); row.className = "set-row";
-            row.innerHTML = `<div style="font-weight:700; color:var(--primary)">S${i}</div><div><span class="label-small">Prev</span><span class="history-val" id="h-${ex.id}-${i}">${last.reps}x${last.weight}kg</span></div><div><span class="label-small">Reps</span><input type="number" inputmode="numeric" id="r-${ex.id}-${i}" placeholder="0"></div><div><span class="label-small">Kg</span><input type="number" inputmode="decimal" id="w-${ex.id}-${i}" placeholder="0"></div><div style="grid-column: span 4"><button class="save-btn" style="padding:10px; font-size:14px;" onclick="logSet(this, ${ex.id}, ${i})">Save Set ${i}</button></div>`;
+            row.innerHTML = `<div style="font-weight:700; color:var(--primary)">S${i}</div><div><span class="label-small">Prev</span><span class="history-val" id="h-${ex.id}-${i}">${last.reps}x${last.weight}kg</span></div><div><span class="label-small">Reps</span><input type="number" id="r-${ex.id}-${i}" placeholder="0"></div><div><span class="label-small">Kg</span><input type="number" id="w-${ex.id}-${i}" placeholder="0"></div><div style="grid-column: span 4"><button class="save-btn" style="padding:10px; font-size:14px;" onclick="logSet(this, ${ex.id}, ${i})">Save Set ${i}</button></div>`;
             list.appendChild(row);
         }
     }
@@ -224,7 +230,7 @@ window.logSet = async (btn, exId, setNumber) => {
     const reps = parseInt(document.getElementById(`r-${exId}-${setNumber}`).value);
     const weight = parseFloat(document.getElementById(`w-${exId}-${setNumber}`).value.replace(',', '.'));
     if (isNaN(reps) || isNaN(weight)) return alert("Enter values");
-    const res = await fetch(`http://${window.location.hostname}:5001/log`, {
+    const res = await fetch(`${API_URL}/log`, {
         method: "POST", headers: {"Content-Type":"application/json"},
         body: JSON.stringify({user_id: parseInt(window.state.currentUserId), exercise_id: exId, set_number: setNumber, reps, weight})
     });
