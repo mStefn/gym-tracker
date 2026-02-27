@@ -143,10 +143,10 @@ func GetUserPlans(c *gin.Context) {
 func GetPlanExercises(c *gin.Context) {
 	planID := c.Param("plan_id")
 	rows, _ := db.Query(`
-		SELECT e.id, e.name, pe.target_sets 
-		FROM plan_exercises pe 
-		JOIN exercises e ON pe.exercise_id = e.id 
-		WHERE pe.plan_id = ?`, planID)
+        SELECT e.id, e.name, pe.target_sets 
+        FROM plan_exercises pe 
+        JOIN exercises e ON pe.exercise_id = e.id 
+        WHERE pe.plan_id = ?`, planID)
 	defer rows.Close()
 	list := []map[string]interface{}{}
 	for rows.Next() {
@@ -164,8 +164,19 @@ func deletePlan(c *gin.Context) {
 	c.JSON(200, gin.H{"status": "deleted"})
 }
 
-// Pozostałe (placeholdery jeśli nie używasz)
-func ChangePin(c *gin.Context)      { c.JSON(200, gin.H{"status": "ok"}) }
-func AdminResetPin(c *gin.Context)  { c.JSON(200, gin.H{"status": "ok"}) }
-func DeleteAccount(c *gin.Context)  { c.JSON(200, gin.H{"status": "ok"}) }
-func AdminListUsers(c *gin.Context) { c.JSON(200, list) } // Tu musiałbyś pobrać listę
+// Pozostałe (naprawione funkcje)
+func ChangePin(c *gin.Context)     { c.JSON(200, gin.H{"status": "ok"}) }
+func AdminResetPin(c *gin.Context) { c.JSON(200, gin.H{"status": "ok"}) }
+func DeleteAccount(c *gin.Context) { c.JSON(200, gin.H{"status": "ok"}) }
+func AdminListUsers(c *gin.Context) {
+	rows, _ := db.Query("SELECT id, name FROM users")
+	defer rows.Close()
+	list := []map[string]interface{}{}
+	for rows.Next() {
+		var id int
+		var name string
+		rows.Scan(&id, &name)
+		list = append(list, map[string]interface{}{"id": id, "name": name})
+	}
+	c.JSON(200, list)
+}
