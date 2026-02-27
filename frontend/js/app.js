@@ -16,27 +16,22 @@ window.onload = () => {
     }
 };
 
-// --- LANDING PAGE & NAV ---
+// --- LANDING PAGE ---
 
 function renderLandingPage() {
     const nav = document.getElementById("main-nav");
     const container = document.getElementById("exercises");
 
-    // Header buttons
     nav.innerHTML = `
         <button onclick="renderLoginScreen()" class="btn-nav btn-login">Login</button>
         <button onclick="renderSignUpScreen()" class="btn-nav btn-signup">Sign Up</button>
     `;
 
-    // Hero Section
     container.innerHTML = `
         <div class="hero">
             <div style="font-size:80px; margin-bottom:20px;">💪</div>
             <h1>Gym Tracker</h1>
-            <p>Your ultimate companion for strength and progress. Track every set, beat every record.</p>
-            <div style="margin-top:40px;">
-                <button onclick="renderSignUpScreen()" class="save-btn">Get Started for Free</button>
-            </div>
+            <p>Your ultimate companion for strength and progress.<br>Track every set, beat every record.</p>
         </div>
     `;
 }
@@ -44,13 +39,16 @@ function renderLandingPage() {
 // --- AUTH SCREENS ---
 
 window.renderLoginScreen = () => {
+    window.state.tempPin = ""; // Reset pin state
     document.getElementById("main-nav").innerHTML = `<button onclick="location.reload()" class="btn-nav btn-signup">← Back</button>`;
     document.getElementById("exercises").innerHTML = `
         <div style="text-align:center; margin-top:40px;">
             <h2>Welcome Back</h2>
-            <p style="color:#8e8e93; margin-bottom:30px;">Enter your details to continue</p>
-            <input type="text" id="login-name" placeholder="Username" oninput="showPinPad()">
-            <div id="pin-area" style="display:none; margin-top:20px;">
+            <p style="color:#8e8e93; margin-bottom:30px;">Login to your account</p>
+            
+            <input type="text" id="login-name" placeholder="Username" style="margin-bottom:20px;">
+            
+            <div id="pin-area">
                 <div id="pin-display" style="font-size:30px; margin:20px 0; letter-spacing:10px; color:var(--primary);">○ ○ ○ ○</div>
                 <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; max-width:250px; margin: 0 auto;">
                     ${[1,2,3,4,5,6,7,8,9,'C',0,'OK'].map(k => `
@@ -68,8 +66,10 @@ window.renderSignUpScreen = () => {
         <div style="text-align:center; margin-top:40px;">
             <h2>Create Account</h2>
             <p style="color:#8e8e93; margin-bottom:30px;">Join our community (Max 5 users)</p>
+            
             <input type="text" id="signup-name" placeholder="Choose Username">
             <input type="password" id="signup-pin" maxlength="4" inputmode="numeric" placeholder="Create 4-digit PIN">
+            
             <div style="margin-top:20px;">
                 <button onclick="handleSignUp()" class="save-btn">Create My Profile</button>
             </div>
@@ -78,11 +78,6 @@ window.renderSignUpScreen = () => {
 };
 
 // --- LOGIC HANDLERS ---
-
-window.showPinPad = () => {
-    const name = document.getElementById("login-name").value;
-    document.getElementById("pin-area").style.display = name.length >= 2 ? "block" : "none";
-};
 
 window.handlePinKey = (k) => {
     if (k === 'C') window.state.tempPin = "";
@@ -94,31 +89,39 @@ window.handlePinKey = (k) => {
         if (window.state.tempPin.length < 4) window.state.tempPin += k;
     }
     const dots = "● ".repeat(window.state.tempPin.length) + "○ ".repeat(4 - window.state.tempPin.length);
-    document.getElementById("pin-display").innerText = dots.trim();
+    const display = document.getElementById("pin-display");
+    if (display) display.innerText = dots.trim();
 };
 
 window.handleLogin = async (pin) => {
     const name = document.getElementById("login-name").value;
+    if (!name) return alert("Please enter username first");
+
     const res = await fetch(`http://${window.location.hostname}:5001/login`, {
         method: "POST",
         headers: {"Content-Type":"application/json"},
         body: JSON.stringify({name, pin})
     });
+    
     if (res.ok) {
         const data = await res.json();
         localStorage.setItem('selectedUserId', data.id);
         localStorage.setItem('selectedUserName', data.name);
         location.reload();
     } else {
-        alert("Incorrect PIN");
+        alert("Incorrect username or PIN");
         window.state.tempPin = "";
-        document.getElementById("pin-display").innerText = "○ ○ ○ ○";
+        const display = document.getElementById("pin-display");
+        if (display) display.innerText = "○ ○ ○ ○";
     }
 };
 
 window.handleSignUp = async () => {
     const name = document.getElementById("signup-name").value;
     const pin = document.getElementById("signup-pin").value;
+    
+    if (!name || pin.length !== 4) return alert("Username required and PIN must be 4 digits");
+
     const res = await fetch(`http://${window.location.hostname}:5001/signup`, {
         method: "POST", headers: {"Content-Type":"application/json"},
         body: JSON.stringify({name, pin})
@@ -130,13 +133,13 @@ window.handleSignUp = async () => {
 // --- DASHBOARD ---
 
 async function renderDashboard() {
-    document.getElementById("main-nav").innerHTML = ""; // Usuń login/signup z góry
+    document.getElementById("main-nav").innerHTML = "";
     const container = document.getElementById("exercises");
     container.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
             <h2 style="margin:0">Hi, ${window.state.currentUserName}</h2>
             <div>
-                <button onclick="renderSettings()" style="background:none; border:none; font-size:24px;">👤</button>
+                <button onclick="renderSettings()" style="background:none; border:none; font-size:24px; cursor:pointer;">👤</button>
                 <button onclick="logout()" class="nav-link" style="margin-left:10px;">Logout</button>
             </div>
         </div>
@@ -155,6 +158,7 @@ async function renderDashboard() {
 }
 
 // --- REMAINING FUNCTIONS (Settings, Workout, LogSet, Logout) ---
+
 window.renderSettings = () => {
     document.getElementById("exercises").innerHTML = `
         <div style="padding: 20px;">
@@ -167,7 +171,7 @@ window.renderSettings = () => {
                 <input type="password" id="confirm-pin" maxlength="4" placeholder="Confirm New PIN" style="margin-bottom:15px;">
                 <button onclick="updatePin()" class="save-btn">Update PIN</button>
             </div>
-            <div class="exercise-card" style="margin-top:30px; border:1px solid red;">
+            <div class="exercise-card" style="margin-top:30px; border: 1px solid red;">
                 <h3 style="color:red; border-left-color:red;">Danger Zone</h3>
                 <button onclick="deleteMyAccount()" class="save-btn" style="background:red;">Delete My Account</button>
             </div>

@@ -14,7 +14,6 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-/* Header & Nav */
 header {
     display: flex;
     justify-content: flex-end;
@@ -27,34 +26,33 @@ header {
 }
 
 .btn-nav {
-    padding: 8px 16px;
+    padding: 8px 18px;
     border-radius: 20px;
     border: none;
     font-weight: 600;
     cursor: pointer;
     font-size: 14px;
+    transition: 0.2s;
 }
 
 .btn-login { background: var(--primary); color: white; }
 .btn-signup { background: white; color: var(--primary); border: 1px solid var(--primary); }
+.btn-nav:active { opacity: 0.7; }
 
-/* Main Container */
 #exercises {
     max-width: 500px;
     margin: 0 auto;
     padding: 80px 20px 20px 20px;
 }
 
-/* Hero Section */
 .hero {
     text-align: center;
-    padding-top: 60px;
+    padding-top: 100px;
 }
 
-.hero h1 { font-size: 42px; margin-bottom: 10px; }
-.hero p { color: #8e8e93; font-size: 18px; line-height: 1.4; }
+.hero h1 { font-size: 42px; margin-bottom: 15px; letter-spacing: -1px; }
+.hero p { color: #8e8e93; font-size: 19px; line-height: 1.5; font-weight: 400; }
 
-/* Existing components */
 .exercise-card {
     background: var(--card-bg);
     border-radius: 16px;
@@ -72,25 +70,37 @@ header {
     color: #fff;
     font-weight: 700;
     cursor: pointer;
+    font-size: 16px;
 }
 
 input {
     width: 100%;
-    padding: 12px;
+    padding: 14px;
     border: 1px solid #d1d1d6;
-    border-radius: 10px;
+    border-radius: 12px;
     text-align: center;
     font-size: 16px;
     background: #fff;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     box-sizing: border-box;
 }
+
+.label-small { font-size: 10px; color: #8E8E93; display: block; margin-bottom: 2px; }
+.history-val { font-size: 13px; font-weight: 600; color: #8E8E93; }
 
 .set-row {
     display: grid;
     grid-template-columns: 35px 1.2fr 1fr 1fr;
     gap: 10px;
     align-items: center;
-    padding: 10px 0;
+    padding: 12px 0;
     border-bottom: 1px solid #f2f2f7;
+}
+
+.nav-link {
+    background: none;
+    border: none;
+    color: var(--primary);
+    font-weight: 600;
+    cursor: pointer;
 }
