@@ -10,51 +10,57 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     background: var(--bg-color);
     color: var(--text);
-    padding: 15px;
     margin: 0;
     -webkit-font-smoothing: antialiased;
 }
 
+/* Header & Nav */
+header {
+    display: flex;
+    justify-content: flex-end;
+    padding: 20px;
+    gap: 15px;
+    position: absolute;
+    width: 100%;
+    box-sizing: border-box;
+    z-index: 10;
+}
+
+.btn-nav {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.btn-login { background: var(--primary); color: white; }
+.btn-signup { background: white; color: var(--primary); border: 1px solid var(--primary); }
+
+/* Main Container */
 #exercises {
     max-width: 500px;
     margin: 0 auto;
+    padding: 80px 20px 20px 20px;
 }
 
+/* Hero Section */
+.hero {
+    text-align: center;
+    padding-top: 60px;
+}
+
+.hero h1 { font-size: 42px; margin-bottom: 10px; }
+.hero p { color: #8e8e93; font-size: 18px; line-height: 1.4; }
+
+/* Existing components */
 .exercise-card {
     background: var(--card-bg);
     border-radius: 16px;
     padding: 15px;
     margin-bottom: 20px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-
-h3 {
-    margin: 0 0 15px 0;
-    font-size: 18px;
-    border-left: 4px solid var(--primary);
-    padding-left: 10px;
-}
-
-.set-row {
-    display: grid;
-    grid-template-columns: 35px 1.2fr 1fr 1fr;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 0;
-    border-bottom: 1px solid #f2f2f7;
-}
-
-.label-small { font-size: 10px; color: #8E8E93; display: block; }
-.history-val { font-size: 13px; font-weight: 600; color: #8E8E93; }
-
-input {
-    width: 100%;
-    padding: 10px 0;
-    border: 1px solid #d1d1d6;
-    border-radius: 10px;
-    text-align: center;
-    font-size: 16px;
-    background: #f8f8fa;
 }
 
 .save-btn {
@@ -65,12 +71,26 @@ input {
     background: var(--primary);
     color: #fff;
     font-weight: 700;
-    transition: 0.2s;
+    cursor: pointer;
 }
 
-.nav-link {
-    background: none;
-    border: none;
-    color: var(--primary);
-    font-weight: 600;
+input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d1d1d6;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 16px;
+    background: #fff;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+}
+
+.set-row {
+    display: grid;
+    grid-template-columns: 35px 1.2fr 1fr 1fr;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f2f2f7;
 }
