@@ -1,28 +1,26 @@
 import { state, API_URL } from './state.js';
 
-export function renderPlanEditor() {
+let availableExercises = [];
+
+export async function renderPlanEditor() {
+    const res = await fetch(`${API_URL}/exercises`);
+    availableExercises = await res.json();
+
     const container = document.getElementById("exercises");
     container.innerHTML = `
         <div style="padding: 20px;">
             <button onclick="location.reload()" class="nav-link">← Cancel</button>
-            <h2 style="margin-top:20px;">New Plan</h2>
-            
+            <h2 style="margin-top:20px;">New Workout</h2>
             <div class="exercise-card">
-                <input type="text" id="new-plan-name" placeholder="Plan Name (e.g. Push Day)" style="margin-bottom:20px; text-align:left; padding-left:15px;">
-                
-                <div id="exercises-setup">
-                    </div>
-                
+                <input type="text" id="new-plan-name" placeholder="Plan Name (e.g. Push Day)" style="text-align:left; padding-left:15px; margin-bottom:20px;">
+                <div id="exercises-setup"></div>
                 <button onclick="addExerciseField()" class="btn-nav btn-signup" style="width:100%; margin-top:10px; border-style:dashed;">+ Add Exercise</button>
-                
                 <div style="margin-top:30px;">
-                    <button onclick="saveFullPlan()" class="save-btn" style="background:var(--success);">Save Training Plan</button>
+                    <button onclick="saveFullPlan()" class="save-btn" style="background:var(--success);">Save Plan</button>
                 </div>
             </div>
         </div>
     `;
-    // Dodaj pierwsze dwa pola na start dla wygody
-    addExerciseField();
     addExerciseField();
 }
 
@@ -30,53 +28,47 @@ window.addExerciseField = () => {
     const div = document.createElement("div");
     div.className = "exercise-row-setup";
     div.style = "display:flex; gap:10px; margin-bottom:12px; align-items:center;";
+    
+    const categories = [...new Set(availableExercises.map(ex => ex.category))];
+    let optionsHtml = '<option value="">Select...</option>';
+    categories.forEach(cat => {
+        optionsHtml += `<optgroup label="${cat}">`;
+        availableExercises.filter(ex => ex.category === cat).forEach(ex => {
+            optionsHtml += `<option value="${ex.id}">${ex.name}</option>`;
+        });
+        optionsHtml += `</optgroup>`;
+    });
+
     div.innerHTML = `
-        <input type="text" class="ex-name" placeholder="Exercise" style="flex:2; margin:0; text-align:left; padding-left:10px;">
-        <input type="number" class="ex-sets" placeholder="Sets" style="flex:0.8; margin:0;" min="1" max="15" value="3">
-        <button onclick="this.parentElement.remove()" style="background:none; border:none; color:#ff453a; font-size:20px; padding:0 5px;">✕</button>
+        <select class="ex-id" style="flex:2; padding:12px; border-radius:12px; border:1px solid #d1d1d6; background:#fff; font-size:14px;">${optionsHtml}</select>
+        <input type="number" class="ex-sets" value="3" style="flex:0.6; margin:0; text-align:center;">
+        <button onclick="this.parentElement.remove()" style="background:none; border:none; color:#ff453a; font-size:22px;">✕</button>
     `;
     document.getElementById("exercises-setup").appendChild(div);
 };
 
 window.saveFullPlan = async () => {
-    const nameInput = document.getElementById("new-plan-name");
-    const planName = nameInput.value.trim();
-    
-    if (!planName) return alert("Please enter a plan name");
-
+    const name = document.getElementById("new-plan-name").value.trim();
+    if (!name) return alert("Enter plan name");
     const rows = document.querySelectorAll(".exercise-row-setup");
-    const exercises = [];
+    const selections = [];
     rows.forEach(row => {
-        const name = row.querySelector(".ex-name").value.trim();
+        const id = row.querySelector(".ex-id").value;
         const sets = parseInt(row.querySelector(".ex-sets").value);
-        if (name && sets) exercises.push({ name, sets });
+        if (id && sets) selections.push({ id, sets });
     });
+    if (selections.length === 0) return alert("Add exercises");
 
-    if (exercises.length === 0) return alert("Add at least one exercise");
-
-    try {
-        // 1. Stwórz nagłówek planu
-        const planRes = await fetch(`${API_URL}/plans`, {
-            method: "POST",
-            headers: {"Content-Type":"application/json"},
-            body: JSON.stringify({ name: planName, user_id: parseInt(state.currentUserId) })
+    const res = await fetch(`${API_URL}/plans`, {
+        method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ name: name, user_id: parseInt(state.currentUserId) })
+    });
+    const data = await res.json();
+    for (const s of selections) {
+        await fetch(`${API_URL}/plan-exercises`, {
+            method: "POST", headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({ plan_id: data.id, exercise_id: parseInt(s.id), target_sets: s.sets })
         });
-        
-        if (!planRes.ok) throw new Error("Failed to create plan");
-        const planData = await planRes.json();
-        
-        // 2. Dodaj ćwiczenia jedno po drugim
-        for (const ex of exercises) {
-            await fetch(`${API_URL}/plan-exercises`, {
-                method: "POST",
-                headers: {"Content-Type":"application/json"},
-                body: JSON.stringify({ plan_id: planData.id, name: ex.name, target_sets: ex.sets })
-            });
-        }
-
-        alert("Plan saved!");
-        location.reload();
-    } catch (e) {
-        alert("Error saving plan: " + e.message);
     }
+    location.reload();
 };
