@@ -1,8 +1,8 @@
 package main
 
 import (
-	"golang.org/x/crypto/bcrypt"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // --- AUTH HANDLERS ---
@@ -305,19 +305,28 @@ func DeleteAccount(c *gin.Context) {
 	c.JSON(200, gin.H{"status": "deleted"})
 }
 
+// Zaktualizowana funkcja pobierająca użytkowników dla Admina
 func AdminListUsers(c *gin.Context) {
-	rows, err := db.Query("SELECT id, name FROM users")
+	rows, err := db.Query("SELECT id, name, is_admin FROM users")
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 	defer rows.Close()
+
 	list := []map[string]interface{}{}
 	for rows.Next() {
 		var id int
 		var name string
-		rows.Scan(&id, &name)
-		list = append(list, map[string]interface{}{"id": id, "name": name})
+		var isAdmin bool
+		if err := rows.Scan(&id, &name, &isAdmin); err != nil {
+			continue
+		}
+		list = append(list, map[string]interface{}{
+			"id":       id,
+			"name":     name,
+			"is_admin": isAdmin,
+		})
 	}
 	c.JSON(200, list)
 }
