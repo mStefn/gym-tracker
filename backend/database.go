@@ -9,6 +9,7 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var db *sql.DB
@@ -33,7 +34,7 @@ func initDB() {
 		log.Fatal("Failed to connect to database after 15 attempts")
 	}
 
-db.Exec(`CREATE TABLE IF NOT EXISTS users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(50) UNIQUE, pin VARCHAR(100), is_admin BOOLEAN DEFAULT FALSE);`)
+	db.Exec(`CREATE TABLE IF NOT EXISTS users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(50) UNIQUE, pin VARCHAR(100), is_admin BOOLEAN DEFAULT FALSE);`)
 	db.Exec(`CREATE TABLE IF NOT EXISTS exercises (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(150) UNIQUE, category VARCHAR(50));`)
 	db.Exec(`CREATE TABLE IF NOT EXISTS workout_plans (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, name VARCHAR(50), FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE);`)
 	db.Exec(`CREATE TABLE IF NOT EXISTS plan_exercises (plan_id INT, exercise_id INT, target_sets INT DEFAULT 3, FOREIGN KEY(plan_id) REFERENCES workout_plans(id) ON DELETE CASCADE, FOREIGN KEY(exercise_id) REFERENCES exercises(id) ON DELETE CASCADE);`)
@@ -41,6 +42,7 @@ db.Exec(`CREATE TABLE IF NOT EXISTS users (id INT AUTO_INCREMENT PRIMARY KEY, na
 	db.Exec(`CREATE INDEX IF NOT EXISTS idx_logs_lookup ON logs (user_id, exercise_id, set_number, created_at DESC);`)
 
 	seedExercises()
+	seedAdmin()
 }
 
 func seedExercises() {
@@ -64,5 +66,25 @@ func seedExercises() {
 			db.Exec("INSERT IGNORE INTO exercises (name, category) VALUES (?, ?)", ex.Name, ex.Category)
 		}
 		fmt.Println("✅ Exercises seeded from JSON")
+	}
+}
+
+func seedAdmin() {
+	var count int
+	db.QueryRow("SELECT COUNT(*) FROM users WHERE name = 'admin'").Scan(&count)
+	if count == 0 {
+		// Domyślny PIN dla admina to 1234
+		hashedPin, err := bcrypt.GenerateFromPassword([]byte("1234"), bcrypt.DefaultCost)
+		if err != nil {
+			fmt.Println("Error hashing admin PIN:", err)
+			return
+		}
+
+		_, err = db.Exec("INSERT INTO users (name, pin, is_admin) VALUES (?, ?, ?)", "admin", string(hashedPin), true)
+		if err != nil {
+			fmt.Println("Error seeding admin user:", err)
+			return
+		}
+		fmt.Println("✅ Default admin account created (PIN: 1234)")
 	}
 }
