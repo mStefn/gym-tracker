@@ -73,18 +73,11 @@ func seedAdmin() {
 	var count int
 	db.QueryRow("SELECT COUNT(*) FROM users WHERE name = 'admin'").Scan(&count)
 	if count == 0 {
-		// Domyślny PIN dla admina to 1234
-		hashedPin, err := bcrypt.GenerateFromPassword([]byte("1234"), bcrypt.DefaultCost)
-		if err != nil {
-			fmt.Println("Error hashing admin PIN:", err)
-			return
+		// Domyślny PIN/Hasło: 1234
+		hashedPin, _ := bcrypt.GenerateFromPassword([]byte("1234"), bcrypt.DefaultCost)
+		_, err := db.Exec("INSERT INTO users (name, pin, is_admin) VALUES (?, ?, ?)", "admin", string(hashedPin), true)
+		if err == nil {
+			fmt.Println("✅ Default admin account created (PIN: 1234)")
 		}
-
-		_, err = db.Exec("INSERT INTO users (name, pin, is_admin) VALUES (?, ?, ?)", "admin", string(hashedPin), true)
-		if err != nil {
-			fmt.Println("Error seeding admin user:", err)
-			return
-		}
-		fmt.Println("✅ Default admin account created (PIN: 1234)")
 	}
 }
