@@ -1,20 +1,25 @@
-FROM golang:1.21-bullseye
-
-# potrzebne dla sqlite3 (CGO)
-RUN apt-get update && apt-get install -y gcc libsqlite3-dev
+# Build stage
+FROM golang:1.21-bullseye AS builder
 
 WORKDIR /app
+
+COPY backend/go.mod .
+RUN go mod download || true
+
 COPY backend/ .
-
-# inicjalizacja modułu (jeśli brak)
-RUN go mod init gym-tracker || true
-
-# 🔒 PRZYPINAMY WERSJE (KLUCZOWE)
-RUN go get github.com/gin-gonic/gin@v1.10.0
-RUN go get github.com/gin-contrib/cors@v1.7.2
-RUN go get github.com/mattn/go-sqlite3@v1.14.22
-
 RUN go mod tidy
+RUN CGO_ENABLED=0 go build -o gym-tracker .
+
+# Runtime stage
+FROM debian:bullseye-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /app/gym-tracker .
+COPY --from=builder /app/exercises.json .
 
 EXPOSE 4000
-CMD ["go", "run", "main.go"]
+
+CMD ["./gym-tracker"]

@@ -1,15 +1,29 @@
 services:
+  db:
+    image: mariadb:10.11
+    restart: always
+    env_file: .env
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+
   backend:
     build:
       context: .
       dockerfile: Dockerfile.backend
     ports:
       - "5001:4000"
-    volumes:
-      - backend_data:/data
+    env_file: .env
     environment:
-      - DB_PATH=/data/db.sqlite
-    restart: always
+      - DB_DSN=${DB_DSN}
+      - AUTH_SECRET=${AUTH_SECRET}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+    depends_on:
+      - db
 
   frontend:
     build:
@@ -17,9 +31,7 @@ services:
       dockerfile: Dockerfile.frontend
     ports:
       - "5000:8081"
-    depends_on:
-      - backend
     restart: always
 
 volumes:
-  backend_data:
+  mariadb_data:

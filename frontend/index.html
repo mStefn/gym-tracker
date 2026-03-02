@@ -1,69 +1,19 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gym Tracker Pro</title>
-    
+    <title>Gym Tracker</title>
+    <link rel="stylesheet" href="css/style.css">
     <link rel="manifest" href="manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Gym Tracker">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2964/2964514.png">
-
-    <style>
-        :root {
-            --bg-color: #f0f2f5;
-            --card-bg: #ffffff;
-            --primary: #007AFF;
-            --success: #34C759;
-            --text: #1C1C1E;
-        }
-        body { 
-            font-family: -apple-system, system-ui, sans-serif; 
-            padding: 15px; background-color: var(--bg-color); margin: 0;
-            -webkit-font-smoothing: antialiased;
-        }
-        h1 { text-align: center; font-size: 22px; margin: 15px 0 20px; color: var(--text); }
-        #tabs { display: flex; overflow-x: auto; gap: 8px; padding-bottom: 10px; margin-bottom: 15px; }
-        #tabs::-webkit-scrollbar { display: none; }
-        #tabs button { 
-            flex: 0 0 auto; padding: 10px 16px; border: none; 
-            background: var(--card-bg); color: var(--primary); 
-            border-radius: 10px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        .exercise-card { 
-            background: var(--card-bg); padding: 15px; margin-bottom: 15px; 
-            border-radius: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.06); 
-        }
-        h3 { margin: 0 0 12px 0; font-size: 17px; border-left: 4px solid var(--primary); padding-left: 10px; }
-        .set-row {
-            display: grid; grid-template-columns: 35px 1.2fr 1fr 1fr;
-            align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid #f2f2f7;
-        }
-        .set-row:last-child { border-bottom: none; }
-        .label-small { font-size: 10px; color: #8E8E93; display: block; margin-bottom: 2px; }
-        .history-val { font-size: 13px; font-weight: 600; color: #8E8E93; transition: color 0.3s; }
-        input { 
-            width: 100%; padding: 10px 0; border: 1px solid #d1d1d6; 
-            border-radius: 8px; text-align: center; font-size: 16px; background: #f8f8fa;
-        }
-        .save-btn { 
-            background: var(--success); color: white; border: none; 
-            border-radius: 8px; padding: 12px; font-weight: bold; width: 100%;
-        }
-    </style>
 </head>
 <body>
-    <h1>Gym Tracker</h1>
-    <div id="tabs">
-        <button onclick="loadCategory('Upper A')">Upper A</button>
-        <button onclick="loadCategory('Upper B')">Upper B</button>
-        <button onclick="loadCategory('Upper C')">Upper C</button>
-        <button onclick="loadCategory('Lower A')">Lower Day</button>
-        <button onclick="loadCategory('Lower B')">Arm Day</button>
-    </div>
-    <div id="exercises"></div>
-    <script src="app.js"></script>
+    <header id="main-nav">
+        </header>
+
+    <div id="exercises">
+        </div>
+    
+    <script type="module" src="js/app.js?v=7"></script>
 </body>
 </html>

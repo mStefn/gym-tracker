@@ -1,0 +1,198 @@
+:root {
+    --bg-color: #f2f2f7;
+    --primary: #007AFF;
+    --success: #34C759;
+    --danger: #ff453a;
+    --text: #1c1c1e;
+    --card-bg: #ffffff;
+    --border: #d1d1d6;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg-color);
+    color: var(--text);
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+/* --- HEADER & NAVIGATION --- */
+header {
+    display: flex;
+    justify-content: flex-end;
+    padding: 20px;
+    gap: 12px;
+    position: absolute;
+    width: 100%;
+    box-sizing: border-box;
+    z-index: 10;
+}
+
+.btn-nav {
+    padding: 10px 20px;
+    border-radius: 20px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+    transition: transform 0.1s, opacity 0.2s;
+}
+
+.btn-nav:active {
+    transform: scale(0.95);
+    opacity: 0.8;
+}
+
+.btn-login { background: var(--primary); color: white; }
+.btn-signup { background: white; color: var(--primary); border: 1px solid var(--primary); }
+
+.nav-link {
+    background: none;
+    border: none;
+    color: var(--primary);
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 5px 0;
+}
+
+/* --- LAYOUT --- */
+#exercises {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 80px 20px 40px 20px;
+}
+
+/* --- HERO SECTION (LANDING) --- */
+.hero {
+    text-align: center;
+    padding-top: 80px;
+}
+
+.hero h1 {
+    font-size: 42px;
+    margin-bottom: 15px;
+    letter-spacing: -1px;
+    font-weight: 800;
+}
+
+.hero p {
+    color: #8e8e93;
+    font-size: 19px;
+    line-height: 1.5;
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+/* --- CARDS & FORMS --- */
+.exercise-card {
+    background: var(--card-bg);
+    border-radius: 18px;
+    padding: 18px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.exercise-card h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 18px;
+    border-left: 4px solid var(--primary);
+    padding-left: 10px;
+}
+
+input, select {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 16px;
+    background: #fff;
+    margin-bottom: 12px;
+    box-sizing: border-box;
+    outline: none;
+}
+
+input:focus, select:focus {
+    border-color: var(--primary);
+}
+
+/* --- BUTTONS --- */
+.save-btn {
+    width: 100%;
+    padding: 16px;
+    border-radius: 14px;
+    border: none;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.2s;
+}
+
+.save-btn:disabled {
+    background: #aeaeb2;
+    cursor: not-allowed;
+}
+
+/* --- PIN PAD --- */
+#pin-display {
+    font-size: 32px;
+    margin: 25px 0;
+    letter-spacing: 12px;
+    color: var(--primary);
+    font-weight: bold;
+}
+
+/* --- WORKOUT TABLE / ROWS --- */
+.set-row {
+    display: grid;
+    grid-template-columns: 35px 1.2fr 0.8fr 0.8fr 45px;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f2f2f7;
+}
+
+.label-small {
+    font-size: 11px;
+    color: #8e8e93;
+    display: block;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.history-val {
+    font-size: 14px;
+    font-weight: 600;
+    color: #48484a;
+}
+
+/* --- UTILS --- */
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(0, 122, 255, 0.1);
+    border-left-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+optgroup {
+    font-weight: bold;
+    color: var(--primary);
+    background: #f2f2f7;
+}
+
+option {
+    color: var(--text);
+    background: #fff;
+}
