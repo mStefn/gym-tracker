@@ -2,7 +2,6 @@ import { state, logout } from './state.js';
 import { renderAuthScreen } from './auth.js';
 import { renderDashboard } from './dashboard.js';
 import { renderWorkout } from './workout.js';
-// DODANY IMPORT STATYSTYK
 import { renderStats } from './stats.js';
 
 window.openAuth = (mode) => renderAuthScreen(mode);
@@ -27,15 +26,14 @@ window.navigate = (tab) => {
                 renderDashboard(); 
                 break;
             case 'stats':
-                // WYWOŁANIE NOWEJ FUNKCJI
                 renderStats();
                 break;
             case 'library':
                 container.innerHTML = `
                     <div style="text-align:center; margin-top:60px; color:#8e8e93;">
-                        <div style="font-size:60px; margin-bottom:20px;">📚</div>
+                        <div style="font-size:60px; margin-bottom:20px; text-shadow: 0 0 15px var(--primary-glow);">📚</div>
                         <h2>Exercise Library</h2>
-                        <p>Coming soon...</p>
+                        <p>Accessing mainframe... Coming soon.</p>
                     </div>`;
                 break;
             case 'settings':
@@ -50,15 +48,20 @@ window.navigate = (tab) => {
 window.onload = () => {
     const sidebar = document.getElementById('sidebar');
     const topBar = document.getElementById('top-bar');
+    const mainBg = document.getElementById('main-bg');
 
     if (!state.currentUserId) {
         sidebar.style.display = 'none';
         topBar.style.display = 'none';
+        // Brak rozmycia tła na stronie logowania!
+        mainBg.classList.remove('dimmed');
         renderLandingPage();
     } else {
         sidebar.style.display = 'flex';
         topBar.style.display = 'flex';
-        document.getElementById('user-greeting').innerText = `Hi, ${state.currentUserName} 👋`;
+        // Przyciemniamy tło w trakcie treningu, żeby było czytelnie
+        mainBg.classList.add('dimmed');
+        document.getElementById('user-greeting').innerText = `Hi, ${state.currentUserName} ⚡`;
         window.navigate('home'); 
     }
 };
@@ -67,45 +70,37 @@ function renderHomePage() {
     const container = document.getElementById("exercises");
     container.innerHTML = `
         <div style="text-align: center; margin-top: 40px;">
-            <h1 style="font-size: 32px; margin-bottom: 10px;">Welcome to Gym Tracker</h1>
-            <p style="color: #8e8e93; font-size: 18px; margin-bottom: 40px;">Ready for today's session?</p>
+            <h1 style="font-size: 32px; margin-bottom: 10px; color: var(--text);">SYSTEM ONLINE</h1>
+            <p style="color: var(--primary); font-size: 16px; margin-bottom: 40px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Ready for today's session?</p>
             
-            <div id="home-graphic-container" style="
-                width: 100%; 
-                max-width: 500px; 
-                height: 300px; 
-                margin: 0 auto; 
-                background: #e5e5ea; 
-                border-radius: 20px; 
-                display: flex; 
-                align-items: center; 
-                justify-content: center;
-                border: 2px dashed #c7c7cc;
-                color: #8e8e93;
-            ">
-                <div style="text-align: center;">
-                    <span style="font-size: 50px;">🖼️</span>
-                    <p>Graphic / Illustration will be here</p>
-                </div>
-            </div>
-
             <div style="margin-top: 40px; display: flex; justify-content: center; gap: 15px;">
-                <button onclick="window.navigate('workout')" class="save-btn" style="width: auto; padding: 15px 30px;">Go to Workouts</button>
+                <button onclick="window.navigate('workout')" class="save-btn" style="width: auto; padding: 15px 40px;">INITIATE WORKOUT</button>
             </div>
         </div>
     `;
 }
 
 function renderLandingPage() {
+    // Epicki centralny panel w stylu Glassmorphism
     document.getElementById("exercises").innerHTML = `
-        <div style="text-align: right; margin-bottom: 40px;">
-            <button onclick="window.openAuth('login')" class="btn-nav btn-login">Login</button>
-            <button onclick="window.openAuth('signup')" class="btn-nav btn-signup">Sign Up</button>
-        </div>
-        <div class="hero">
-            <div style="font-size:80px; margin-bottom:20px;">💪</div>
-            <h1>Gym Tracker</h1>
-            <p>Your ultimate companion for strength and progress.</p>
+        <div style="height: calc(100vh - 60px); display: flex; align-items: center; justify-content: center; flex-direction: column;">
+            
+            <div style="background: var(--card-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); padding: 50px 30px; border-radius: 24px; border: 1px solid var(--border); text-align: center; max-width: 380px; width: 100%; box-shadow: 0 15px 50px rgba(0,0,0,0.8);">
+                
+                <h1 style="font-size: 36px; margin: 0 0 10px 0; color: var(--text); text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 15px var(--primary-glow);">GYM TRACKER</h1>
+                
+                <div style="display:inline-block; background: var(--success); color: #000; padding: 4px 12px; border-radius: 6px; font-weight: 900; font-size: 13px; margin-bottom: 30px; transform: skewX(-10deg); box-shadow: 0 0 15px rgba(255,149,0,0.5);">
+                    LEVEL UP!
+                </div>
+                
+                <p style="color: #a1a1aa; font-size: 15px; margin-bottom: 40px; line-height: 1.5;">Enter the arena.<br>Track your absolute power.</p>
+                
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <button onclick="window.openAuth('login')" class="save-btn">LOGIN SEQUENCE</button>
+                    <button onclick="window.openAuth('signup')" class="save-btn" style="background: rgba(0,0,0,0.4); color: var(--primary); border: 1px solid var(--primary); box-shadow: none;">CREATE ACCOUNT</button>
+                </div>
+            </div>
+
         </div>
     `;
 }
