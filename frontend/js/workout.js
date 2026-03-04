@@ -130,68 +130,72 @@ export async function saveSet(btn, exId, setNum, exName) {
     }
 }
 
-// --- LOGIKA PROGRESSIVE OVERLOAD (ZAPIS DO KOLEJNEGO TRENINGU) ---
+// --- NAPRAWIONA LOGIKA PROGRESSIVE OVERLOAD (BEZ MRUGANIA) ---
 window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) => {
-    // Domyślna podpowiedź systemu: +2.5kg jeśli reps >= 10
-    let nextWeight = currentReps >= 10 ? currentWeight + 2.5 : currentWeight;
+    // Domyślna podpowiedź systemu: +0.5kg jeśli reps >= 10
+    let nextWeight = currentReps >= 10 ? currentWeight + 0.5 : currentWeight;
     let nextReps = currentReps >= 10 ? 8 : currentReps;
 
     const modal = document.createElement("div");
-    modal.className = "modal-overlay dialog-overlay"; // wyśrodkowany modal
+    modal.className = "modal-overlay dialog-overlay";
     modal.id = "overload-modal";
 
-    const renderContent = () => {
-        modal.innerHTML = `
-            <div class="modal-content modal-content-small">
-                <div class="modal-header" style="justify-content: center; padding-bottom: 10px;">
-                    <h3 style="margin:0; font-size:20px;">Progressive Overload 📈</h3>
-                </div>
-                <div class="modal-body" style="text-align: center; padding-top: 5px;">
-                    <p style="color: #8e8e93; margin-top: 0; font-size: 14px; margin-bottom: 25px;">Set your target for next time on:<br><strong style="color:var(--text);">${exName} (Set ${setNum})</strong></p>
-                    
-                    <div class="stepper-row">
-                        <span class="stepper-label">Weight (kg)</span>
-                        <div class="stepper-controls">
-                            <button class="stepper-btn" onclick="window.updateOverload('weight', -2.5)">-</button>
-                            <div class="stepper-val">${nextWeight}</div>
-                            <button class="stepper-btn" onclick="window.updateOverload('weight', 2.5)">+</button>
-                        </div>
+    // Budujemy szkielet modala TYLKO RAZ
+    modal.innerHTML = `
+        <div class="modal-content modal-content-small">
+            <div class="modal-header" style="justify-content: center; padding-bottom: 10px;">
+                <h3 style="margin:0; font-size:20px;">Progressive Overload 📈</h3>
+            </div>
+            <div class="modal-body" style="text-align: center; padding-top: 5px;">
+                <p style="color: #8e8e93; margin-top: 0; font-size: 14px; margin-bottom: 25px;">
+                    Set your target for next time on:<br>
+                    <strong style="color:var(--text);">${exName} (Set ${setNum})</strong>
+                </p>
+                
+                <div class="stepper-row">
+                    <span class="stepper-label">Weight (kg)</span>
+                    <div class="stepper-controls">
+                        <button class="stepper-btn" onclick="window.changeVal('weight', -0.5)">-</button>
+                        <div class="stepper-val" id="val-weight">${nextWeight.toFixed(1)}</div>
+                        <button class="stepper-btn" onclick="window.changeVal('weight', 0.5)">+</button>
                     </div>
+                </div>
 
-                    <div class="stepper-row">
-                        <span class="stepper-label">Reps Target</span>
-                        <div class="stepper-controls">
-                            <button class="stepper-btn" onclick="window.updateOverload('reps', -1)">-</button>
-                            <div class="stepper-val">${nextReps}</div>
-                            <button class="stepper-btn" onclick="window.updateOverload('reps', 1)">+</button>
-                        </div>
+                <div class="stepper-row">
+                    <span class="stepper-label">Reps Target</span>
+                    <div class="stepper-controls">
+                        <button class="stepper-btn" onclick="window.changeVal('reps', -1)">-</button>
+                        <div class="stepper-val" id="val-reps">${nextReps}</div>
+                        <button class="stepper-btn" onclick="window.changeVal('reps', 1)">+</button>
                     </div>
-                </div>
-                <div class="modal-footer" style="display: flex; gap: 15px;">
-                    <button onclick="window.closeOverload()" class="save-btn" style="background: var(--card-bg); color: var(--text); border: 1px solid var(--border); flex: 1;">Skip</button>
-                    <button onclick="window.saveOverload(${exId}, ${setNum})" class="save-btn" style="background: var(--success); flex: 2;">Confirm Target</button>
                 </div>
             </div>
-        `;
-    };
+            <div class="modal-footer" style="display: flex; gap: 15px;">
+                <button onclick="window.closeOverload()" class="save-btn" style="background: var(--card-bg); color: var(--text); border: 1px solid var(--border); flex: 1;">Skip</button>
+                <button id="confirm-overload-btn" class="save-btn" style="background: var(--success); flex: 2;">Confirm Target</button>
+            </div>
+        </div>
+    `;
 
-    window.updateOverload = (type, amount) => {
+    document.body.appendChild(modal);
+
+    // Dynamiczna zmiana wartości bez przeładowywania HTML
+    window.changeVal = (type, amount) => {
         if (type === 'weight') {
-            nextWeight = Math.max(0, parseFloat((nextWeight + amount).toFixed(2))); // unikanie błędów zaokrągleń
+            nextWeight = Math.max(0, parseFloat((nextWeight + amount).toFixed(1)));
+            document.getElementById('val-weight').innerText = nextWeight.toFixed(1);
         } else {
             nextReps = Math.max(1, nextReps + amount);
+            document.getElementById('val-reps').innerText = nextReps;
         }
-        renderContent();
     };
 
-    window.saveOverload = (eId, sNum) => {
+    window.saveOverloadLocal = () => {
         const targetObj = { weight: nextWeight, reps: nextReps };
-        // Zapisujemy cel w pamięci lokalnej
-        localStorage.setItem(`target_${state.currentUserId}_${eId}_${sNum}`, JSON.stringify(targetObj));
+        localStorage.setItem(`target_${state.currentUserId}_${exId}_${setNum}`, JSON.stringify(targetObj));
         
-        // Zmieniamy zielony napis pod spodem
-        const targetDiv = document.getElementById(`target-${eId}-${sNum}`);
-        if (targetDiv) targetDiv.innerText = `Tgt: ${nextWeight}kg x ${nextReps}`;
+        const targetDiv = document.getElementById(`target-${exId}-${setNum}`);
+        if (targetDiv) targetDiv.innerText = `Tgt: ${nextWeight.toFixed(1)}kg x ${nextReps}`;
         
         window.closeOverload();
     };
@@ -200,9 +204,6 @@ window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) =>
         if(document.body.contains(modal)) document.body.removeChild(modal);
     };
 
-    document.body.appendChild(modal);
-    renderContent();
+    // Podpinamy akcję pod przycisk zapisu
+    document.getElementById('confirm-overload-btn').onclick = window.saveOverloadLocal;
 };
-
-window.renderWorkout = renderWorkout;
-window.saveSet = saveSet;
