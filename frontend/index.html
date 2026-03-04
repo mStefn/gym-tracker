@@ -4,16 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Gym Tracker</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header id="main-nav">
-        </header>
+    <div id="app-container">
+        <nav id="sidebar" style="display: none;">
+            <div class="sidebar-header">
+                <h2>💪 GymTracker</h2>
+            </div>
+            <ul class="nav-links">
+                <li><button onclick="window.navigate('workout')" class="nav-item active" id="nav-workout">🏋️‍♂️ Workouts</button></li>
+                <li><button onclick="window.navigate('stats')" class="nav-item" id="nav-stats">📈 Statistics</button></li>
+                <li><button onclick="window.navigate('library')" class="nav-item" id="nav-library">📚 Exercises</button></li>
+                <li><button onclick="window.navigate('settings')" class="nav-item" id="nav-settings">⚙️ Settings</button></li>
+            </ul>
+            <div class="sidebar-footer">
+                <button onclick="window.appLogout()" class="nav-item text-danger">🚪 Logout</button>
+            </div>
+        </nav>
 
-    <div id="exercises">
-        </div>
-    
-    <script type="module" src="js/app.js?v=7"></script>
+        <main id="main-content">
+            <header id="main-nav"></header>
+            <div id="exercises"></div>
+        </main>
+    </div>
+
+    <script type="module" src="app.js"></script>
 </body>
 </html>
