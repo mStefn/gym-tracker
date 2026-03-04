@@ -7,20 +7,20 @@ window.openAuth = (mode) => renderAuthScreen(mode);
 window.renderWorkout = renderWorkout;
 window.appLogout = logout;
 
-// PROSTY ROUTER SPA
+// ROUTER
 window.navigate = (tab) => {
-    // 1. Ustaw aktywne menu
     document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
     const activeBtn = document.getElementById(`nav-${tab}`);
     if (activeBtn) activeBtn.classList.add('active');
 
-    // 2. Wyczyść kontener na ładowanie
     const container = document.getElementById("exercises");
     container.innerHTML = `<div class="spinner" style="margin-top: 50px;"></div>`;
 
-    // 3. Renderuj widoki
     setTimeout(() => {
         switch (tab) {
+            case 'home':
+                renderHomePage();
+                break;
             case 'workout':
                 renderDashboard(); 
                 break;
@@ -44,7 +44,7 @@ window.navigate = (tab) => {
                 if (window.renderSettings) window.renderSettings();
                 break;
             default:
-                renderDashboard();
+                renderHomePage();
         }
     }, 100);
 };
@@ -54,18 +54,49 @@ window.onload = () => {
     const topBar = document.getElementById('top-bar');
 
     if (!state.currentUserId) {
-        // NIEZALOGOWANY
         sidebar.style.display = 'none';
         topBar.style.display = 'none';
         renderLandingPage();
     } else {
-        // ZALOGOWANY
         sidebar.style.display = 'flex';
         topBar.style.display = 'flex';
         document.getElementById('user-greeting').innerText = `Hi, ${state.currentUserName} 👋`;
-        window.navigate('workout');
+        window.navigate('home'); // DOMYŚLNIE HOME
     }
 };
+
+function renderHomePage() {
+    const container = document.getElementById("exercises");
+    container.innerHTML = `
+        <div style="text-align: center; margin-top: 40px;">
+            <h1 style="font-size: 32px; margin-bottom: 10px;">Welcome to Gym Tracker</h1>
+            <p style="color: #8e8e93; font-size: 18px; margin-bottom: 40px;">Ready for today's session?</p>
+            
+            <div id="home-graphic-container" style="
+                width: 100%; 
+                max-width: 500px; 
+                height: 300px; 
+                margin: 0 auto; 
+                background: #e5e5ea; 
+                border-radius: 20px; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center;
+                border: 2px dashed #c7c7cc;
+                color: #8e8e93;
+            ">
+                <div style="text-align: center;">
+                    <span style="font-size: 50px;">🖼️</span>
+                    <p>Graphic / Illustration will be here</p>
+                </div>
+            </div>
+
+            <div style="margin-top: 40px; display: flex; justify-content: center; gap: 15px;">
+                <button onclick="window.navigate('workout')" class="save-btn" style="width: auto; padding: 15px 30px;">Go to Workouts</button>
+            </div>
+        </div>
+    `;
+}
 
 function renderLandingPage() {
     document.getElementById("exercises").innerHTML = `
