@@ -40,26 +40,23 @@ export async function renderWorkout(planId, planName) {
                 rendered.add(ex.exercise_id);
             }
 
-            // --- INTELIGENTNE POBIERANIE TARGETU ---
             let targetInfo = "Target: Set it!";
             const savedTargetStr = localStorage.getItem(`target_${state.currentUserId}_${ex.exercise_id}_${s}`);
             
             if (savedTargetStr) {
                 try {
                     const savedTarget = JSON.parse(savedTargetStr);
-                    targetInfo = `Tgt: ${savedTarget.weight}kg x ${savedTarget.reps}`;
+                    targetInfo = `Tgt: ${savedTarget.weight.toFixed(1)}kg x ${savedTarget.reps}`;
                 } catch(e){}
             } else if (last.weight > 0) {
-                const nextWeight = last.reps >= 10 ? last.weight + 2.5 : last.weight;
-                targetInfo = `Tgt: ${nextWeight}kg x ${last.reps}`;
+                const nextWeight = last.reps >= 10 ? last.weight + 0.5 : last.weight;
+                targetInfo = `Tgt: ${nextWeight.toFixed(1)}kg x ${last.reps}`;
             }
 
-            // --- NOWY, 3-KOLUMNOWY UKŁAD WIERSZA ---
             const row = document.createElement("div");
             row.className = "set-row";
             row.style = "display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 12px;";
             
-            // Unikamy błędów przy cudzysłowach w nazwach ćwiczeń
             const safeExName = ex.exercise_name.replace(/'/g, "\\'");
 
             row.innerHTML = `
@@ -79,7 +76,7 @@ export async function renderWorkout(planId, planName) {
                 <input type="number" class="reps-in" placeholder="Reps" id="reps-${ex.exercise_id}-${s}" style="width:45px; margin:0 2px; padding:8px 4px; font-size:13px; text-align:center;">
                 <input type="number" class="weight-in" placeholder="kg" id="weight-${ex.exercise_id}-${s}" style="width:50px; margin:0 2px; padding:8px 4px; font-size:13px; text-align:center;">
                 
-                <button onclick="saveSet(this, ${ex.exercise_id}, ${s}, '${safeExName}')" class="btn-nav btn-login" style="width:48px; height:40px; padding:0; display:flex; align-items:center; justify-content:center; border-radius: 10px; font-size:12px;">Save</button>
+                <button onclick="window.saveSet(this, ${ex.exercise_id}, ${s}, '${safeExName}')" class="btn-nav btn-login" style="width:48px; height:40px; padding:0; display:flex; align-items:center; justify-content:center; border-radius: 10px; font-size:12px;">Save</button>
             `;
             document.getElementById(`ex-${ex.exercise_id}`).appendChild(row);
         }
@@ -117,10 +114,8 @@ export async function saveSet(btn, exId, setNum, exName) {
             document.getElementById(`reps-${exId}-${setNum}`).disabled = true;
             document.getElementById(`weight-${exId}-${setNum}`).disabled = true;
             
-            // Aktualizuj kolumnę TODAY w czasie rzeczywistym
             document.getElementById(`today-${exId}-${setNum}`).innerText = `${weightVal}kg x ${repsVal}`;
             
-            // Otwórz okno planowania progresji
             window.showOverloadModal(exId, setNum, parseFloat(weightVal), parseInt(repsVal), exName);
         }
     } catch (e) {
@@ -130,9 +125,7 @@ export async function saveSet(btn, exId, setNum, exName) {
     }
 }
 
-// --- NAPRAWIONA LOGIKA PROGRESSIVE OVERLOAD (BEZ MRUGANIA) ---
 window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) => {
-    // Domyślna podpowiedź systemu: +0.5kg jeśli reps >= 10
     let nextWeight = currentReps >= 10 ? currentWeight + 0.5 : currentWeight;
     let nextReps = currentReps >= 10 ? 8 : currentReps;
 
@@ -140,7 +133,6 @@ window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) =>
     modal.className = "modal-overlay dialog-overlay";
     modal.id = "overload-modal";
 
-    // Budujemy szkielet modala TYLKO RAZ
     modal.innerHTML = `
         <div class="modal-content modal-content-small">
             <div class="modal-header" style="justify-content: center; padding-bottom: 10px;">
@@ -179,7 +171,6 @@ window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) =>
 
     document.body.appendChild(modal);
 
-    // Dynamiczna zmiana wartości bez przeładowywania HTML
     window.changeVal = (type, amount) => {
         if (type === 'weight') {
             nextWeight = Math.max(0, parseFloat((nextWeight + amount).toFixed(1)));
@@ -204,6 +195,9 @@ window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) =>
         if(document.body.contains(modal)) document.body.removeChild(modal);
     };
 
-    // Podpinamy akcję pod przycisk zapisu
     document.getElementById('confirm-overload-btn').onclick = window.saveOverloadLocal;
 };
+
+// --- REJESTRACJA GLOBALNA ---
+window.renderWorkout = renderWorkout;
+window.saveSet = saveSet;
