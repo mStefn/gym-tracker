@@ -53,15 +53,15 @@ window.onload = () => {
     if (!state.currentUserId) {
         sidebar.style.display = 'none';
         topBar.style.display = 'none';
-        // Brak rozmycia tła na stronie logowania!
         mainBg.classList.remove('dimmed');
         renderLandingPage();
     } else {
         sidebar.style.display = 'flex';
         topBar.style.display = 'flex';
-        // Przyciemniamy tło w trakcie treningu, żeby było czytelnie
         mainBg.classList.add('dimmed');
-        document.getElementById('user-greeting').innerText = `Hi, ${state.currentUserName} ⚡`;
+        
+        // Zmieniony napis "Hi, User" z plakietką Level Up!
+        document.getElementById('user-greeting').innerHTML = `Hi, ${state.currentUserName} <span class="level-up-badge">LEVEL UP!</span>`;
         window.navigate('home'); 
     }
 };
@@ -81,22 +81,16 @@ function renderHomePage() {
 }
 
 function renderLandingPage() {
-    // Epicki centralny panel w stylu Glassmorphism
+    // Ultra-minimalistyczny panel, brak scrollowania
     document.getElementById("exercises").innerHTML = `
         <div style="height: calc(100vh - 60px); display: flex; align-items: center; justify-content: center; flex-direction: column;">
             
             <div style="background: var(--card-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); padding: 50px 30px; border-radius: 24px; border: 1px solid var(--border); text-align: center; max-width: 380px; width: 100%; box-shadow: 0 15px 50px rgba(0,0,0,0.8);">
                 
-                <h1 style="font-size: 36px; margin: 0 0 10px 0; color: var(--text); text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 15px var(--primary-glow);">GYM TRACKER</h1>
-                
-                <div style="display:inline-block; background: var(--success); color: #000; padding: 4px 12px; border-radius: 6px; font-weight: 900; font-size: 13px; margin-bottom: 30px; transform: skewX(-10deg); box-shadow: 0 0 15px rgba(255,149,0,0.5);">
-                    LEVEL UP!
-                </div>
-                
-                <p style="color: #a1a1aa; font-size: 15px; margin-bottom: 40px; line-height: 1.5;">Enter the arena.<br>Track your absolute power.</p>
+                <h1 style="font-size: 36px; margin: 0 0 40px 0; color: var(--text); text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 15px var(--primary-glow);">GYM TRACKER</h1>
                 
                 <div style="display: flex; flex-direction: column; gap: 15px;">
-                    <button onclick="window.openAuth('login')" class="save-btn">LOGIN SEQUENCE</button>
+                    <button onclick="window.openAuth('login')" class="save-btn">LOGIN</button>
                     <button onclick="window.openAuth('signup')" class="save-btn" style="background: rgba(0,0,0,0.4); color: var(--primary); border: 1px solid var(--primary); box-shadow: none;">CREATE ACCOUNT</button>
                 </div>
             </div>
