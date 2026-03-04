@@ -206,11 +206,12 @@ input, select {
    ========================================= */
 .modal-overlay {
     position: fixed;
-    top: 0; left: 0; width: 100vw; height: 100vh;
+    /* Zamiast 100vh/100vw przypinamy twardo do krawędzi okna */
+    top: 0; bottom: 0; left: 0; right: 0;
     background: rgba(0,0,0,0.5);
     z-index: 2000;
     display: flex;
-    align-items: flex-end; /* Wsuwa się z dołu na mobile */
+    align-items: flex-end; 
     justify-content: center;
     backdrop-filter: blur(3px);
 }
@@ -219,7 +220,8 @@ input, select {
     background: var(--bg-color);
     width: 100%;
     max-width: 600px;
-    height: 90dvh; /* Używamy viewport height uwzględniającej pasek adresu URL na tel */
+    height: 85%; /* Stabilna wartość procentowa zamiast dvh */
+    max-height: 100%;
     border-radius: 24px 24px 0 0;
     display: flex;
     flex-direction: column;
@@ -234,9 +236,9 @@ input, select {
 }
 
 @media (min-width: 768px) {
-    .modal-overlay { align-items: center; } /* Na PC wyśrodkowany */
+    .modal-overlay { align-items: center; } 
     .modal-content { 
-        height: 80vh; 
+        height: 80%; 
         border-radius: 24px; 
         animation: popIn 0.2s ease-out;
     }
@@ -265,12 +267,13 @@ input, select {
     flex-shrink: 0;
 }
 
-/* Środek modala - jedyna część, która można przewijać */
+/* Środek modala - elastyczny i przewijany */
 .modal-body {
-    flex: 1; /* Wypełnia całą dostępną wolną przestrzeń */
+    flex: 1 1 auto; /* Rośnie, wypełniając resztę miejsca */
+    min-height: 0; /* MAGIA FLEXBOXA: Zapobiega rozpychaniu kontenera przez zawartość */
     overflow-y: auto;
     padding: 20px;
-    -webkit-overflow-scrolling: touch; /* Płynne przewijanie na iOS */
+    -webkit-overflow-scrolling: touch; 
 }
 
 /* Stopka z przyciskiem "Add Selected" - zawsze na dole */
@@ -279,7 +282,7 @@ input, select {
     background: var(--card-bg);
     border-top: 1px solid var(--border);
     flex-shrink: 0;
-    padding-bottom: calc(20px + env(safe-area-inset-bottom)); /* Margines dla iPhonów z paskiem na dole */
+    padding-bottom: calc(20px + env(safe-area-inset-bottom)); 
 }
 
 .filter-container {
@@ -331,7 +334,7 @@ input, select {
     align-items: center;
     gap: 6px;
     min-height: 110px;
-    user-select: none; /* Zapobiega przypadkowemu zaznaczaniu tekstu przy szybkim klikaniu */
+    user-select: none; 
 }
 .ex-card:active { transform: scale(0.95); }
 .ex-card:hover { border-color: #d1d1d6; }
@@ -371,12 +374,12 @@ input, select {
         width: 100%; height: auto; border-right: none; border-top: 1px solid var(--border);
         padding: 5px 0; flex-direction: row; position: fixed; bottom: 0; left: 0;
         justify-content: space-around; padding-bottom: env(safe-area-inset-bottom);
-        z-index: 1000; /* Sidebar musi być mniejszy niż Modal (2000), żeby modal go zasłaniał */
+        z-index: 1000;
     }
     .sidebar-header { display: none; }
     .nav-links { display: flex; flex-direction: row; justify-content: space-around; width: 100%; padding: 0; }
     .nav-item { flex-direction: column; padding: 8px 5px; font-size: 11px; gap: 4px; justify-content: center; text-align: center; }
     .nav-item.active { background: transparent; color: var(--primary); }
     
-    #main-content { padding-bottom: 80px; } /* Odsunięcie treści od dolnego menu nawigacyjnego */
+    #main-content { padding-bottom: 80px; }
 }
