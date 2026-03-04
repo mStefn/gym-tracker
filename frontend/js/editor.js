@@ -1,12 +1,13 @@
 import { state, API_URL, authFetch } from './state.js';
 
-// Module-level cache
 let exercisesCache = null;
+let selectedExercisesForPlan = [];
 
 export async function renderPlanEditor() {
     const container = document.getElementById("exercises");
     
-    // 1. Show loader
+    selectedExercisesForPlan = []; 
+    
     container.innerHTML = `
         <div style="text-align:center; margin-top:100px;">
             <div class="spinner"></div>
@@ -15,84 +16,186 @@ export async function renderPlanEditor() {
     `;
 
     try {
-        // 2. Fetch data
         const res = await authFetch(`${API_URL}/exercises`);
         if (!res.ok) throw new Error("Server error");
         exercisesCache = await res.json();
 
-        // 3. Render editor skeleton
         container.innerHTML = `
-            <div style="padding: 20px;">
-                <button onclick="location.reload()" class="nav-link">← Cancel</button>
-                <h2 style="margin-top:20px;">New Plan</h2>
+            <div style="padding: 10px;">
+                <button onclick="window.navigate('workout')" style="background: transparent; border: none; color: var(--primary); padding: 0; margin-bottom: 20px; font-size: 16px; font-weight: 600; cursor: pointer;">← Cancel</button>
+                <h2 style="margin-top:0; margin-bottom: 20px;">Create New Plan</h2>
+                
                 <div class="exercise-card">
-                    <input type="text" id="new-plan-name" placeholder="Plan name (e.g. Chest + Biceps)" style="text-align:left; padding-left:15px; margin-bottom:20px;">
+                    <input type="text" id="new-plan-name" placeholder="Plan name (e.g. Chest + Biceps)" style="text-align:left; padding-left:15px; margin-bottom:20px; font-weight: 600;">
                     
                     <div id="exercises-setup"></div>
                     
-                    <button id="add-ex-btn" class="btn-nav btn-signup" style="width:100%; margin-top:10px; border-style:dashed;">
-                        + Add Exercise
+                    <button id="add-ex-btn" class="btn-nav btn-signup" style="width:100%; margin-top:10px; border: 2px dashed var(--primary); padding: 15px; font-size: 16px;">
+                        + Add Exercises
                     </button>
                     
                     <div style="margin-top:30px;">
-                        <button id="save-plan-btn" class="save-btn" style="background:var(--success);">Save Workout</button>
+                        <button id="save-plan-btn" class="save-btn" style="background:var(--success);">Save Workout Plan</button>
                     </div>
                 </div>
             </div>
         `;
 
-    // 4. Attach event listeners
         document.getElementById('add-ex-btn').addEventListener('click', () => {
-            window.addExerciseField();
+            window.openExercisePicker();
         });
 
         document.getElementById('save-plan-btn').addEventListener('click', () => {
             window.saveFullPlan();
         });
         
-        // 5. Add first exercise row on start
-        window.addExerciseField();
+        window.renderSelectedList();
 
     } catch (err) {
         console.error("Editor error:", err);
-        container.innerHTML = `<p style="color:red; text-align:center;">Failed to load exercises. Check server connection.</p>`;
+        container.innerHTML = `<p style="color:var(--danger); text-align:center;">Failed to load exercises. Check server connection.</p>`;
     }
 }
 
-window.addExerciseField = () => {
-    const setupArea = document.getElementById("exercises-setup");
-    if (!setupArea || !exercisesCache) {
-        console.error("Error: Attempted to add field without loaded data!");
+window.renderSelectedList = () => {
+    const list = document.getElementById("exercises-setup");
+    list.innerHTML = "";
+    
+    if (selectedExercisesForPlan.length === 0) {
+        list.innerHTML = `<p style="text-align:center; color:#8e8e93; font-size:14px; margin-bottom:20px;">No exercises added yet.</p>`;
         return;
     }
 
-    const div = document.createElement("div");
-    div.className = "exercise-row-setup";
-    div.style = "display:flex; gap:10px; margin-bottom:12px; align-items:center;";
-    
-    const categories = [...new Set(exercisesCache.map(ex => ex.category))];
-    let optionsHtml = '<option value="">Select exercise...</option>';
-    
-    categories.forEach(cat => {
-        optionsHtml += `<optgroup label="${cat}">`;
-        exercisesCache.filter(ex => ex.category === cat).forEach(ex => {
-            optionsHtml += `<option value="${ex.id}">${ex.name}</option>`;
-        });
-        optionsHtml += `</optgroup>`;
+    selectedExercisesForPlan.forEach(exId => {
+        const ex = exercisesCache.find(e => e.id === exId);
+        if(!ex) return;
+
+        const div = document.createElement("div");
+        div.className = "selected-ex-row";
+        div.innerHTML = `
+            <div style="flex:1;">
+                <div style="font-weight:600; font-size:15px; color:var(--text);">${ex.name}</div>
+                <div style="font-size:12px; color:#8e8e93; margin-top: 4px;">${ex.category}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:15px;">
+                <div style="display:flex; flex-direction:column; align-items:center;">
+                    <label style="font-size:11px; color:#8e8e93; font-weight: 600; margin-bottom:4px;">Sets</label>
+                    <input type="number" class="ex-sets" data-id="${ex.id}" value="3" min="1" max="10" style="width:60px; padding:10px; margin:0; text-align:center; border-radius:10px;">
+                </div>
+                <button type="button" onclick="window.removeExercise(${ex.id})" style="background:none; border:none; color:var(--danger); font-size:24px; padding:5px; cursor:pointer; display:flex; align-items:center;">✕</button>
+            </div>
+        `;
+        list.appendChild(div);
     });
+};
 
-    div.innerHTML = `
-        <select class="ex-id" style="flex:2; padding:12px; border-radius:12px; border:1px solid #d1d1d6; background:#fff; font-size:14px;">
-            ${optionsHtml}
-        </select>
-        <input type="number" class="ex-sets" value="3" style="flex:0.6; margin:0; padding:12px; text-align:center;">
-        <button type="button" class="remove-row-btn" style="background:none; border:none; color:#ff453a; font-size:22px; padding:0 5px;">✕</button>
-    `;
+window.removeExercise = (id) => {
+    selectedExercisesForPlan = selectedExercisesForPlan.filter(exId => exId !== id);
+    window.renderSelectedList();
+};
 
-    // Handle row removal
-    div.querySelector('.remove-row-btn').onclick = () => div.remove();
+// --- NAPRAWIONA LOGIKA MODALA ---
+window.openExercisePicker = () => {
+    let tempSelected = [...selectedExercisesForPlan]; 
+    let currentFilter = 'All';
+    const categories = ['All', ...new Set(exercisesCache.map(ex => ex.category))];
     
-    setupArea.appendChild(div);
+    const modal = document.createElement("div");
+    modal.className = "modal-overlay";
+    modal.id = "ex-picker-modal";
+
+    // Budujemy szkielet Modala tylko RAZ
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="margin:0;">Select Exercises</h3>
+                <button onclick="window.closePicker()" style="background:none; border:none; font-size:16px; color:var(--primary); font-weight:600; cursor:pointer;">Cancel</button>
+            </div>
+            
+            <div class="modal-filters">
+                <div class="filter-container" id="picker-filters"></div>
+            </div>
+
+            <div class="modal-body" id="picker-body">
+                <div class="exercise-grid" id="picker-grid"></div>
+            </div>
+
+            <div class="modal-footer">
+                <button id="confirm-selection-btn" onclick="window.confirmSelection()" class="save-btn">Add Selected (${tempSelected.length})</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+
+    const filterContainer = document.getElementById("picker-filters");
+    const gridContainer = document.getElementById("picker-grid");
+    const confirmBtn = document.getElementById("confirm-selection-btn");
+
+    // Generujemy filtry
+    filterContainer.innerHTML = categories.map(cat => 
+        `<button class="filter-badge ${currentFilter === cat ? 'active' : ''}" onclick="window.setFilter('${cat}')">${cat}</button>`
+    ).join('');
+
+    // Funkcja odrysowująca TYLKO siatkę ćwiczeń (używana przy zmianie kategorii)
+    window.renderGrid = () => {
+        const filteredEx = currentFilter === 'All' 
+            ? exercisesCache 
+            : exercisesCache.filter(ex => ex.category === currentFilter);
+
+        gridContainer.innerHTML = filteredEx.map(ex => {
+            const isSelected = tempSelected.includes(ex.id);
+            return `
+                <div class="ex-card ${isSelected ? 'selected' : ''}" id="ex-card-${ex.id}" onclick="window.toggleExSelection(${ex.id})">
+                    <div id="ex-icon-${ex.id}" style="font-size: 24px; margin-bottom: 5px;">${isSelected ? '☑️' : '◻️'}</div>
+                    <div class="ex-card-title">${ex.name}</div>
+                    <div class="ex-card-cat">${ex.category}</div>
+                </div>
+            `;
+        }).join('');
+    };
+
+    // Optymalne zaznaczanie (bez przeładowywania siatki!)
+    window.toggleExSelection = (id) => {
+        const index = tempSelected.indexOf(id);
+        const card = document.getElementById(`ex-card-${id}`);
+        const icon = document.getElementById(`ex-icon-${id}`);
+
+        if (index > -1) {
+            tempSelected.splice(index, 1);
+            if(card) card.classList.remove('selected');
+            if(icon) icon.innerText = '◻️';
+        } else {
+            tempSelected.push(id);
+            if(card) card.classList.add('selected');
+            if(icon) icon.innerText = '☑️';
+        }
+        
+        // Aktualizuj tylko napis na przycisku
+        confirmBtn.innerText = `Add Selected (${tempSelected.length})`;
+    };
+
+    window.setFilter = (cat) => {
+        currentFilter = cat;
+        // Zmień aktywny przycisk filtra
+        Array.from(filterContainer.children).forEach(btn => {
+            btn.classList.toggle('active', btn.innerText === cat);
+        });
+        window.renderGrid();
+    };
+
+    window.confirmSelection = () => {
+        selectedExercisesForPlan = [...tempSelected];
+        window.renderSelectedList();
+        document.body.removeChild(modal);
+    };
+
+    window.closePicker = () => {
+        document.body.removeChild(modal);
+    };
+
+    // Pierwsze rysowanie siatki
+    window.renderGrid();
 };
 
 window.saveFullPlan = async () => {
@@ -100,11 +203,12 @@ window.saveFullPlan = async () => {
     const planName = nameInput.value.trim();
     if (!planName) return alert("Enter a plan name");
 
-    const rows = document.querySelectorAll(".exercise-row-setup");
+    const inputs = document.querySelectorAll(".ex-sets");
     const selections = [];
-    rows.forEach(row => {
-        const id = row.querySelector(".ex-id").value;
-        const sets = parseInt(row.querySelector(".ex-sets").value);
+    
+    inputs.forEach(input => {
+        const id = parseInt(input.getAttribute("data-id"));
+        const sets = parseInt(input.value);
         if (id && sets) selections.push({ id, sets });
     });
 
@@ -126,13 +230,13 @@ window.saveFullPlan = async () => {
             await authFetch(`${API_URL}/plan-exercises`, {
                 method: "POST",
                 headers: {"Content-Type":"application/json"},
-                body: JSON.stringify({ plan_id: planData.id, exercise_id: parseInt(s.id), target_sets: s.sets })
+                body: JSON.stringify({ plan_id: planData.id, exercise_id: s.id, target_sets: s.sets })
             });
         }
-        location.reload();
+        window.navigate('workout');
     } catch (e) {
         alert("Save failed");
-        saveBtn.innerText = "Save Workout";
+        saveBtn.innerText = "Save Workout Plan";
         saveBtn.disabled = false;
     }
 };

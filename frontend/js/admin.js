@@ -1,29 +1,32 @@
 import { API_URL, authFetch } from './state.js';
 
-// Sprawdź sesję przy starcie
 window.onload = () => {
     const isAdmin = localStorage.getItem('adminAuth') === 'true';
-    if (isAdmin) {
-        showConsole();
-    }
+    if (isAdmin) showConsole();
 };
 
 window.adminLogin = async () => {
     const pass = document.getElementById("admin-pass").value;
-    const res = await fetch(`${API_URL}/login`, {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({name: "admin", pin: pass})
-    });
+    try {
+        const res = await fetch(`${API_URL}/login`, {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({name: "admin", pin: pass})
+        });
 
-    if (res.ok) {
-        const data = await res.json();
-        localStorage.setItem('adminAuth', 'true');
-        localStorage.setItem('adminId', data.id);
-        localStorage.setItem('authToken', data.token);
-        showConsole();
-    } else {
-        alert("Access Denied");
+        if (res.ok) {
+            const data = await res.json();
+            localStorage.clear(); 
+            localStorage.setItem('adminAuth', 'true');
+            localStorage.setItem('adminId', data.id);
+            localStorage.setItem('authToken', data.token);
+            showConsole();
+        } else {
+            const errData = await res.json();
+            alert("Login failed: " + (errData.error || "Invalid credentials"));
+        }
+    } catch (e) {
+        alert("Server connection error");
     }
 };
 
@@ -36,27 +39,34 @@ function showConsole() {
 }
 
 window.adminLogout = () => {
-    localStorage.removeItem('adminAuth');
-    localStorage.removeItem('adminId');
-    localStorage.removeItem('authToken');
+    localStorage.clear();
     location.reload();
 };
 
 async function loadUsers() {
     const res = await authFetch(`${API_URL}/admin/users`);
+    
+    if (res.status === 401) {
+        // Cichy powrót zamiast agresywnego alertu podczas logowania
+        console.warn("Session unauthorized");
+        return; 
+    }
+
     const users = await res.json();
+    if (!Array.isArray(users)) return;
+
     const list = document.getElementById("user-list");
     if (!list) return;
 
     list.innerHTML = users.map(u => `
         <div class="admin-card">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <strong>${u.name} ${u.is_admin ? '(System Admin)' : ''}</strong>
+                <strong>${u.name} ${u.is_admin ? '(Admin)' : ''}</strong>
                 ${!u.is_admin ? `<button onclick="deleteUser(${u.id})" style="background:#ff453a; border:none; color:white; padding:5px 10px; border-radius:5px; cursor:pointer;">Delete</button>` : ''}
             </div>
             ${!u.is_admin ? `
             <div style="margin-top:10px; display:flex; gap:10px;">
-                <input type="text" id="res-${u.id}" placeholder="New 4-digit PIN" style="margin:0; flex:1;">
+                <input type="text" id="res-${u.id}" placeholder="New PIN" style="margin:0; flex:1;">
                 <button onclick="resetPin(${u.id})" style="background:#0a84ff; border:none; color:white; padding:0 15px; border-radius:8px; cursor:pointer;">Reset</button>
             </div>` : ''}
         </div>
@@ -70,7 +80,6 @@ window.changeAdminPassword = async () => {
     const adminId = localStorage.getItem('adminId');
 
     if (newP !== confP) return alert("Passwords do not match");
-    if (newP.length < 6) return alert("Password too short (min 6 chars)");
 
     const res = await authFetch(`${API_URL}/change-pin`, {
         method: "POST",
@@ -79,16 +88,16 @@ window.changeAdminPassword = async () => {
     });
 
     if (res.ok) {
-        alert("Password updated!");
-        location.reload();
+        alert("Password updated! Log in again.");
+        window.adminLogout();
     } else {
-        alert("Error: Current password incorrect");
+        const errData = await res.json();
+        alert("Error: " + (errData.error || "Incorrect current password"));
     }
 };
 
 window.resetPin = async (id) => {
     const pin = document.getElementById(`res-${id}`).value;
-    if(pin.length !== 4) return alert("PIN must be 4 digits");
     await authFetch(`${API_URL}/admin/reset-pin`, {
         method: "POST",
         headers: {"Content-Type":"application/json"},
@@ -99,7 +108,7 @@ window.resetPin = async (id) => {
 };
 
 window.deleteUser = async (id) => {
-    if(confirm("Delete user and history?")) {
+    if(confirm("Delete user?")) {
         await authFetch(`${API_URL}/user/${id}`, { method: "DELETE" });
         loadUsers();
     }

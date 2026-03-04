@@ -1,8 +1,8 @@
 package main
 
 import (
-	"golang.org/x/crypto/bcrypt"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // --- AUTH HANDLERS ---
@@ -25,7 +25,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	if bcrypt.CompareHashAndPassword([]byte(hashedPin), []byte(input.Pin)) != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(hashedPin), []byte(input.Pin)); err != nil {
 		c.JSON(401, gin.H{"error": "Invalid credentials"})
 		return
 	}
@@ -96,6 +96,47 @@ func GetLastResult(c *gin.Context) {
 		return
 	}
 	c.JSON(200, gin.H{"reps": reps, "weight": weight})
+}
+
+func GetUserStats(c *gin.Context) {
+	userID := c.Param("user_id")
+
+	// Wyciągamy historię: data, nazwa ćwiczenia, waga, powtórzenia
+	rows, err := db.Query(`
+		SELECT l.created_at, e.name, l.weight, l.reps, e.id
+		FROM logs l
+		JOIN exercises e ON l.exercise_id = e.id
+		WHERE l.user_id = ?
+		ORDER BY l.created_at ASC`, userID)
+
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to fetch stats"})
+		return
+	}
+	defer rows.Close()
+
+	type StatRow struct {
+		Date     string  `json:"date"`
+		Exercise string  `json:"exercise"`
+		Weight   float64 `json:"weight"`
+		Reps     int     `json:"reps"`
+		ExID     int     `json:"ex_id"`
+	}
+
+	var stats []StatRow
+	for rows.Next() {
+		var s StatRow
+		if err := rows.Scan(&s.Date, &s.Exercise, &s.Weight, &s.Reps, &s.ExID); err != nil {
+			continue
+		}
+		stats = append(stats, s)
+	}
+
+	if stats == nil {
+		stats = []StatRow{}
+	}
+
+	c.JSON(200, stats)
 }
 
 // --- CREATOR & PLANS ---
@@ -178,10 +219,10 @@ func GetUserPlans(c *gin.Context) {
 func GetPlanExercises(c *gin.Context) {
 	planID := c.Param("plan_id")
 	rows, err := db.Query(`
-        SELECT e.id, e.name, pe.target_sets 
-        FROM plan_exercises pe 
-        JOIN exercises e ON pe.exercise_id = e.id 
-        WHERE pe.plan_id = ?`, planID)
+		SELECT e.id, e.name, pe.target_sets 
+		FROM plan_exercises pe 
+		JOIN exercises e ON pe.exercise_id = e.id 
+		WHERE pe.plan_id = ?`, planID)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Failed to fetch plan exercises"})
 		return
@@ -214,14 +255,58 @@ func DeletePlan(c *gin.Context) {
 	c.JSON(200, gin.H{"status": "deleted"})
 }
 
-// --- HEALTH CHECK ---
+// --- ADMIN & MANAGEMENT ---
 
-func HealthCheck(c *gin.Context) {
-	if err := db.Ping(); err != nil {
-		c.JSON(500, gin.H{"status": "unhealthy", "error": "Database unreachable"})
+func AdminListUsers(c *gin.Context) {
+	rows, err := db.Query("SELECT id, name, is_admin FROM users")
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(200, gin.H{"status": "healthy"})
+	defer rows.Close()
+
+	var list []map[string]interface{}
+	for rows.Next() {
+		var id int
+		var name string
+		var isAdmin bool
+		rows.Scan(&id, &name, &isAdmin)
+		list = append(list, map[string]interface{}{
+			"id":       id,
+			"name":     name,
+			"is_admin": isAdmin,
+		})
+	}
+	c.JSON(200, list)
+}
+
+func AdminResetPin(c *gin.Context) {
+	var input struct {
+		UserID int    `json:"user_id"`
+		NewPin string `json:"new_pin"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	newHashed, _ := bcrypt.GenerateFromPassword([]byte(input.NewPin), bcrypt.DefaultCost)
+	_, err := db.Exec("UPDATE users SET pin = ? WHERE id = ?", string(newHashed), input.UserID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to reset PIN"})
+		return
+	}
+	c.JSON(200, gin.H{"status": "ok"})
+}
+
+func DeleteAccount(c *gin.Context) {
+	id := c.Param("id")
+	_, err := db.Exec("DELETE FROM users WHERE id = ?", id)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to delete user"})
+		return
+	}
+	c.JSON(200, gin.H{"status": "deleted"})
 }
 
 func ChangePin(c *gin.Context) {
@@ -242,82 +327,16 @@ func ChangePin(c *gin.Context) {
 		return
 	}
 
-	if bcrypt.CompareHashAndPassword([]byte(hashedPin), []byte(input.OldPin)) != nil {
-		c.JSON(401, gin.H{"error": "Current PIN is incorrect"})
+	if err := bcrypt.CompareHashAndPassword([]byte(hashedPin), []byte(input.OldPin)); err != nil {
+		c.JSON(401, gin.H{"error": "Current password incorrect"})
 		return
 	}
 
-	newHashed, err := bcrypt.GenerateFromPassword([]byte(input.NewPin), bcrypt.DefaultCost)
-	if err != nil {
-		c.JSON(500, gin.H{"error": "Server error"})
-		return
-	}
-
-	_, err = db.Exec("UPDATE users SET pin = ? WHERE id = ?", string(newHashed), input.UserID)
-	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to update PIN"})
-		return
-	}
+	newHashed, _ := bcrypt.GenerateFromPassword([]byte(input.NewPin), bcrypt.DefaultCost)
+	db.Exec("UPDATE users SET pin = ? WHERE id = ?", string(newHashed), input.UserID)
 	c.JSON(200, gin.H{"status": "ok"})
 }
 
-func AdminResetPin(c *gin.Context) {
-	var input struct {
-		UserID int    `json:"user_id"`
-		NewPin string `json:"new_pin"`
-	}
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(400, gin.H{"error": "Invalid input"})
-		return
-	}
-
-	newHashed, err := bcrypt.GenerateFromPassword([]byte(input.NewPin), bcrypt.DefaultCost)
-	if err != nil {
-		c.JSON(500, gin.H{"error": "Server error"})
-		return
-	}
-
-	result, err := db.Exec("UPDATE users SET pin = ? WHERE id = ?", string(newHashed), input.UserID)
-	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to reset PIN"})
-		return
-	}
-	rows, _ := result.RowsAffected()
-	if rows == 0 {
-		c.JSON(404, gin.H{"error": "User not found"})
-		return
-	}
-	c.JSON(200, gin.H{"status": "ok"})
-}
-
-func DeleteAccount(c *gin.Context) {
-	id := c.Param("id")
-	result, err := db.Exec("DELETE FROM users WHERE id = ?", id)
-	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to delete user"})
-		return
-	}
-	rows, _ := result.RowsAffected()
-	if rows == 0 {
-		c.JSON(404, gin.H{"error": "User not found"})
-		return
-	}
-	c.JSON(200, gin.H{"status": "deleted"})
-}
-
-func AdminListUsers(c *gin.Context) {
-	rows, err := db.Query("SELECT id, name FROM users")
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
-	defer rows.Close()
-	list := []map[string]interface{}{}
-	for rows.Next() {
-		var id int
-		var name string
-		rows.Scan(&id, &name)
-		list = append(list, map[string]interface{}{"id": id, "name": name})
-	}
-	c.JSON(200, list)
+func HealthCheck(c *gin.Context) {
+	c.JSON(200, gin.H{"status": "healthy"})
 }
