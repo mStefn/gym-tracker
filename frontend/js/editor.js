@@ -1,12 +1,11 @@
 import { state, API_URL, authFetch } from './state.js';
 
 let exercisesCache = null;
-let selectedExercisesForPlan = []; // Pamięć naszego "koszyka"
+let selectedExercisesForPlan = [];
 
 export async function renderPlanEditor() {
     const container = document.getElementById("exercises");
     
-    // Zabezpieczenie: resetujemy koszyk przy każdym wejściu w nowy plan
     selectedExercisesForPlan = []; 
     
     container.innerHTML = `
@@ -50,7 +49,6 @@ export async function renderPlanEditor() {
             window.saveFullPlan();
         });
         
-        // Pierwsze renderowanie (pusta lista)
         window.renderSelectedList();
 
     } catch (err) {
@@ -59,7 +57,6 @@ export async function renderPlanEditor() {
     }
 }
 
-// Funkcja rysująca wybrane ćwiczenia w głównym oknie edytora
 window.renderSelectedList = () => {
     const list = document.getElementById("exercises-setup");
     list.innerHTML = "";
@@ -97,9 +94,9 @@ window.removeExercise = (id) => {
     window.renderSelectedList();
 };
 
-// --- LOGIKA MODALA (KOSZYKA) ---
+// --- NAPRAWIONA LOGIKA MODALA ---
 window.openExercisePicker = () => {
-    let tempSelected = [...selectedExercisesForPlan]; // Tymczasowa pamięć modala
+    let tempSelected = [...selectedExercisesForPlan]; 
     let currentFilter = 'All';
     const categories = ['All', ...new Set(exercisesCache.map(ex => ex.category))];
     
@@ -107,59 +104,84 @@ window.openExercisePicker = () => {
     modal.className = "modal-overlay";
     modal.id = "ex-picker-modal";
 
-    const renderPicker = () => {
-        // Generowanie filtrów
-        const filtersHtml = categories.map(cat => 
-            `<button class="filter-badge ${currentFilter === cat ? 'active' : ''}" onclick="window.setFilter('${cat}')">${cat}</button>`
-        ).join('');
+    // Budujemy szkielet Modala tylko RAZ
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="margin:0;">Select Exercises</h3>
+                <button onclick="window.closePicker()" style="background:none; border:none; font-size:16px; color:var(--primary); font-weight:600; cursor:pointer;">Cancel</button>
+            </div>
+            
+            <div class="modal-filters">
+                <div class="filter-container" id="picker-filters"></div>
+            </div>
 
-        // Generowanie kafelków
+            <div class="modal-body" id="picker-body">
+                <div class="exercise-grid" id="picker-grid"></div>
+            </div>
+
+            <div class="modal-footer">
+                <button id="confirm-selection-btn" onclick="window.confirmSelection()" class="save-btn">Add Selected (${tempSelected.length})</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+
+    const filterContainer = document.getElementById("picker-filters");
+    const gridContainer = document.getElementById("picker-grid");
+    const confirmBtn = document.getElementById("confirm-selection-btn");
+
+    // Generujemy filtry
+    filterContainer.innerHTML = categories.map(cat => 
+        `<button class="filter-badge ${currentFilter === cat ? 'active' : ''}" onclick="window.setFilter('${cat}')">${cat}</button>`
+    ).join('');
+
+    // Funkcja odrysowująca TYLKO siatkę ćwiczeń (używana przy zmianie kategorii)
+    window.renderGrid = () => {
         const filteredEx = currentFilter === 'All' 
             ? exercisesCache 
             : exercisesCache.filter(ex => ex.category === currentFilter);
 
-        const gridHtml = filteredEx.map(ex => {
+        gridContainer.innerHTML = filteredEx.map(ex => {
             const isSelected = tempSelected.includes(ex.id);
             return `
-                <div class="ex-card ${isSelected ? 'selected' : ''}" onclick="window.toggleExSelection(${ex.id})">
-                    <div style="font-size: 24px; margin-bottom: 5px;">${isSelected ? '☑️' : '◻️'}</div>
+                <div class="ex-card ${isSelected ? 'selected' : ''}" id="ex-card-${ex.id}" onclick="window.toggleExSelection(${ex.id})">
+                    <div id="ex-icon-${ex.id}" style="font-size: 24px; margin-bottom: 5px;">${isSelected ? '☑️' : '◻️'}</div>
                     <div class="ex-card-title">${ex.name}</div>
                     <div class="ex-card-cat">${ex.category}</div>
                 </div>
             `;
         }).join('');
-
-        modal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 style="margin:0;">Select Exercises</h3>
-                    <button onclick="window.closePicker()" style="background:none; border:none; font-size:16px; color:var(--primary); font-weight:600; cursor:pointer;">Cancel</button>
-                </div>
-                
-                <div style="padding: 15px 20px 0 20px; border-bottom: 1px solid var(--border);">
-                    <div class="filter-container">${filtersHtml}</div>
-                </div>
-
-                <div class="modal-body">
-                    <div class="exercise-grid">${gridHtml}</div>
-                </div>
-
-                <div class="modal-footer">
-                    <button onclick="window.confirmSelection()" class="save-btn">Add Selected (${tempSelected.length})</button>
-                </div>
-            </div>
-        `;
     };
 
+    // Optymalne zaznaczanie (bez przeładowywania siatki!)
     window.toggleExSelection = (id) => {
-        if(tempSelected.includes(id)) tempSelected = tempSelected.filter(i => i !== id);
-        else tempSelected.push(id);
-        renderPicker();
+        const index = tempSelected.indexOf(id);
+        const card = document.getElementById(`ex-card-${id}`);
+        const icon = document.getElementById(`ex-icon-${id}`);
+
+        if (index > -1) {
+            tempSelected.splice(index, 1);
+            if(card) card.classList.remove('selected');
+            if(icon) icon.innerText = '◻️';
+        } else {
+            tempSelected.push(id);
+            if(card) card.classList.add('selected');
+            if(icon) icon.innerText = '☑️';
+        }
+        
+        // Aktualizuj tylko napis na przycisku
+        confirmBtn.innerText = `Add Selected (${tempSelected.length})`;
     };
 
     window.setFilter = (cat) => {
         currentFilter = cat;
-        renderPicker();
+        // Zmień aktywny przycisk filtra
+        Array.from(filterContainer.children).forEach(btn => {
+            btn.classList.toggle('active', btn.innerText === cat);
+        });
+        window.renderGrid();
     };
 
     window.confirmSelection = () => {
@@ -172,8 +194,8 @@ window.openExercisePicker = () => {
         document.body.removeChild(modal);
     };
 
-    document.body.appendChild(modal);
-    renderPicker();
+    // Pierwsze rysowanie siatki
+    window.renderGrid();
 };
 
 window.saveFullPlan = async () => {

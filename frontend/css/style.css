@@ -210,7 +210,7 @@ input, select {
     background: rgba(0,0,0,0.5);
     z-index: 2000;
     display: flex;
-    align-items: flex-end;
+    align-items: flex-end; /* Wsuwa się z dołu na mobile */
     justify-content: center;
     backdrop-filter: blur(3px);
 }
@@ -219,7 +219,7 @@ input, select {
     background: var(--bg-color);
     width: 100%;
     max-width: 600px;
-    height: 85vh;
+    height: 90dvh; /* Używamy viewport height uwzględniającej pasek adresu URL na tel */
     border-radius: 24px 24px 0 0;
     display: flex;
     flex-direction: column;
@@ -234,7 +234,7 @@ input, select {
 }
 
 @media (min-width: 768px) {
-    .modal-overlay { align-items: center; }
+    .modal-overlay { align-items: center; } /* Na PC wyśrodkowany */
     .modal-content { 
         height: 80vh; 
         border-radius: 24px; 
@@ -247,24 +247,39 @@ input, select {
     to { transform: scale(1); opacity: 1; }
 }
 
+/* Header modala - zawsze na górze */
 .modal-header {
     padding: 20px;
     background: var(--card-bg);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-shrink: 0;
 }
 
+/* Miejsce na filtry - zawsze pod headerem */
+.modal-filters {
+    padding: 15px 20px 0 20px;
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+/* Środek modala - jedyna część, która można przewijać */
 .modal-body {
-    flex: 1;
+    flex: 1; /* Wypełnia całą dostępną wolną przestrzeń */
     overflow-y: auto;
     padding: 20px;
+    -webkit-overflow-scrolling: touch; /* Płynne przewijanie na iOS */
 }
 
+/* Stopka z przyciskiem "Add Selected" - zawsze na dole */
 .modal-footer {
     padding: 20px;
     background: var(--card-bg);
     border-top: 1px solid var(--border);
+    flex-shrink: 0;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom)); /* Margines dla iPhonów z paskiem na dole */
 }
 
 .filter-container {
@@ -278,7 +293,7 @@ input, select {
 
 .filter-badge {
     padding: 10px 18px;
-    background: var(--card-bg);
+    background: var(--bg-color);
     border: 1px solid var(--border);
     border-radius: 20px;
     font-size: 14px;
@@ -308,7 +323,7 @@ input, select {
     padding: 15px 10px;
     cursor: pointer;
     text-align: center;
-    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: all 0.1s ease-in-out;
     box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     display: flex;
     flex-direction: column;
@@ -316,6 +331,7 @@ input, select {
     align-items: center;
     gap: 6px;
     min-height: 110px;
+    user-select: none; /* Zapobiega przypadkowemu zaznaczaniu tekstu przy szybkim klikaniu */
 }
 .ex-card:active { transform: scale(0.95); }
 .ex-card:hover { border-color: #d1d1d6; }
@@ -355,12 +371,12 @@ input, select {
         width: 100%; height: auto; border-right: none; border-top: 1px solid var(--border);
         padding: 5px 0; flex-direction: row; position: fixed; bottom: 0; left: 0;
         justify-content: space-around; padding-bottom: env(safe-area-inset-bottom);
-        z-index: 1000;
+        z-index: 1000; /* Sidebar musi być mniejszy niż Modal (2000), żeby modal go zasłaniał */
     }
     .sidebar-header { display: none; }
     .nav-links { display: flex; flex-direction: row; justify-content: space-around; width: 100%; padding: 0; }
     .nav-item { flex-direction: column; padding: 8px 5px; font-size: 11px; gap: 4px; justify-content: center; text-align: center; }
     .nav-item.active { background: transparent; color: var(--primary); }
     
-    #main-content { padding-bottom: 80px; }
+    #main-content { padding-bottom: 80px; } /* Odsunięcie treści od dolnego menu nawigacyjnego */
 }
