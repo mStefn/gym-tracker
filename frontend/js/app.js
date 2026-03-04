@@ -2,6 +2,8 @@ import { state, logout } from './state.js';
 import { renderAuthScreen } from './auth.js';
 import { renderDashboard } from './dashboard.js';
 import { renderWorkout } from './workout.js';
+// DODANY IMPORT STATYSTYK
+import { renderStats } from './stats.js';
 
 window.openAuth = (mode) => renderAuthScreen(mode);
 window.renderWorkout = renderWorkout;
@@ -25,12 +27,8 @@ window.navigate = (tab) => {
                 renderDashboard(); 
                 break;
             case 'stats':
-                container.innerHTML = `
-                    <div style="text-align:center; margin-top:60px; color:#8e8e93;">
-                        <div style="font-size:60px; margin-bottom:20px;">📈</div>
-                        <h2>Statistics & Progress</h2>
-                        <p>Coming soon...</p>
-                    </div>`;
+                // WYWOŁANIE NOWEJ FUNKCJI
+                renderStats();
                 break;
             case 'library':
                 container.innerHTML = `
@@ -61,7 +59,7 @@ window.onload = () => {
         sidebar.style.display = 'flex';
         topBar.style.display = 'flex';
         document.getElementById('user-greeting').innerText = `Hi, ${state.currentUserName} 👋`;
-        window.navigate('home'); // DOMYŚLNIE HOME
+        window.navigate('home'); 
     }
 };
 

@@ -19,8 +19,8 @@ func main() {
 	}
 
 	corsConfig := cors.Config{
-		AllowMethods:    []string{"GET", "POST", "DELETE", "OPTIONS"},
-		AllowHeaders:    []string{"Origin", "Content-Type", "Authorization"},
+		AllowMethods: []string{"GET", "POST", "DELETE", "OPTIONS"},
+		AllowHeaders: []string{"Origin", "Content-Type", "Authorization"},
 	}
 	if allowOrigin == "*" {
 		corsConfig.AllowAllOrigins = true
@@ -49,6 +49,9 @@ func main() {
 		auth.POST("/plans", CreatePlan)
 		auth.POST("/plan-exercises", AddExerciseToPlan)
 		auth.DELETE("/plan/:id", DeletePlan)
+
+		// NOWA TRASA DLA STATYSTYK
+		auth.GET("/stats/:user_id", GetUserStats)
 	}
 
 	// Admin routes (auth + admin check)

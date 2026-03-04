@@ -98,6 +98,47 @@ func GetLastResult(c *gin.Context) {
 	c.JSON(200, gin.H{"reps": reps, "weight": weight})
 }
 
+func GetUserStats(c *gin.Context) {
+	userID := c.Param("user_id")
+
+	// Wyciągamy historię: data, nazwa ćwiczenia, waga, powtórzenia
+	rows, err := db.Query(`
+		SELECT l.created_at, e.name, l.weight, l.reps, e.id
+		FROM logs l
+		JOIN exercises e ON l.exercise_id = e.id
+		WHERE l.user_id = ?
+		ORDER BY l.created_at ASC`, userID)
+
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to fetch stats"})
+		return
+	}
+	defer rows.Close()
+
+	type StatRow struct {
+		Date     string  `json:"date"`
+		Exercise string  `json:"exercise"`
+		Weight   float64 `json:"weight"`
+		Reps     int     `json:"reps"`
+		ExID     int     `json:"ex_id"`
+	}
+
+	var stats []StatRow
+	for rows.Next() {
+		var s StatRow
+		if err := rows.Scan(&s.Date, &s.Exercise, &s.Weight, &s.Reps, &s.ExID); err != nil {
+			continue
+		}
+		stats = append(stats, s)
+	}
+
+	if stats == nil {
+		stats = []StatRow{}
+	}
+
+	c.JSON(200, stats)
+}
+
 // --- CREATOR & PLANS ---
 
 func GetExercises(c *gin.Context) {
@@ -178,10 +219,10 @@ func GetUserPlans(c *gin.Context) {
 func GetPlanExercises(c *gin.Context) {
 	planID := c.Param("plan_id")
 	rows, err := db.Query(`
-        SELECT e.id, e.name, pe.target_sets 
-        FROM plan_exercises pe 
-        JOIN exercises e ON pe.exercise_id = e.id 
-        WHERE pe.plan_id = ?`, planID)
+		SELECT e.id, e.name, pe.target_sets 
+		FROM plan_exercises pe 
+		JOIN exercises e ON pe.exercise_id = e.id 
+		WHERE pe.plan_id = ?`, planID)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Failed to fetch plan exercises"})
 		return
