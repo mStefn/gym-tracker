@@ -24,7 +24,7 @@ export function renderAuthScreen(mode) {
                             let extraClass = '';
                             if (k === 'C') extraClass = 'action-c';
                             if (k === 'OK') extraClass = 'action-ok';
-                            return \`<button class="pin-btn ${extraClass}" onclick="handlePinKey('${k}')">${k}</button>\`;
+                            return `<button class="pin-btn ${extraClass}" onclick="handlePinKey('${k}')">${k}</button>`;
                         }).join('')}
                     </div>
                 </div>
@@ -46,7 +46,6 @@ window.handlePinKey = (k) => {
     } else {
         if (state.tempPin.length < 4) state.tempPin += k;
     }
-    // Reprezentacja PINu (zamalowane i puste kółka)
     document.getElementById("pin-display").innerText = ("● ".repeat(state.tempPin.length) + "○ ".repeat(4 - state.tempPin.length)).trim();
 };
 
