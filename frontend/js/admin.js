@@ -7,26 +7,34 @@ window.onload = () => {
 
 window.adminLogin = async () => {
     const pass = document.getElementById("admin-pass").value;
-    const res = await fetch(`${API_URL}/login`, {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({name: "admin", pin: pass})
-    });
+    try {
+        const res = await fetch(`${API_URL}/login`, {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({name: "admin", pin: pass})
+        });
 
-    if (res.ok) {
-        const data = await res.json();
-        localStorage.setItem('adminAuth', 'true');
-        localStorage.setItem('adminId', data.id);
-        localStorage.setItem('authToken', data.token);
-        showConsole();
-    } else {
-        alert("Access Denied");
+        if (res.ok) {
+            const data = await res.json();
+            localStorage.clear(); 
+            localStorage.setItem('adminAuth', 'true');
+            localStorage.setItem('adminId', data.id);
+            localStorage.setItem('authToken', data.token);
+            showConsole();
+        } else {
+            const errData = await res.json();
+            alert("Login failed: " + (errData.error || "Invalid credentials"));
+        }
+    } catch (e) {
+        alert("Server connection error");
     }
 };
 
 function showConsole() {
-    document.getElementById("login-zone").style.display = "none";
-    document.getElementById("console-zone").style.display = "block";
+    const loginZone = document.getElementById("login-zone");
+    const consoleZone = document.getElementById("console-zone");
+    if (loginZone) loginZone.style.display = "none";
+    if (consoleZone) consoleZone.style.display = "block";
     loadUsers();
 }
 
@@ -39,15 +47,17 @@ async function loadUsers() {
     const res = await authFetch(`${API_URL}/admin/users`);
     
     if (res.status === 401) {
-        alert("Session expired. Please login again.");
-        adminLogout();
-        return;
+        // Cichy powrót zamiast agresywnego alertu podczas logowania
+        console.warn("Session unauthorized");
+        return; 
     }
 
     const users = await res.json();
     if (!Array.isArray(users)) return;
 
     const list = document.getElementById("user-list");
+    if (!list) return;
+
     list.innerHTML = users.map(u => `
         <div class="admin-card">
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -78,11 +88,11 @@ window.changeAdminPassword = async () => {
     });
 
     if (res.ok) {
-        alert("Password updated!");
-        location.reload();
+        alert("Password updated! Log in again.");
+        window.adminLogout();
     } else {
         const errData = await res.json();
-        alert("Error: " + (errData.error || "Current password incorrect"));
+        alert("Error: " + (errData.error || "Incorrect current password"));
     }
 };
 
