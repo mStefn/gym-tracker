@@ -5,9 +5,8 @@ export function renderAuthScreen(mode) {
     state.tempPin = "";
 
     document.getElementById("exercises").innerHTML = `
-        <div style="height: calc(100vh - 60px); display: flex; align-items: center; justify-content: center; flex-direction: column;">
-            
-            <div style="background: var(--card-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); padding: 40px 30px; border-radius: 24px; border: 1px solid var(--border); text-align: center; max-width: 380px; width: 100%; box-shadow: 0 15px 50px rgba(0,0,0,0.8); position: relative;">
+        <div class="auth-wrapper">
+            <div style="background: var(--card-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); padding: 40px 30px; border-radius: 24px; border: 1px solid var(--border); text-align: center; max-width: 380px; width: 90%; box-shadow: 0 15px 50px rgba(0,0,0,0.8); position: relative;">
                 
                 <button onclick="location.reload()" style="position: absolute; top: 20px; left: 20px; background: transparent; border: none; color: var(--primary); font-size: 14px; font-weight: 600; cursor: pointer;">← Back</button>
                 
@@ -25,12 +24,11 @@ export function renderAuthScreen(mode) {
                             let extraClass = '';
                             if (k === 'C') extraClass = 'action-c';
                             if (k === 'OK') extraClass = 'action-ok';
-                            return `<button class="pin-btn ${extraClass}" onclick="handlePinKey('${k}')">${k}</button>`;
+                            return \`<button class="pin-btn ${extraClass}" onclick="handlePinKey('${k}')">${k}</button>\`;
                         }).join('')}
                     </div>
                 </div>
             </div>
-            
         </div>
     `;
 }

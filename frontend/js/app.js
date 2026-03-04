@@ -81,20 +81,13 @@ function renderHomePage() {
 }
 
 function renderLandingPage() {
-    // Ultra-minimalistyczny panel, brak scrollowania
+    // Nagie przyciski na tle grafiki + blokada scrollowania (.auth-wrapper)
     document.getElementById("exercises").innerHTML = `
-        <div style="height: calc(100vh - 60px); display: flex; align-items: center; justify-content: center; flex-direction: column;">
-            
-            <div style="background: var(--card-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); padding: 50px 30px; border-radius: 24px; border: 1px solid var(--border); text-align: center; max-width: 380px; width: 100%; box-shadow: 0 15px 50px rgba(0,0,0,0.8);">
-                
-                <h1 style="font-size: 36px; margin: 0 0 40px 0; color: var(--text); text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 15px var(--primary-glow);">GYM TRACKER</h1>
-                
-                <div style="display: flex; flex-direction: column; gap: 15px;">
-                    <button onclick="window.openAuth('login')" class="save-btn">LOGIN</button>
-                    <button onclick="window.openAuth('signup')" class="save-btn" style="background: rgba(0,0,0,0.4); color: var(--primary); border: 1px solid var(--primary); box-shadow: none;">CREATE ACCOUNT</button>
-                </div>
+        <div class="auth-wrapper">
+            <div style="display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 320px; padding: 20px;">
+                <button onclick="window.openAuth('login')" class="save-btn" style="padding: 18px; font-size: 18px;">LOGIN</button>
+                <button onclick="window.openAuth('signup')" class="save-btn" style="background: rgba(0,0,0,0.6); color: var(--primary); border: 2px solid var(--primary); box-shadow: none; padding: 18px; font-size: 18px;">CREATE ACCOUNT</button>
             </div>
-
         </div>
     `;
 }
