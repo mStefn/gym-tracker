@@ -18,13 +18,14 @@
                 <li><button onclick="window.navigate('library')" class="nav-item" id="nav-library">📚 Exercises</button></li>
                 <li><button onclick="window.navigate('settings')" class="nav-item" id="nav-settings">⚙️ Settings</button></li>
             </ul>
-            <div class="sidebar-footer">
-                <button onclick="window.appLogout()" class="nav-item text-danger">🚪 Logout</button>
-            </div>
         </nav>
 
         <main id="main-content">
-            <header id="main-nav"></header>
+            <header id="top-bar" style="display: none;">
+                <div id="user-greeting" style="font-weight: 600; font-size: 18px;"></div>
+                <button onclick="window.appLogout()" class="btn-logout">Logout</button>
+            </header>
+            
             <div id="exercises"></div>
         </main>
     </div>

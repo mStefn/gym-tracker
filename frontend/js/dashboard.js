@@ -1,19 +1,15 @@
-import { state, API_URL, authFetch, logout } from './state.js';
+import { state, API_URL, authFetch } from './state.js';
 import { renderPlanEditor } from './editor.js';
 
 export async function renderDashboard() {
-    document.getElementById("main-nav").innerHTML = "";
     const container = document.getElementById("exercises");
     
     container.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
-            <h2 style="margin:0">Hi, ${state.currentUserName}</h2>
-            <div>
-                <button onclick="window.renderHistory()" style="background:none; border:none; font-size:24px; cursor:pointer; margin-right:10px;">📅</button>
-                <button onclick="window.renderSettings()" style="background:none; border:none; font-size:24px; cursor:pointer;">👤</button>
-                <button onclick="window.appLogout()" class="nav-link" style="margin-left:10px;">Logout</button>
-            </div>
+        <div style="margin-bottom: 20px;">
+            <h2 style="margin-bottom: 5px;">Your Workouts</h2>
+            <p style="color: #8e8e93; margin-top: 0;">Select a plan to start training.</p>
         </div>
+        
         <div id="plans-list"></div>
         
         <button id="add-plan-btn" class="save-btn" style="background:none; color:var(--primary); border:2px dashed var(--primary); margin-top:20px; font-size:16px;">
@@ -33,8 +29,8 @@ export async function renderDashboard() {
 
                 const startBtn = document.createElement("button");
                 startBtn.className = "save-btn";
-                startBtn.style = "margin: 0; flex: 1; text-align: left; padding-left: 20px;";
-                startBtn.innerText = `Start: ${plan.name}`;
+                startBtn.style = "margin: 0; flex: 1; text-align: left; padding-left: 20px; background: var(--card-bg); color: var(--text); border: 1px solid var(--border); box-shadow: 0 2px 5px rgba(0,0,0,0.02);";
+                startBtn.innerText = `▶ Start: ${plan.name}`;
                 startBtn.onclick = () => window.renderWorkout(plan.id, plan.name);
 
                 const deleteBtn = document.createElement("button");
@@ -43,7 +39,7 @@ export async function renderDashboard() {
                 deleteBtn.onclick = async () => {
                     if (confirm(`Delete plan "${plan.name}"?`)) {
                         const delRes = await authFetch(`${API_URL}/plan/${plan.id}`, { method: "DELETE" });
-                        if (delRes.ok) location.reload();
+                        if (delRes.ok) window.navigate('workout');
                         else alert("Error deleting plan");
                     }
                 };
@@ -53,31 +49,31 @@ export async function renderDashboard() {
                 list.appendChild(wrapper);
             });
         } else {
-            list.innerHTML = `<p style="text-align:center; color:#8e8e93; margin:20px 0;">No plans yet. Create your first one!</p>`;
+            list.innerHTML = `
+                <div style="text-align:center; padding: 40px 20px; background: var(--card-bg); border-radius: 18px; border: 1px dashed var(--border);">
+                    <div style="font-size: 40px; margin-bottom: 10px;">📋</div>
+                    <p style="color:#8e8e93; margin:0;">No plans yet. Create your first one!</p>
+                </div>
+            `;
         }
     } catch (e) {
         console.error("Error loading plans:", e);
     }
 
-    // Handle create plan button
     const addBtn = document.getElementById("add-plan-btn");
     if (addBtn) addBtn.onclick = renderPlanEditor;
 }
 
-// Register global functions
-window.appLogout = logout;
-
 window.renderSettings = () => {
     document.getElementById("exercises").innerHTML = `
-        <div style="padding: 20px;">
-            <button onclick="location.reload()" class="nav-link">← Back</button>
-            <h2 style="margin-top:20px;">Settings</h2>
+        <div style="max-width: 400px; margin: 0 auto;">
+            <h2 style="margin-bottom: 20px;">Settings ⚙️</h2>
             <div class="exercise-card">
-                <h3>Change PIN</h3>
+                <h3 style="margin-bottom: 20px;">Change PIN</h3>
                 <input type="password" id="old-pin" placeholder="Current PIN">
-                <input type="password" id="new-pin" maxlength="4" placeholder="New PIN">
-                <input type="password" id="conf-pin" maxlength="4" placeholder="Confirm PIN">
-                <button onclick="window.updatePin()" class="save-btn">Update PIN</button>
+                <input type="password" id="new-pin" maxlength="4" placeholder="New PIN (4 digits)">
+                <input type="password" id="conf-pin" maxlength="4" placeholder="Confirm New PIN">
+                <button onclick="window.updatePin()" class="save-btn" style="margin-top: 10px;">Update PIN</button>
             </div>
         </div>
     `;
@@ -88,7 +84,8 @@ window.updatePin = async () => {
     const newPin = document.getElementById("new-pin").value;
     const confPin = document.getElementById("conf-pin").value;
 
-    if (newPin !== confPin) return alert("Mismatch");
+    if (newPin !== confPin) return alert("New PINs do not match!");
+    if (newPin.length !== 4) return alert("PIN must be exactly 4 digits.");
     
     try {
         const res = await authFetch(`${API_URL}/change-pin`, {
@@ -97,12 +94,12 @@ window.updatePin = async () => {
             body: JSON.stringify({user_id: parseInt(state.currentUserId), old_pin: oldPin, new_pin: newPin})
         });
         if (res.ok) {
-            alert("PIN updated!");
-            location.reload();
+            alert("PIN successfully updated!");
+            window.navigate('workout');
         } else {
-            alert("Error updating PIN");
+            alert("Error: Current PIN is incorrect.");
         }
     } catch (e) {
-        alert("Server error");
+        alert("Server connection error.");
     }
 };
