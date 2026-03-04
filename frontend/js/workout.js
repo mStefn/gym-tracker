@@ -2,7 +2,7 @@ import { state, API_URL, authFetch } from './state.js';
 
 export async function renderWorkout(planId, planName) {
     const container = document.getElementById("exercises");
-    container.innerHTML = `<div class="spinner"></div>`;
+    container.innerHTML = `<div class="spinner" style="margin-top: 50px;"></div>`;
 
     try {
         const res = await authFetch(`${API_URL}/plan-exercises/${planId}`);
@@ -10,13 +10,13 @@ export async function renderWorkout(planId, planName) {
 
         container.innerHTML = `
             <div style="padding: 10px;">
-                <button onclick="location.reload()" class="nav-link">← Back</button>
-                <h2 style="margin: 15px 0;">${planName}</h2>
+                <button onclick="window.navigate('workout')" style="background: transparent; border: none; color: var(--primary); padding: 0; margin-bottom: 20px; font-size: 16px; font-weight: 600; cursor: pointer;">← Back to Workouts</button>
+                <h2 style="margin: 0px 0 15px 0;">${planName}</h2>
                 <div id="workout-content"></div>
+                <button onclick="window.navigate('workout')" class="save-btn" style="margin-top: 20px; background: var(--success);">Finish Workout 🏆</button>
             </div>
         `;
 
-        // Build list of all set-fetch promises across all exercises
         const fetchTasks = [];
         for (const ex of exercises) {
             for (let s = 1; s <= ex.target_sets; s++) {
@@ -30,7 +30,6 @@ export async function renderWorkout(planId, planName) {
 
         const results = await Promise.all(fetchTasks);
 
-        // Render cards using pre-fetched data
         const rendered = new Set();
         for (const { ex, s, last } of results) {
             if (!rendered.has(ex.exercise_id)) {
@@ -41,7 +40,6 @@ export async function renderWorkout(planId, planName) {
                 rendered.add(ex.exercise_id);
             }
 
-            // Target logic: +2.5kg if reps >= 10
             let targetInfo = "Session 1";
             if (last.weight > 0) {
                 const nextWeight = last.reps >= 10 ? last.weight + 2.5 : last.weight;
@@ -50,21 +48,22 @@ export async function renderWorkout(planId, planName) {
 
             const row = document.createElement("div");
             row.className = "set-row";
+            row.style = "display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 12px;";
             row.innerHTML = `
-                <div style="font-weight:bold; color:var(--primary); font-size:18px;">S${s}</div>
+                <div style="font-weight:bold; color:var(--primary); font-size:18px; width: 35px;">S${s}</div>
                 <div style="flex: 1.5;">
-                    <span class="label-small">Previous</span>
-                    <span class="history-val">${last.weight}kg x ${last.reps}</span>
-                    <div style="font-size:10px; color:var(--success); font-weight:700; margin-top:2px;">${targetInfo}</div>
+                    <span class="label-small" style="font-size: 12px; color: #8e8e93;">Previous</span><br>
+                    <span class="history-val" style="font-weight: 600;">${last.weight}kg x ${last.reps}</span>
+                    <div style="font-size:11px; color:var(--success); font-weight:700; margin-top:2px;">${targetInfo}</div>
                 </div>
-                <input type="number" class="reps-in" placeholder="Reps" id="reps-${ex.exercise_id}-${s}" style="flex:0.8; margin:0; padding:10px;">
-                <input type="number" class="weight-in" placeholder="kg" id="weight-${ex.exercise_id}-${s}" style="flex:0.8; margin:0; padding:10px;">
-                <button onclick="saveSet(this, ${ex.exercise_id}, ${s})" class="btn-nav btn-login" style="width:45px; height:45px; padding:0; display:flex; align-items:center; justify-content:center;">ok</button>
+                <input type="number" class="reps-in" placeholder="Reps" id="reps-${ex.exercise_id}-${s}" style="flex:0.8; margin:0 5px; padding:10px;">
+                <input type="number" class="weight-in" placeholder="kg" id="weight-${ex.exercise_id}-${s}" style="flex:0.8; margin:0 5px; padding:10px;">
+                <button onclick="saveSet(this, ${ex.exercise_id}, ${s})" class="btn-nav btn-login" style="width:45px; height:45px; padding:0; display:flex; align-items:center; justify-content:center; border-radius: 12px;">ok</button>
             `;
             document.getElementById(`ex-${ex.exercise_id}`).appendChild(row);
         }
     } catch (err) {
-        container.innerHTML = `<p style="color:red">Error: Backend connection failed.</p>`;
+        container.innerHTML = `<p style="color:var(--danger)">Error: Backend connection failed.</p>`;
     }
 }
 
@@ -104,6 +103,5 @@ export async function saveSet(btn, exId, setNum) {
     }
 }
 
-// Register global functions for dashboard and buttons
 window.renderWorkout = renderWorkout;
 window.saveSet = saveSet;

@@ -1,12 +1,10 @@
 import { state, API_URL, authFetch } from './state.js';
 
-// Module-level cache
 let exercisesCache = null;
 
 export async function renderPlanEditor() {
     const container = document.getElementById("exercises");
     
-    // 1. Show loader
     container.innerHTML = `
         <div style="text-align:center; margin-top:100px;">
             <div class="spinner"></div>
@@ -15,16 +13,14 @@ export async function renderPlanEditor() {
     `;
 
     try {
-        // 2. Fetch data
         const res = await authFetch(`${API_URL}/exercises`);
         if (!res.ok) throw new Error("Server error");
         exercisesCache = await res.json();
 
-        // 3. Render editor skeleton
         container.innerHTML = `
-            <div style="padding: 20px;">
-                <button onclick="location.reload()" class="nav-link">← Cancel</button>
-                <h2 style="margin-top:20px;">New Plan</h2>
+            <div style="padding: 10px;">
+                <button onclick="window.navigate('workout')" style="background: transparent; border: none; color: var(--primary); padding: 0; margin-bottom: 20px; font-size: 16px; font-weight: 600; cursor: pointer;">← Cancel</button>
+                <h2 style="margin-top:0;">New Plan</h2>
                 <div class="exercise-card">
                     <input type="text" id="new-plan-name" placeholder="Plan name (e.g. Chest + Biceps)" style="text-align:left; padding-left:15px; margin-bottom:20px;">
                     
@@ -41,7 +37,6 @@ export async function renderPlanEditor() {
             </div>
         `;
 
-    // 4. Attach event listeners
         document.getElementById('add-ex-btn').addEventListener('click', () => {
             window.addExerciseField();
         });
@@ -50,21 +45,17 @@ export async function renderPlanEditor() {
             window.saveFullPlan();
         });
         
-        // 5. Add first exercise row on start
         window.addExerciseField();
 
     } catch (err) {
         console.error("Editor error:", err);
-        container.innerHTML = `<p style="color:red; text-align:center;">Failed to load exercises. Check server connection.</p>`;
+        container.innerHTML = `<p style="color:var(--danger); text-align:center;">Failed to load exercises. Check server connection.</p>`;
     }
 }
 
 window.addExerciseField = () => {
     const setupArea = document.getElementById("exercises-setup");
-    if (!setupArea || !exercisesCache) {
-        console.error("Error: Attempted to add field without loaded data!");
-        return;
-    }
+    if (!setupArea || !exercisesCache) return;
 
     const div = document.createElement("div");
     div.className = "exercise-row-setup";
@@ -82,16 +73,14 @@ window.addExerciseField = () => {
     });
 
     div.innerHTML = `
-        <select class="ex-id" style="flex:2; padding:12px; border-radius:12px; border:1px solid #d1d1d6; background:#fff; font-size:14px;">
+        <select class="ex-id" style="flex:2; padding:12px; border-radius:12px; border:1px solid var(--border); background:#fff; font-size:14px;">
             ${optionsHtml}
         </select>
         <input type="number" class="ex-sets" value="3" style="flex:0.6; margin:0; padding:12px; text-align:center;">
-        <button type="button" class="remove-row-btn" style="background:none; border:none; color:#ff453a; font-size:22px; padding:0 5px;">✕</button>
+        <button type="button" class="remove-row-btn" style="background:none; border:none; color:var(--danger); font-size:22px; padding:0 5px; cursor:pointer;">✕</button>
     `;
 
-    // Handle row removal
     div.querySelector('.remove-row-btn').onclick = () => div.remove();
-    
     setupArea.appendChild(div);
 };
 
@@ -129,7 +118,8 @@ window.saveFullPlan = async () => {
                 body: JSON.stringify({ plan_id: planData.id, exercise_id: parseInt(s.id), target_sets: s.sets })
             });
         }
-        location.reload();
+        // Sukces -> Wracamy płynnie do zakładki Workout
+        window.navigate('workout');
     } catch (e) {
         alert("Save failed");
         saveBtn.innerText = "Save Workout";

@@ -39,8 +39,11 @@ export async function renderDashboard() {
                 deleteBtn.onclick = async () => {
                     if (confirm(`Delete plan "${plan.name}"?`)) {
                         const delRes = await authFetch(`${API_URL}/plan/${plan.id}`, { method: "DELETE" });
-                        if (delRes.ok) window.navigate('workout');
-                        else alert("Error deleting plan");
+                        if (delRes.ok) {
+                            window.navigate('workout'); // Odświeża układ natychmiast, bez reload() przeglądarki
+                        } else {
+                            alert("Error deleting plan");
+                        }
                     }
                 };
 
@@ -95,7 +98,7 @@ window.updatePin = async () => {
         });
         if (res.ok) {
             alert("PIN successfully updated!");
-            window.navigate('workout');
+            window.navigate('settings'); // Po zmianie PIN-u zostawiamy w ustawieniach (zamiast powrotu do home)
         } else {
             alert("Error: Current PIN is incorrect.");
         }
