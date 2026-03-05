@@ -29,13 +29,15 @@ export async function renderDashboard() {
 
                 const startBtn = document.createElement("button");
                 startBtn.className = "save-btn";
-                startBtn.style = "margin: 0; flex: 1; text-align: left; padding-left: 20px; background: var(--card-bg); color: var(--text); border: 1px solid var(--border); box-shadow: 0 2px 5px rgba(0,0,0,0.02);";
-                startBtn.innerText = `▶ Start: ${plan.name}`;
+                // Czysty przycisk z samą nazwą planu
+                startBtn.style = "margin: 0; flex: 1; text-align: left; padding-left: 20px; background: var(--card-bg); color: var(--text); border: 1px solid var(--border); box-shadow: 0 2px 5px rgba(0,0,0,0.02); font-weight: 600; font-size: 16px;";
+                startBtn.innerText = plan.name;
                 startBtn.onclick = () => window.renderWorkout(plan.id, plan.name);
 
                 const deleteBtn = document.createElement("button");
-                deleteBtn.innerHTML = "🗑️";
-                deleteBtn.style = "background: rgba(255, 69, 58, 0.2); border: 1px solid rgba(255, 69, 58, 0.5); border-radius: 12px; width: 55px; cursor: pointer; color: #ff453a; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;";
+                // Minimalistyczny przycisk "Delete"
+                deleteBtn.innerText = "Delete";
+                deleteBtn.style = "background: transparent; border: 1px solid var(--danger); border-radius: 12px; padding: 0 15px; cursor: pointer; color: var(--danger); font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; transition: all 0.2s;";
                 deleteBtn.onclick = async () => {
                     if (confirm(`Delete plan "${plan.name}"?`)) {
                         const delRes = await authFetch(`${API_URL}/plan/${plan.id}`, { method: "DELETE" });

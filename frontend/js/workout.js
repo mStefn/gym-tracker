@@ -55,11 +55,11 @@ export async function renderWorkout(planId, planName) {
 
             const row = document.createElement("div");
             row.className = "set-row";
-            row.style = "display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 12px;";
+            // Kontener układamy piętrowo - kolumna zamiast rzędu
+            row.style = "display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 15px;";
             
             const safeExName = ex.exercise_name.replace(/'/g, "\\'");
 
-            // Konstruowanie napisu Previous uwzględniając 'F'
             let prevDisplay = '-';
             if (last.weight > 0) {
                 const failureTag = last.is_failure ? '<span style="color:var(--danger); font-weight:bold;">F</span>' : '';
@@ -67,29 +67,31 @@ export async function renderWorkout(planId, planName) {
             }
 
             row.innerHTML = `
-                <div style="font-weight:bold; color:var(--primary); font-size:16px; width: 25px;">S${s}</div>
-                
-                <div style="flex: 1; min-width: 50px;">
-                    <div style="font-size: 10px; color: #8e8e93;">Prev</div>
-                    <div style="font-weight: 600; font-size: 12px;">${prevDisplay}</div>
-                    <div id="target-${ex.exercise_id}-${s}" style="font-size:10px; color:var(--success); font-weight:700; margin-top:2px;">${targetInfo}</div>
-                </div>
-
-                <div style="flex: 1; min-width: 50px;">
-                    <div style="font-size: 10px; color: #8e8e93;">Today</div>
-                    <div id="today-${ex.exercise_id}-${s}" style="font-weight: 600; font-size: 12px; color: var(--primary);">-</div>
-                </div>
-
-                <div style="display:flex; align-items:center;">
-                    <input type="number" class="reps-in" placeholder="Reps" id="reps-${ex.exercise_id}-${s}" style="width:45px; margin:0 2px; padding:8px 4px; font-size:13px; text-align:center;">
-                    <input type="number" class="weight-in" placeholder="kg" id="weight-${ex.exercise_id}-${s}" style="width:50px; margin:0 2px; padding:8px 4px; font-size:13px; text-align:center;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-weight:bold; color:var(--primary); font-size:16px; width: 35px;">S${s}</div>
                     
-                    <label style="display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:9px; color:#8e8e93; font-weight:600; margin: 0 6px; cursor:pointer;">
+                    <div style="flex: 1;">
+                        <div style="font-size: 10px; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px;">Prev</div>
+                        <div style="font-weight: 600; font-size: 13px;">${prevDisplay}</div>
+                        <div id="target-${ex.exercise_id}-${s}" style="font-size:11px; color:var(--success); font-weight:700; margin-top:2px;">${targetInfo}</div>
+                    </div>
+
+                    <div style="flex: 1; text-align: right;">
+                        <div style="font-size: 10px; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px;">Today</div>
+                        <div id="today-${ex.exercise_id}-${s}" style="font-weight: 600; font-size: 13px; color: var(--primary);">-</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 10px;">
+                    <input type="number" class="reps-in" placeholder="Reps" id="reps-${ex.exercise_id}-${s}" style="width: 65px; padding: 10px 5px; font-size: 14px; text-align: center; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text);">
+                    <input type="number" class="weight-in" placeholder="kg" id="weight-${ex.exercise_id}-${s}" style="width: 75px; padding: 10px 5px; font-size: 14px; text-align: center; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text);">
+                    
+                    <label style="display: flex; align-items: center; justify-content: center; padding: 10px 12px; background: rgba(255, 69, 58, 0.1); border: 1px solid rgba(255, 69, 58, 0.3); border-radius: 10px; color: var(--danger); font-size: 13px; font-weight: 600; cursor: pointer; user-select: none;">
                         Fail
-                        <input type="checkbox" id="fail-${ex.exercise_id}-${s}" style="margin:2px 0 0 0; width:15px; height:15px; accent-color: var(--danger);">
+                        <input type="checkbox" id="fail-${ex.exercise_id}-${s}" style="margin-left: 6px; width: 16px; height: 16px; accent-color: var(--danger);">
                     </label>
 
-                    <button onclick="window.saveSet(this, ${ex.exercise_id}, ${s}, '${safeExName}')" class="btn-nav btn-login" style="width:48px; height:40px; padding:0; display:flex; align-items:center; justify-content:center; border-radius: 10px; font-size:12px;">Save</button>
+                    <button onclick="window.saveSet(this, ${ex.exercise_id}, ${s}, '${safeExName}')" class="btn-nav btn-login" style="width: 65px; height: 42px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-size: 14px; font-weight: bold;">Save</button>
                 </div>
             `;
             document.getElementById(`ex-${ex.exercise_id}`).appendChild(row);
@@ -145,7 +147,7 @@ export async function saveSet(btn, exId, setNum, exName) {
 
 window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) => {
     let nextWeight = currentReps >= 10 ? currentWeight + 0.5 : currentWeight;
-    let nextReps = currentReps; // LEVEL UP: Dziedziczymy dokładnie te powtórzenia co dzisiaj!
+    let nextReps = currentReps;
 
     const modal = document.createElement("div");
     modal.className = "modal-overlay dialog-overlay";
@@ -216,6 +218,5 @@ window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) =>
     document.getElementById('confirm-overload-btn').onclick = window.saveOverloadLocal;
 };
 
-// --- REJESTRACJA GLOBALNA ---
 window.renderWorkout = renderWorkout;
 window.saveSet = saveSet;
