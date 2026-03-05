@@ -35,25 +35,26 @@ func initDB() {
 		log.Fatal("Failed to connect to database after 15 attempts")
 	}
 
+	// Tworzenie tabel z nowym polem is_failure
 	db.Exec(`CREATE TABLE IF NOT EXISTS users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(50) UNIQUE, pin VARCHAR(100), is_admin BOOLEAN DEFAULT FALSE);`)
 	db.Exec(`CREATE TABLE IF NOT EXISTS exercises (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(150) UNIQUE, category VARCHAR(50));`)
 	db.Exec(`CREATE TABLE IF NOT EXISTS workout_plans (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, name VARCHAR(50), FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE);`)
 	db.Exec(`CREATE TABLE IF NOT EXISTS plan_exercises (plan_id INT, exercise_id INT, target_sets INT DEFAULT 3, FOREIGN KEY(plan_id) REFERENCES workout_plans(id) ON DELETE CASCADE, FOREIGN KEY(exercise_id) REFERENCES exercises(id) ON DELETE CASCADE);`)
-	db.Exec(`CREATE TABLE IF NOT EXISTS logs (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, exercise_id INT, set_number INT, reps INT, weight FLOAT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE);`)
+	db.Exec(`CREATE TABLE IF NOT EXISTS logs (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, exercise_id INT, set_number INT, reps INT, weight FLOAT, is_failure BOOLEAN DEFAULT FALSE, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE);`)
 	db.Exec(`CREATE INDEX IF NOT EXISTS idx_logs_lookup ON logs (user_id, exercise_id, set_number, created_at DESC);`)
+
+	// Automatyczna migracja dla istniejących baz!
+	db.Exec(`ALTER TABLE logs ADD COLUMN is_failure BOOLEAN DEFAULT FALSE;`)
 
 	seedExercises()
 	seedAdmin()
 }
 
-// NOWA FUNKCJA: Baza Danych jako serce Wizarda
 func GetOrCreateExerciseDB(name, category string) (int, error) {
 	var id int
-	// Sprawdzamy, czy ćwiczenie już istnieje
 	err := db.QueryRow("SELECT id FROM exercises WHERE name = ?", name).Scan(&id)
 
 	if err == sql.ErrNoRows {
-		// Jeśli nie ma, tworzymy je w locie!
 		res, err := db.Exec("INSERT INTO exercises (name, category) VALUES (?, ?)", name, category)
 		if err != nil {
 			return 0, err
@@ -64,7 +65,6 @@ func GetOrCreateExerciseDB(name, category string) (int, error) {
 		return 0, err
 	}
 
-	// Jeśli istnieje, po prostu zwracamy jego ID
 	return id, nil
 }
 

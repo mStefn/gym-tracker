@@ -69,13 +69,14 @@ func LogSet(c *gin.Context) {
 		SetNumber  int     `json:"set_number"`
 		Reps       int     `json:"reps"`
 		Weight     float64 `json:"weight"`
+		IsFailure  bool    `json:"is_failure"` // NOWE POLE
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(400, gin.H{"error": "Invalid input"})
 		return
 	}
-	_, err := db.Exec("INSERT INTO logs (user_id, exercise_id, set_number, reps, weight) VALUES (?, ?, ?, ?, ?)",
-		input.UserID, input.ExerciseID, input.SetNumber, input.Reps, input.Weight)
+	_, err := db.Exec("INSERT INTO logs (user_id, exercise_id, set_number, reps, weight, is_failure) VALUES (?, ?, ?, ?, ?, ?)",
+		input.UserID, input.ExerciseID, input.SetNumber, input.Reps, input.Weight, input.IsFailure)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -89,19 +90,21 @@ func GetLastResult(c *gin.Context) {
 	setNum := c.Param("set")
 	var reps int
 	var weight float64
-	err := db.QueryRow("SELECT reps, weight FROM logs WHERE user_id = ? AND exercise_id = ? AND set_number = ? ORDER BY created_at DESC LIMIT 1",
-		userID, exID, setNum).Scan(&reps, &weight)
+	var isFailure bool // NOWA ZMIENNA
+
+	// COALESCE zabezpiecza starsze wpisy przed błędem w bazie
+	err := db.QueryRow("SELECT reps, weight, COALESCE(is_failure, FALSE) FROM logs WHERE user_id = ? AND exercise_id = ? AND set_number = ? ORDER BY created_at DESC LIMIT 1",
+		userID, exID, setNum).Scan(&reps, &weight, &isFailure)
 	if err != nil {
-		c.JSON(200, gin.H{"reps": 0, "weight": 0})
+		c.JSON(200, gin.H{"reps": 0, "weight": 0, "is_failure": false})
 		return
 	}
-	c.JSON(200, gin.H{"reps": reps, "weight": weight})
+	c.JSON(200, gin.H{"reps": reps, "weight": weight, "is_failure": isFailure})
 }
 
 func GetUserStats(c *gin.Context) {
 	userID := c.Param("user_id")
 
-	// Wyciągamy historię: data, nazwa ćwiczenia, waga, powtórzenia
 	rows, err := db.Query(`
 		SELECT l.created_at, e.name, l.weight, l.reps, e.id
 		FROM logs l

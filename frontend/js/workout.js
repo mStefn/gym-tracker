@@ -13,7 +13,7 @@ export async function renderWorkout(planId, planName) {
                 <button onclick="window.navigate('workout')" style="background: transparent; border: none; color: var(--primary); padding: 0; margin-bottom: 20px; font-size: 16px; font-weight: 600; cursor: pointer;">← Back to Workouts</button>
                 <h2 style="margin: 0px 0 15px 0;">${planName}</h2>
                 <div id="workout-content"></div>
-                <button onclick="window.navigate('workout')" class="save-btn" style="margin-top: 20px; background: var(--success);">Finish Workout 🏆</button>
+                <button onclick="window.navigate('workout')" class="save-btn" style="margin-top: 20px; background: var(--success);">Finish Workout</button>
             </div>
         `;
 
@@ -59,12 +59,19 @@ export async function renderWorkout(planId, planName) {
             
             const safeExName = ex.exercise_name.replace(/'/g, "\\'");
 
+            // Konstruowanie napisu Previous uwzględniając 'F'
+            let prevDisplay = '-';
+            if (last.weight > 0) {
+                const failureTag = last.is_failure ? '<span style="color:var(--danger); font-weight:bold;">F</span>' : '';
+                prevDisplay = `${last.weight}kg x ${last.reps}${failureTag}`;
+            }
+
             row.innerHTML = `
                 <div style="font-weight:bold; color:var(--primary); font-size:16px; width: 25px;">S${s}</div>
                 
                 <div style="flex: 1; min-width: 50px;">
                     <div style="font-size: 10px; color: #8e8e93;">Prev</div>
-                    <div style="font-weight: 600; font-size: 12px;">${last.weight > 0 ? `${last.weight}kg x ${last.reps}` : '-'}</div>
+                    <div style="font-weight: 600; font-size: 12px;">${prevDisplay}</div>
                     <div id="target-${ex.exercise_id}-${s}" style="font-size:10px; color:var(--success); font-weight:700; margin-top:2px;">${targetInfo}</div>
                 </div>
 
@@ -73,10 +80,17 @@ export async function renderWorkout(planId, planName) {
                     <div id="today-${ex.exercise_id}-${s}" style="font-weight: 600; font-size: 12px; color: var(--primary);">-</div>
                 </div>
 
-                <input type="number" class="reps-in" placeholder="Reps" id="reps-${ex.exercise_id}-${s}" style="width:45px; margin:0 2px; padding:8px 4px; font-size:13px; text-align:center;">
-                <input type="number" class="weight-in" placeholder="kg" id="weight-${ex.exercise_id}-${s}" style="width:50px; margin:0 2px; padding:8px 4px; font-size:13px; text-align:center;">
-                
-                <button onclick="window.saveSet(this, ${ex.exercise_id}, ${s}, '${safeExName}')" class="btn-nav btn-login" style="width:48px; height:40px; padding:0; display:flex; align-items:center; justify-content:center; border-radius: 10px; font-size:12px;">Save</button>
+                <div style="display:flex; align-items:center;">
+                    <input type="number" class="reps-in" placeholder="Reps" id="reps-${ex.exercise_id}-${s}" style="width:45px; margin:0 2px; padding:8px 4px; font-size:13px; text-align:center;">
+                    <input type="number" class="weight-in" placeholder="kg" id="weight-${ex.exercise_id}-${s}" style="width:50px; margin:0 2px; padding:8px 4px; font-size:13px; text-align:center;">
+                    
+                    <label style="display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:9px; color:#8e8e93; font-weight:600; margin: 0 6px; cursor:pointer;">
+                        Fail
+                        <input type="checkbox" id="fail-${ex.exercise_id}-${s}" style="margin:2px 0 0 0; width:15px; height:15px; accent-color: var(--danger);">
+                    </label>
+
+                    <button onclick="window.saveSet(this, ${ex.exercise_id}, ${s}, '${safeExName}')" class="btn-nav btn-login" style="width:48px; height:40px; padding:0; display:flex; align-items:center; justify-content:center; border-radius: 10px; font-size:12px;">Save</button>
+                </div>
             `;
             document.getElementById(`ex-${ex.exercise_id}`).appendChild(row);
         }
@@ -88,6 +102,7 @@ export async function renderWorkout(planId, planName) {
 export async function saveSet(btn, exId, setNum, exName) {
     const repsVal = document.getElementById(`reps-${exId}-${setNum}`).value;
     const weightVal = document.getElementById(`weight-${exId}-${setNum}`).value;
+    const isFailure = document.getElementById(`fail-${exId}-${setNum}`).checked;
 
     if (!repsVal || !weightVal) return alert("Fill data!");
 
@@ -103,7 +118,8 @@ export async function saveSet(btn, exId, setNum, exName) {
                 exercise_id: exId,
                 set_number: setNum,
                 reps: parseInt(repsVal),
-                weight: parseFloat(weightVal)
+                weight: parseFloat(weightVal),
+                is_failure: isFailure
             })
         });
 
@@ -113,8 +129,10 @@ export async function saveSet(btn, exId, setNum, exName) {
             btn.style.borderColor = "var(--success)";
             document.getElementById(`reps-${exId}-${setNum}`).disabled = true;
             document.getElementById(`weight-${exId}-${setNum}`).disabled = true;
+            document.getElementById(`fail-${exId}-${setNum}`).disabled = true;
             
-            document.getElementById(`today-${exId}-${setNum}`).innerText = `${weightVal}kg x ${repsVal}`;
+            const failureTag = isFailure ? '<span style="color:var(--danger); font-weight:bold;">F</span>' : '';
+            document.getElementById(`today-${exId}-${setNum}`).innerHTML = `${weightVal}kg x ${repsVal}${failureTag}`;
             
             window.showOverloadModal(exId, setNum, parseFloat(weightVal), parseInt(repsVal), exName);
         }
@@ -127,7 +145,7 @@ export async function saveSet(btn, exId, setNum, exName) {
 
 window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) => {
     let nextWeight = currentReps >= 10 ? currentWeight + 0.5 : currentWeight;
-    let nextReps = currentReps >= 10 ? 8 : currentReps;
+    let nextReps = currentReps; // LEVEL UP: Dziedziczymy dokładnie te powtórzenia co dzisiaj!
 
     const modal = document.createElement("div");
     modal.className = "modal-overlay dialog-overlay";
