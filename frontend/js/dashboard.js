@@ -1,23 +1,15 @@
 import { state, API_URL, authFetch } from './state.js';
-import { renderPlanEditor } from './editor.js';
 
 export async function renderDashboard() {
     const container = document.getElementById("exercises");
     container.innerHTML = `<div class="spinner" style="margin-top: 50px;"></div>`;
 
     try {
-        // Zaciągamy z backendu statystyki ORAZ plany naraz
-        const [statsRes, plansRes] = await Promise.all([
-            authFetch(`${API_URL}/dashboard/${state.currentUserId}`),
-            authFetch(`${API_URL}/plans/${state.currentUserId}`)
-        ]);
-
+        const statsRes = await authFetch(`${API_URL}/dashboard/${state.currentUserId}`);
         const stats = await statsRes.json();
-        const plans = await plansRes.json();
 
         const latestWeight = stats.weights && stats.weights.length > 0 ? stats.weights[0] : '--';
 
-        // Funkcja pomocnicza: generowanie Heatmapy z ostatnich 45 dni
         const buildHeatmap = (activeDates) => {
             let squares = '';
             for(let i = 44; i >= 0; i--) {
@@ -30,7 +22,6 @@ export async function renderDashboard() {
             return squares;
         };
 
-        // Funkcja pomocnicza: renderowanie pasków regeneracji
         const buildReadiness = (readinessObj) => {
             return ['Chest', 'Back', 'Legs', 'Shoulders'].map(cat => {
                 const val = readinessObj[cat] || 100;
@@ -51,7 +42,6 @@ export async function renderDashboard() {
             }).join('');
         };
 
-        // Funkcja pomocnicza: słupki objętości (Volume)
         const buildVolume = (volArray) => {
             if(!volArray || volArray.length === 0) return `<p style="color:#8e8e93; font-size:12px; text-align:center;">No data yet</p>`;
             const maxVol = Math.max(...volArray.map(v => v.total));
@@ -69,9 +59,9 @@ export async function renderDashboard() {
         };
 
         container.innerHTML = `
-            <div style="display: flex; flex-direction: column; gap: 15px; padding-bottom: 40px;">
+            <div style="display: flex; flex-direction: column; gap: 15px; padding-bottom: 20px;">
                 
-                <h2 style="margin: 0 0 5px 0;">Overview</h2>
+                <h2 style="margin: 0 0 5px 0;">Home</h2>
 
                 <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 15px;">
                     <h4 style="margin: 0 0 10px 0; color: #8e8e93; font-size: 12px; text-transform: uppercase;">Body Weight</h4>
@@ -102,49 +92,8 @@ export async function renderDashboard() {
                         ${buildVolume(stats.volume)}
                     </div>
                 </div>
-
-                <hr style="border: 0; border-top: 1px dashed var(--border); margin: 20px 0;">
-                
-                <h3 style="margin: 0 0 15px 0;">Start Training</h3>
-                <div id="plans-list"></div>
-                
-                <button id="add-plan-btn" style="width: 100%; background: transparent; color: var(--primary); border: 2px dashed var(--primary); padding: 15px; border-radius: 14px; margin-top: 10px; font-size: 16px; font-weight: bold; cursor: pointer;">
-                    + Create New Plan
-                </button>
             </div>
         `;
-
-        // Renderowanie planów (Czysty design)
-        const list = document.getElementById("plans-list");
-        if (plans && plans.length > 0) {
-            plans.forEach(plan => {
-                const wrapper = document.createElement("div");
-                wrapper.style = "display: flex; gap: 10px; margin-bottom: 10px;";
-
-                const startBtn = document.createElement("button");
-                startBtn.className = "save-btn";
-                startBtn.style = "margin: 0; flex: 1; text-align: left; padding-left: 20px; background: var(--card-bg); color: var(--text); border: 1px solid var(--border); font-weight: 600; font-size: 16px;";
-                startBtn.innerText = plan.name;
-                startBtn.onclick = () => window.renderWorkout(plan.id, plan.name);
-
-                const deleteBtn = document.createElement("button");
-                deleteBtn.innerText = "Delete";
-                deleteBtn.style = "background: transparent; border: 1px solid var(--danger); border-radius: 12px; padding: 0 15px; cursor: pointer; color: var(--danger); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center;";
-                deleteBtn.onclick = async () => {
-                    if (confirm(`Delete plan "${plan.name}"?`)) {
-                        await authFetch(`${API_URL}/plan/${plan.id}`, { method: "DELETE" });
-                        window.navigate('workout'); 
-                    }
-                };
-
-                wrapper.appendChild(startBtn);
-                wrapper.appendChild(deleteBtn);
-                list.appendChild(wrapper);
-            });
-        }
-
-        const addBtn = document.getElementById("add-plan-btn");
-        if (addBtn) addBtn.onclick = renderPlanEditor;
 
     } catch (e) {
         console.error("Dashboard error:", e);
@@ -162,7 +111,7 @@ window.logWeight = async () => {
             headers: {"Content-Type":"application/json"},
             body: JSON.stringify({ user_id: parseInt(state.currentUserId), weight: w })
         });
-        window.navigate('workout'); // Odświeża układ Home, żeby waga się wczytała
+        window.navigate('home'); 
     } catch(e) {
         alert("Failed to log weight");
     }

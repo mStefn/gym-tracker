@@ -1,6 +1,7 @@
 import { state, logout } from './state.js';
 import { renderAuthScreen } from './auth.js';
 import { renderDashboard } from './dashboard.js';
+import { renderPlans } from './plans.js'; // NOWY IMPORT
 import { renderWorkout } from './workout.js';
 import { renderStats } from './stats.js';
 
@@ -20,10 +21,10 @@ window.navigate = (tab) => {
     setTimeout(() => {
         switch (tab) {
             case 'home':
-                renderHomePage();
+                renderDashboard(); // HOME = STATYSTYKI
                 break;
             case 'workout':
-                renderDashboard(); 
+                renderPlans(); // WORKOUT = PLANY TRENINGOWE
                 break;
             case 'stats':
                 renderStats();
@@ -40,7 +41,7 @@ window.navigate = (tab) => {
                 if (window.renderSettings) window.renderSettings();
                 break;
             default:
-                renderHomePage();
+                renderDashboard();
         }
     }, 100);
 };
@@ -64,20 +65,6 @@ window.onload = () => {
         window.navigate('home'); 
     }
 };
-
-function renderHomePage() {
-    const container = document.getElementById("exercises");
-    container.innerHTML = `
-        <div style="text-align: center; margin-top: 40px;">
-            <h1 style="font-size: 32px; margin-bottom: 10px; color: var(--text);">SYSTEM ONLINE</h1>
-            <p style="color: var(--primary); font-size: 16px; margin-bottom: 40px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Ready for today's session?</p>
-            
-            <div style="margin-top: 40px; display: flex; justify-content: center; gap: 15px;">
-                <button onclick="window.navigate('workout')" class="save-btn" style="width: auto; padding: 15px 40px;">INITIATE WORKOUT</button>
-            </div>
-        </div>
-    `;
-}
 
 function renderLandingPage() {
     document.getElementById("exercises").innerHTML = `
