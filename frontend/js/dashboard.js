@@ -10,22 +10,21 @@ export async function renderDashboard() {
 
         const latestWeight = stats.weights && stats.weights.length > 0 ? stats.weights[0] : '--';
 
-        // NOWOŚĆ: Generowanie eleganckiego mini-wykresu (Sparkline) w SVG
+        // Generowanie eleganckiego mini-wykresu (Sparkline) w SVG
         const buildSparkline = (weights) => {
             if (!weights || weights.length < 2) {
                 return `<div style="height: 40px; display: flex; align-items: center; color: #8e8e93; font-size: 11px;">Log at least 2 weights to see trend</div>`;
             }
 
-            // Odwracamy tablicę, żeby najstarsza waga była po lewej, a najnowsza po prawej
             const data = [...weights].reverse();
             const min = Math.min(...data);
             const max = Math.max(...data);
             const range = max - min === 0 ? 1 : max - min;
-            const padding = max - min === 0 ? min * 0.05 : range * 0.2; // Zapas od góry/dołu
+            const padding = max - min === 0 ? min * 0.05 : range * 0.2; 
             const paddedMin = min - padding;
             const paddedRange = (max + padding) - paddedMin;
 
-            const width = 100; // ViewBox proste wartości procentowe
+            const width = 100; 
             const height = 40;
 
             const points = data.map((w, i) => {
@@ -84,17 +83,47 @@ export async function renderDashboard() {
             }).join('');
         };
 
+        // NOWOŚĆ: Zawsze 4 słupki objętości
         const buildVolume = (volArray) => {
-            if(!volArray || volArray.length === 0) return `<p style="color:#8e8e93; font-size:12px; text-align:center;">No data yet</p>`;
-            const maxVol = Math.max(...volArray.map(v => v.total));
-            return volArray.map(v => {
+            // Funkcja obliczająca format YEARWEEK zgodny z MySQL (ISO 8601)
+            const getYearWeek = (d) => {
+                const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+                const dayNum = date.getUTCDay() || 7;
+                date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+                const yearStart = new Date(Date.UTC(date.getUTCFullYear(),0,1));
+                const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1)/7);
+                return `${date.getUTCFullYear()}${weekNo.toString().padStart(2, '0')}`;
+            };
+
+            // Generujemy 4 ostatnie tygodnie (od najstarszego do obecnego)
+            const last4Weeks = [];
+            for(let i = 3; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - (i * 7));
+                last4Weeks.push(getYearWeek(d));
+            }
+
+            // Dopasowujemy dane z bazy. Jeśli brak wpisu -> 0
+            const finalData = last4Weeks.map(weekStr => {
+                const found = (volArray || []).find(v => v.week === weekStr);
+                return { week: weekStr, total: found ? found.total : 0 };
+            });
+
+            const maxVol = Math.max(...finalData.map(v => v.total));
+            
+            return finalData.map(v => {
                 const height = maxVol > 0 ? (v.total / maxVol) * 100 : 0;
+                const displayVol = v.total > 0 ? (v.total/1000).toFixed(1) + 'k' : '0.0k';
+                // Pusty słupek ma 2% wysokości, żeby widoczna była linia bazowa
+                const finalHeight = Math.max(height, 2); 
+                const opacity = height === 100 && maxVol > 0 ? '1' : '0.4';
+
                 return `
                     <div style="display:flex; flex-direction:column; align-items:center; flex:1;">
                         <div style="height: 60px; width: 100%; display:flex; align-items:flex-end; justify-content:center; margin-bottom: 5px;">
-                            <div style="width: 20px; height: ${height}%; background: var(--primary); border-radius: 4px; opacity: ${height === 100 ? '1' : '0.6'}"></div>
+                            <div style="width: 20px; height: ${finalHeight}%; background: var(--primary); border-radius: 4px; opacity: ${opacity}; transition: height 0.5s ease;"></div>
                         </div>
-                        <span style="font-size: 9px; color: #8e8e93;">${(v.total/1000).toFixed(1)}k</span>
+                        <span style="font-size: 10px; color: ${v.total > 0 ? 'var(--text)' : '#8e8e93'}; font-weight: 600;">${displayVol}</span>
                     </div>
                 `;
             }).join('');
@@ -157,44 +186,5 @@ window.logWeight = async () => {
         window.navigate('home'); 
     } catch(e) {
         alert("Failed to log weight");
-    }
-};
-
-window.renderSettings = () => {
-    document.getElementById("exercises").innerHTML = `
-        <div style="max-width: 400px; margin: 0 auto;">
-            <h2 style="margin-bottom: 20px;">Settings ⚙️</h2>
-            <div class="exercise-card">
-                <h3 style="margin-bottom: 20px;">Change PIN</h3>
-                <input type="password" id="old-pin" placeholder="Current PIN">
-                <input type="password" id="new-pin" maxlength="4" placeholder="New PIN (4 digits)">
-                <input type="password" id="conf-pin" maxlength="4" placeholder="Confirm New PIN">
-                <button onclick="window.updatePin()" class="save-btn" style="margin-top: 10px;">Update PIN</button>
-            </div>
-        </div>
-    `;
-};
-
-window.updatePin = async () => {
-    const oldPin = document.getElementById("old-pin").value;
-    const newPin = document.getElementById("new-pin").value;
-    const confPin = document.getElementById("conf-pin").value;
-
-    if (newPin !== confPin) return alert("New PINs do not match!");
-    if (newPin.length !== 4) return alert("PIN must be exactly 4 digits.");
-    
-    try {
-        const res = await authFetch(`${API_URL}/change-pin`, {
-            method: "POST", headers: {"Content-Type":"application/json"},
-            body: JSON.stringify({user_id: parseInt(state.currentUserId), old_pin: oldPin, new_pin: newPin})
-        });
-        if (res.ok) {
-            alert("PIN successfully updated!");
-            window.navigate('settings');
-        } else {
-            alert("Error: Current PIN is incorrect.");
-        }
-    } catch (e) {
-        alert("Server connection error.");
     }
 };
