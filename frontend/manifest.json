@@ -1,10 +1,10 @@
 {
-  "name": "Gym Tracker Pro",
-  "short_name": "Gym",
-  "start_url": "/index.html",
+  "name": "Gym Tracker: Level Up",
+  "short_name": "GymTracker",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f0f2f5",
-  "theme_color": "#007AFF",
+  "background_color": "#0b101e",
+  "theme_color": "#00d2ff",
   "icons": [
     {
       "src": "img/icon-512.png",

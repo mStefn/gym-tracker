@@ -4,21 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Gym Tracker</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0b101e">
+    
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker: Registered (Scope: ' + reg.scope + ')'))
+            .catch(err => console.log('Service Worker: Error: ' + err));
+        });
+      }
+    </script>
 </head>
 <body>
+    <div id="main-bg"></div>
+
     <div id="app-container">
         <nav id="sidebar" style="display: none;">
             <div class="sidebar-header">
-                <h2>💪 GymTracker</h2>
+                <h2 style="text-shadow: 0 0 10px var(--primary-glow);">GymTracker</h2>
             </div>
             <ul class="nav-links">
-                <li><button onclick="window.navigate('home')" class="nav-item active" id="nav-home">🏠 Home</button></li>
-                <li><button onclick="window.navigate('workout')" class="nav-item" id="nav-workout">🏋️‍♂️ Workouts</button></li>
-                <li><button onclick="window.navigate('stats')" class="nav-item" id="nav-stats">📈 Statistics</button></li>
-                <li><button onclick="window.navigate('library')" class="nav-item" id="nav-library">📚 Exercises</button></li>
-                <li><button onclick="window.navigate('settings')" class="nav-item" id="nav-settings">⚙️ Settings</button></li>
+                <li><button onclick="window.navigate('home')" class="nav-item active" id="nav-home">Home</button></li>
+                <li><button onclick="window.navigate('workout')" class="nav-item" id="nav-workout">Workouts</button></li>
+                <li><button onclick="window.navigate('stats')" class="nav-item" id="nav-stats">Statistics</button></li>
+                <li><button onclick="window.navigate('library')" class="nav-item" id="nav-library">Exercises</button></li>
+                <li><button onclick="window.navigate('settings')" class="nav-item" id="nav-settings">Settings</button></li>
             </ul>
         </nav>
 
