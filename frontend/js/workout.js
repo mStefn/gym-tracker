@@ -55,7 +55,6 @@ export async function renderWorkout(planId, planName) {
 
             const row = document.createElement("div");
             row.className = "set-row";
-            // Kontener układamy piętrowo - kolumna zamiast rzędu
             row.style = "display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 15px;";
             
             const safeExName = ex.exercise_name.replace(/'/g, "\\'");
@@ -82,16 +81,16 @@ export async function renderWorkout(planId, planName) {
                     </div>
                 </div>
 
-                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 10px;">
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px;">
                     <input type="number" class="reps-in" placeholder="Reps" id="reps-${ex.exercise_id}-${s}" style="width: 65px; padding: 10px 5px; font-size: 14px; text-align: center; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text);">
                     <input type="number" class="weight-in" placeholder="kg" id="weight-${ex.exercise_id}-${s}" style="width: 75px; padding: 10px 5px; font-size: 14px; text-align: center; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text);">
                     
-                    <label style="display: flex; align-items: center; justify-content: center; padding: 10px 12px; background: rgba(255, 69, 58, 0.1); border: 1px solid rgba(255, 69, 58, 0.3); border-radius: 10px; color: var(--danger); font-size: 13px; font-weight: 600; cursor: pointer; user-select: none;">
+                    <label style="display: flex; align-items: center; justify-content: center; color: #8e8e93; font-size: 12px; font-weight: 600; cursor: pointer; user-select: none;">
                         Fail
-                        <input type="checkbox" id="fail-${ex.exercise_id}-${s}" style="margin-left: 6px; width: 16px; height: 16px; accent-color: var(--danger);">
+                        <input type="checkbox" id="fail-${ex.exercise_id}-${s}" style="margin-left: 5px; width: 16px; height: 16px; accent-color: var(--danger); cursor: pointer;">
                     </label>
 
-                    <button onclick="window.saveSet(this, ${ex.exercise_id}, ${s}, '${safeExName}')" class="btn-nav btn-login" style="width: 65px; height: 42px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-size: 14px; font-weight: bold;">Save</button>
+                    <button onclick="window.saveSet(this, ${ex.exercise_id}, ${s}, '${safeExName}')" style="background: rgba(0, 210, 255, 0.1); color: var(--primary); border: none; width: 65px; height: 42px; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s;">Save</button>
                 </div>
             `;
             document.getElementById(`ex-${ex.exercise_id}`).appendChild(row);
@@ -127,8 +126,10 @@ export async function saveSet(btn, exId, setNum, exName) {
 
         if (res.ok) {
             btn.innerHTML = "✓";
-            btn.style.background = "var(--success)";
-            btn.style.borderColor = "var(--success)";
+            // Zmiana stylu na Soft Success po poprawnym zapisie
+            btn.style.background = "rgba(48, 209, 88, 0.15)";
+            btn.style.color = "var(--success)";
+            
             document.getElementById(`reps-${exId}-${setNum}`).disabled = true;
             document.getElementById(`weight-${exId}-${setNum}`).disabled = true;
             document.getElementById(`fail-${exId}-${setNum}`).disabled = true;
