@@ -4,8 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Gym Tracker</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0b101e">
+    
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker: Registered (Scope: ' + reg.scope + ')'))
+            .catch(err => console.log('Service Worker: Error: ' + err));
+        });
+      }
+    </script>
 </head>
 <body>
     <div id="main-bg"></div>
