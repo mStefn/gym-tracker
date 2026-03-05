@@ -6,17 +6,16 @@ const ASSETS = [
   './js/app.js',
   './js/state.js',
   './js/auth.js',
-  './gym-tracker.webp' // Twoja grafika!
+  './gym-tracker.webp',
+  './img/icon-512.png' 
 ];
 
-// Instalacja - keszowanie plików
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
 });
 
-// Obsługa zapytań - najpierw kesz, potem sieć
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((response) => {
