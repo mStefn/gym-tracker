@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -54,18 +55,60 @@ func seedExercises() {
 			fmt.Println("Error reading exercises.json:", err)
 			return
 		}
+
 		var exercises []struct {
-			Name     string `json:"name"`
-			Category string `json:"category"`
+			Name      string   `json:"name"`
+			Category  string   `json:"category"`
+			Equipment []string `json:"equipment"`
+			Angles    []string `json:"angles"`
+			Variants  []string `json:"variants"`
 		}
+
 		if err := json.Unmarshal(file, &exercises); err != nil {
 			fmt.Println("Error parsing exercises.json:", err)
 			return
 		}
+
+		// Generujemy wszystkie permutacje dla Kreatora
 		for _, ex := range exercises {
-			db.Exec("INSERT IGNORE INTO exercises (name, category) VALUES (?, ?)", ex.Name, ex.Category)
+			eqs := ex.Equipment
+			if len(eqs) == 0 {
+				eqs = []string{""}
+			}
+			angs := ex.Angles
+			if len(angs) == 0 {
+				angs = []string{""}
+			}
+			vars := ex.Variants
+			if len(vars) == 0 {
+				vars = []string{""}
+			}
+
+			for _, eq := range eqs {
+				for _, ang := range angs {
+					for _, v := range vars {
+						parts := []string{}
+
+						if ang != "" && ang != "Flat" {
+							parts = append(parts, ang)
+						}
+						if eq != "" && eq != "Bodyweight" {
+							parts = append(parts, eq)
+						}
+						parts = append(parts, ex.Name)
+						if v != "" && v != "Standard" {
+							parts = append(parts, "- "+v)
+						}
+
+						fullName := strings.Join(parts, " ")
+						fullName = strings.Join(strings.Fields(fullName), " ")
+
+						db.Exec("INSERT IGNORE INTO exercises (name, category) VALUES (?, ?)", fullName, ex.Category)
+					}
+				}
+			}
 		}
-		fmt.Println("✅ Exercises seeded from JSON")
+		fmt.Println("✅ Exercises seeded with dynamic permutations (Level Up Edition)")
 	}
 }
 
@@ -73,7 +116,6 @@ func seedAdmin() {
 	var count int
 	db.QueryRow("SELECT COUNT(*) FROM users WHERE name = 'admin'").Scan(&count)
 	if count == 0 {
-		// Domyślny PIN/Hasło: 1234
 		hashedPin, _ := bcrypt.GenerateFromPassword([]byte("1234"), bcrypt.DefaultCost)
 		_, err := db.Exec("INSERT INTO users (name, pin, is_admin) VALUES (?, ?, ?)", "admin", string(hashedPin), true)
 		if err == nil {

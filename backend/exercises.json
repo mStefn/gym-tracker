@@ -1,54 +1,183 @@
 [
-  { "name": "Barbell Bench Press (Flat)", "category": "Chest" },
-  { "name": "Barbell Bench Press (Incline)", "category": "Chest" },
-  { "name": "Barbell Bench Press (Decline)", "category": "Chest" },
-  { "name": "Dumbbell Bench Press (Flat)", "category": "Chest" },
-  { "name": "Dumbbell Bench Press (Incline)", "category": "Chest" },
-  { "name": "Dumbbell Bench Press (Decline)", "category": "Chest" },
-  { "name": "Dumbbell Fly (Flat)", "category": "Chest" },
-  { "name": "Dumbbell Fly (Incline)", "category": "Chest" },
-  { "name": "Dumbbell Fly (Decline)", "category": "Chest" },
-  { "name": "Machine Chest Press (Flat)", "category": "Chest" },
-  { "name": "Machine Chest Press (Incline)", "category": "Chest" },
-  { "name": "Machine Chest Fly", "category": "Chest" },
-  { "name": "Cable Crossover", "category": "Chest" },
-  { "name": "Deadlift", "category": "Back" },
-  { "name": "Pull-Up", "category": "Back" },
-  { "name": "Barbell Bent-Over Row", "category": "Back" },
-  { "name": "Lat Pulldown", "category": "Back" },
-  { "name": "Seated Cable Row", "category": "Back" },
-  { "name": "Straight Arm Pulldown", "category": "Back" },
-  { "name": "Barbell Squat", "category": "Legs" },
-  { "name": "Leg Press", "category": "Legs" },
-  { "name": "Romanian Deadlift", "category": "Legs" },
-  { "name": "Leg Curl (Machine)", "category": "Legs" },
-  { "name": "Leg Extension (Machine)", "category": "Legs" },
-  { "name": "Hip Thrust", "category": "Legs" },
-  { "name": "Hip Abduction (Machine)", "category": "Legs" },
-  { "name": "Hip Adduction (Machine)", "category": "Legs" },
-  { "name": "Barbell Curl", "category": "Biceps" },
-  { "name": "Preacher Curl", "category": "Biceps" },
-  { "name": "Cable Biceps Curl", "category": "Biceps" },
-  { "name": "Hammer Curl", "category": "Biceps" },
-  { "name": "Machine Biceps Curl", "category": "Biceps" },
-  { "name": "Close-Grip Bench Press", "category": "Triceps" },
-  { "name": "Triceps Pushdown", "category": "Triceps" },
-  { "name": "Overhead Dumbbell Extension", "category": "Triceps" },
-  { "name": "Skull Crushers", "category": "Triceps" },
-  { "name": "Cable Overhead Triceps Extension", "category": "Triceps" },
-  { "name": "Dips", "category": "Triceps" },
-  { "name": "Dumbbell Lateral Raise", "category": "Shoulders" },
-  { "name": "Cable Lateral Raise", "category": "Shoulders" },
-  { "name": "Face Pull", "category": "Shoulders" },
-  { "name": "Barbell Shoulder Press", "category": "Shoulders" },
-  { "name": "Dumbbell Shoulder Press", "category": "Shoulders" },
-  { "name": "Machine Shoulder Press", "category": "Shoulders" },
-  { "name": "Upright Row", "category": "Shoulders" },
-  { "name": "Seated Ab Crunch (Machine)", "category": "Abs" },
-  { "name": "Hanging Leg Raise", "category": "Abs" },
-  { "name": "Shoulder Stand / Leg Raise", "category": "Abs" },
-  { "name": "Plank", "category": "Abs" },
-  { "name": "Ab Wheel Rollout", "category": "Abs" },
-  { "name": "Weighted Sit-Ups", "category": "Abs" },
-  { "name": "Kneeling Cable Crunch", "category": "Abs" }
+  {
+    "name": "Bench Press",
+    "category": "Chest",
+    "equipment": ["Barbell", "Dumbbell", "Machine"],
+    "angles": ["Flat", "Incline", "Decline"]
+  },
+  {
+    "name": "Chest Fly",
+    "category": "Chest",
+    "equipment": ["Dumbbell", "Machine", "Cable"]
+  },
+  {
+    "name": "Push-Up",
+    "category": "Chest",
+    "equipment": ["Bodyweight"]
+  },
+
+  {
+    "name": "Pull-Up",
+    "category": "Back",
+    "equipment": ["Bodyweight", "Assisted"]
+  },
+  {
+    "name": "Row",
+    "category": "Back",
+    "equipment": ["Barbell", "Cable", "T-Bar", "Dumbbell"]
+  },
+  {
+    "name": "Lat Pulldown",
+    "category": "Back",
+    "equipment": ["Cable"]
+  },
+  {
+    "name": "Straight Arm Pulldown",
+    "category": "Back",
+    "equipment": ["Cable"]
+  },
+
+  {
+    "name": "Squat",
+    "category": "Legs",
+    "equipment": ["Barbell", "Dumbbell", "Machine"]
+  },
+  {
+    "name": "Deadlift",
+    "category": "Legs",
+    "equipment": ["Barbell", "Dumbbell"]
+  },
+  {
+    "name": "Romanian Deadlift",
+    "category": "Legs",
+    "equipment": ["Barbell", "Dumbbell"]
+  },
+  {
+    "name": "Leg Press",
+    "category": "Legs",
+    "equipment": ["Machine"]
+  },
+  {
+    "name": "Leg Extension",
+    "category": "Legs",
+    "equipment": ["Machine"]
+  },
+  {
+    "name": "Leg Curl",
+    "category": "Legs",
+    "equipment": ["Machine"]
+  },
+  {
+    "name": "Hip Thrust",
+    "category": "Legs",
+    "equipment": ["Barbell", "Machine"]
+  },
+  {
+    "name": "Lunge",
+    "category": "Legs",
+    "equipment": ["Dumbbell", "Barbell"],
+    "variants": ["Walking", "Bulgarian"]
+  },
+  {
+    "name": "Calf Raise",
+    "category": "Legs",
+    "equipment": ["Machine", "Bodyweight", "Barbell"]
+  },
+  {
+    "name": "Hip Abduction",
+    "category": "Legs",
+    "equipment": ["Machine"]
+  },
+  {
+    "name": "Hip Adduction",
+    "category": "Legs",
+    "equipment": ["Machine"]
+  },
+
+  {
+    "name": "Shoulder Press",
+    "category": "Shoulders",
+    "equipment": ["Barbell", "Dumbbell", "Machine"]
+  },
+  {
+    "name": "Lateral Raise",
+    "category": "Shoulders",
+    "equipment": ["Dumbbell", "Cable"]
+  },
+  {
+    "name": "Front Raise",
+    "category": "Shoulders",
+    "equipment": ["Dumbbell", "Cable"]
+  },
+  {
+    "name": "Rear Delt Fly",
+    "category": "Shoulders",
+    "equipment": ["Machine", "Dumbbell"]
+  },
+  {
+    "name": "Face Pull",
+    "category": "Shoulders",
+    "equipment": ["Cable"]
+  },
+  {
+    "name": "Upright Row",
+    "category": "Shoulders",
+    "equipment": ["Barbell", "Cable"]
+  },
+
+  {
+    "name": "Biceps Curl",
+    "category": "Biceps",
+    "equipment": ["Barbell", "Dumbbell", "Cable", "Machine"],
+    "variants": ["Standard", "Hammer", "Preacher"]
+  },
+
+  {
+    "name": "Triceps Extension",
+    "category": "Triceps",
+    "equipment": ["Cable", "Dumbbell", "Barbell"],
+    "variants": ["Pushdown", "Overhead", "Skull Crusher"]
+  },
+  {
+    "name": "Dip",
+    "category": "Triceps",
+    "equipment": ["Bodyweight", "Machine"]
+  },
+  {
+    "name": "Close Grip Bench Press",
+    "category": "Triceps",
+    "equipment": ["Barbell"]
+  },
+
+  {
+    "name": "Plank",
+    "category": "Abs",
+    "equipment": ["Bodyweight"]
+  },
+  {
+    "name": "Leg Raise",
+    "category": "Abs",
+    "equipment": ["Bodyweight"],
+    "variants": ["Hanging", "Lying"]
+  },
+  {
+    "name": "Crunch",
+    "category": "Abs",
+    "equipment": ["Machine", "Cable", "Bodyweight"]
+  },
+  {
+    "name": "Ab Wheel Rollout",
+    "category": "Abs",
+    "equipment": ["Ab Wheel"]
+  },
+  {
+    "name": "Russian Twist",
+    "category": "Abs",
+    "equipment": ["Bodyweight", "Weight"]
+  },
+  {
+    "name": "Sit-Up",
+    "category": "Abs",
+    "equipment": ["Bodyweight", "Weight"]
+  }
 ]

@@ -35,12 +35,12 @@ export async function renderDashboard() {
 
                 const deleteBtn = document.createElement("button");
                 deleteBtn.innerHTML = "🗑️";
-                deleteBtn.style = "background: #ff453a; border: none; border-radius: 12px; width: 55px; cursor: pointer; color: white; font-size: 18px; display: flex; align-items: center; justify-content: center;";
+                deleteBtn.style = "background: rgba(255, 69, 58, 0.2); border: 1px solid rgba(255, 69, 58, 0.5); border-radius: 12px; width: 55px; cursor: pointer; color: #ff453a; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;";
                 deleteBtn.onclick = async () => {
                     if (confirm(`Delete plan "${plan.name}"?`)) {
                         const delRes = await authFetch(`${API_URL}/plan/${plan.id}`, { method: "DELETE" });
                         if (delRes.ok) {
-                            window.navigate('workout'); // Odświeża układ natychmiast, bez reload() przeglądarki
+                            window.navigate('workout'); 
                         } else {
                             alert("Error deleting plan");
                         }
@@ -92,13 +92,12 @@ window.updatePin = async () => {
     
     try {
         const res = await authFetch(`${API_URL}/change-pin`, {
-            method: "POST", 
-            headers: {"Content-Type":"application/json"},
+            method: "POST", headers: {"Content-Type":"application/json"},
             body: JSON.stringify({user_id: parseInt(state.currentUserId), old_pin: oldPin, new_pin: newPin})
         });
         if (res.ok) {
             alert("PIN successfully updated!");
-            window.navigate('settings'); // Po zmianie PIN-u zostawiamy w ustawieniach (zamiast powrotu do home)
+            window.navigate('settings');
         } else {
             alert("Error: Current PIN is incorrect.");
         }
