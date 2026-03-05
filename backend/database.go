@@ -35,7 +35,6 @@ func initDB() {
 		log.Fatal("Failed to connect to database after 15 attempts")
 	}
 
-	// Tworzenie tabel z nowym polem is_failure
 	db.Exec(`CREATE TABLE IF NOT EXISTS users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(50) UNIQUE, pin VARCHAR(100), is_admin BOOLEAN DEFAULT FALSE);`)
 	db.Exec(`CREATE TABLE IF NOT EXISTS exercises (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(150) UNIQUE, category VARCHAR(50));`)
 	db.Exec(`CREATE TABLE IF NOT EXISTS workout_plans (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, name VARCHAR(50), FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE);`)
@@ -43,7 +42,9 @@ func initDB() {
 	db.Exec(`CREATE TABLE IF NOT EXISTS logs (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, exercise_id INT, set_number INT, reps INT, weight FLOAT, is_failure BOOLEAN DEFAULT FALSE, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE);`)
 	db.Exec(`CREATE INDEX IF NOT EXISTS idx_logs_lookup ON logs (user_id, exercise_id, set_number, created_at DESC);`)
 
-	// Automatyczna migracja dla istniejących baz!
+	// NOWA TABELA: Śledzenie wagi ciała
+	db.Exec(`CREATE TABLE IF NOT EXISTS user_weights (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, weight FLOAT, logged_at DATE, UNIQUE(user_id, logged_at), FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE);`)
+
 	db.Exec(`ALTER TABLE logs ADD COLUMN is_failure BOOLEAN DEFAULT FALSE;`)
 
 	seedExercises()

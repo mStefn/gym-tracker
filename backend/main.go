@@ -32,7 +32,7 @@ func main() {
 	// Health check (public)
 	r.GET("/health", HealthCheck)
 
-	// Public routes (no auth)
+	// Public routes
 	r.POST("/login", Login)
 	r.POST("/signup", SignUp)
 
@@ -50,12 +50,14 @@ func main() {
 		auth.POST("/plan-exercises", AddExerciseToPlan)
 		auth.DELETE("/plan/:id", DeletePlan)
 		auth.GET("/stats/:user_id", GetUserStats)
-
-		// NOWY ENDPOINT: Inteligentny kreator ćwiczeń (Find or Create)
 		auth.POST("/exercises/find-or-create", FindOrCreateExerciseHandler)
+
+		// NOWE TRASY DLA PRO DASHBOARDU
+		auth.POST("/weight", LogBodyWeight)
+		auth.GET("/dashboard/:user_id", GetDashboardData)
 	}
 
-	// Admin routes (auth + admin check)
+	// Admin routes
 	admin := r.Group("/admin")
 	admin.Use(AuthRequired(), AdminRequired())
 	{
@@ -63,13 +65,12 @@ func main() {
 		admin.POST("/reset-pin", AdminResetPin)
 	}
 
-	// Admin delete user also needs admin auth
 	r.DELETE("/user/:id", AuthRequired(), AdminRequired(), DeleteAccount)
 
 	r.Run("0.0.0.0:4000")
 }
 
-// --- HANDLER DLA WIZARDA ---
+// Handler dla Wizarda
 type FindOrCreateReq struct {
 	Name     string `json:"name"`
 	Category string `json:"category"`
@@ -88,9 +89,5 @@ func FindOrCreateExerciseHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, gin.H{
-		"id":       id,
-		"name":     req.Name,
-		"category": req.Category,
-	})
+	c.JSON(200, gin.H{"id": id, "name": req.Name, "category": req.Category})
 }

@@ -1,12 +1,13 @@
 package main
 
 import (
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // --- AUTH HANDLERS ---
-
 func Login(c *gin.Context) {
 	var input struct {
 		Name string `json:"name"`
@@ -61,7 +62,6 @@ func SignUp(c *gin.Context) {
 }
 
 // --- WORKOUT & PROGRESS ---
-
 func LogSet(c *gin.Context) {
 	var input struct {
 		UserID     int     `json:"user_id"`
@@ -69,7 +69,7 @@ func LogSet(c *gin.Context) {
 		SetNumber  int     `json:"set_number"`
 		Reps       int     `json:"reps"`
 		Weight     float64 `json:"weight"`
-		IsFailure  bool    `json:"is_failure"` // NOWE POLE
+		IsFailure  bool    `json:"is_failure"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(400, gin.H{"error": "Invalid input"})
@@ -90,9 +90,8 @@ func GetLastResult(c *gin.Context) {
 	setNum := c.Param("set")
 	var reps int
 	var weight float64
-	var isFailure bool // NOWA ZMIENNA
+	var isFailure bool
 
-	// COALESCE zabezpiecza starsze wpisy przed błędem w bazie
 	err := db.QueryRow("SELECT reps, weight, COALESCE(is_failure, FALSE) FROM logs WHERE user_id = ? AND exercise_id = ? AND set_number = ? ORDER BY created_at DESC LIMIT 1",
 		userID, exID, setNum).Scan(&reps, &weight, &isFailure)
 	if err != nil {
@@ -104,7 +103,6 @@ func GetLastResult(c *gin.Context) {
 
 func GetUserStats(c *gin.Context) {
 	userID := c.Param("user_id")
-
 	rows, err := db.Query(`
 		SELECT l.created_at, e.name, l.weight, l.reps, e.id
 		FROM logs l
@@ -134,16 +132,102 @@ func GetUserStats(c *gin.Context) {
 		}
 		stats = append(stats, s)
 	}
-
 	if stats == nil {
 		stats = []StatRow{}
 	}
-
 	c.JSON(200, stats)
 }
 
-// --- CREATOR & PLANS ---
+// --- NOWY: PRO DASHBOARD HANDLERS ---
+func LogBodyWeight(c *gin.Context) {
+	var input struct {
+		UserID int     `json:"user_id"`
+		Weight float64 `json:"weight"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid input"})
+		return
+	}
+	// Upsert (zapisz lub nadpisz jeśli dzisiaj już logowano)
+	_, err := db.Exec("INSERT INTO user_weights (user_id, weight, logged_at) VALUES (?, ?, CURDATE()) ON DUPLICATE KEY UPDATE weight = ?", input.UserID, input.Weight, input.Weight)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to log weight"})
+		return
+	}
+	c.JSON(200, gin.H{"status": "ok"})
+}
 
+func GetDashboardData(c *gin.Context) {
+	userID := c.Param("user_id")
+
+	// 1. Ostatnia waga ciała (max 7 wpisów)
+	var weights []float64
+	wRows, _ := db.Query("SELECT weight FROM user_weights WHERE user_id = ? ORDER BY logged_at DESC LIMIT 7", userID)
+	for wRows.Next() {
+		var w float64
+		wRows.Scan(&w)
+		weights = append(weights, w)
+	}
+	wRows.Close()
+
+	// 2. Readiness (Regeneracja)
+	readiness := map[string]int{"Chest": 100, "Back": 100, "Legs": 100, "Shoulders": 100, "Biceps": 100, "Triceps": 100}
+	rRows, _ := db.Query(`SELECT e.category, MAX(l.created_at) FROM logs l JOIN exercises e ON l.exercise_id = e.id WHERE l.user_id = ? GROUP BY e.category`, userID)
+	for rRows.Next() {
+		var cat string
+		var lastDateStr string
+		rRows.Scan(&cat, &lastDateStr)
+
+		lastDate, err := time.Parse("2006-01-02 15:04:05", lastDateStr)
+		if err == nil {
+			hours := time.Since(lastDate).Hours()
+			pct := 100
+			if hours < 24 {
+				pct = 15
+			} else if hours < 48 {
+				pct = 50
+			} else if hours < 72 {
+				pct = 85
+			}
+			readiness[cat] = pct
+		}
+	}
+	rRows.Close()
+
+	// 3. Heatmap (Aktywność z ostatnich 45 dni)
+	var heatmap []string
+	hRows, _ := db.Query("SELECT DISTINCT DATE(created_at) FROM logs WHERE user_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 45 DAY)", userID)
+	for hRows.Next() {
+		var d string
+		hRows.Scan(&d)
+		heatmap = append(heatmap, d[:10]) // wyciąga tylko YYYY-MM-DD
+	}
+	hRows.Close()
+
+	// 4. Weekly Volume (Ostatnie 4 tygodnie)
+	type VolData struct {
+		Week  string  `json:"week"`
+		Total float64 `json:"total"`
+	}
+	var volume []VolData
+	vRows, _ := db.Query(`SELECT YEARWEEK(created_at, 1), SUM(weight * reps) FROM logs WHERE user_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 28 DAY) GROUP BY YEARWEEK(created_at, 1) ORDER BY YEARWEEK(created_at, 1) ASC`, userID)
+	for vRows.Next() {
+		var w string
+		var t float64
+		vRows.Scan(&w, &t)
+		volume = append(volume, VolData{Week: w, Total: t})
+	}
+	vRows.Close()
+
+	c.JSON(200, gin.H{
+		"weights":   weights,
+		"readiness": readiness,
+		"heatmap":   heatmap,
+		"volume":    volume,
+	})
+}
+
+// --- CREATOR & PLANS ---
 func GetExercises(c *gin.Context) {
 	rows, err := db.Query("SELECT id, name, category FROM exercises ORDER BY category, name ASC")
 	if err != nil {
@@ -259,7 +343,6 @@ func DeletePlan(c *gin.Context) {
 }
 
 // --- ADMIN & MANAGEMENT ---
-
 func AdminListUsers(c *gin.Context) {
 	rows, err := db.Query("SELECT id, name, is_admin FROM users")
 	if err != nil {
@@ -274,11 +357,7 @@ func AdminListUsers(c *gin.Context) {
 		var name string
 		var isAdmin bool
 		rows.Scan(&id, &name, &isAdmin)
-		list = append(list, map[string]interface{}{
-			"id":       id,
-			"name":     name,
-			"is_admin": isAdmin,
-		})
+		list = append(list, map[string]interface{}{"id": id, "name": name, "is_admin": isAdmin})
 	}
 	c.JSON(200, list)
 }
@@ -294,21 +373,13 @@ func AdminResetPin(c *gin.Context) {
 	}
 
 	newHashed, _ := bcrypt.GenerateFromPassword([]byte(input.NewPin), bcrypt.DefaultCost)
-	_, err := db.Exec("UPDATE users SET pin = ? WHERE id = ?", string(newHashed), input.UserID)
-	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to reset PIN"})
-		return
-	}
+	db.Exec("UPDATE users SET pin = ? WHERE id = ?", string(newHashed), input.UserID)
 	c.JSON(200, gin.H{"status": "ok"})
 }
 
 func DeleteAccount(c *gin.Context) {
 	id := c.Param("id")
-	_, err := db.Exec("DELETE FROM users WHERE id = ?", id)
-	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to delete user"})
-		return
-	}
+	db.Exec("DELETE FROM users WHERE id = ?", id)
 	c.JSON(200, gin.H{"status": "deleted"})
 }
 
