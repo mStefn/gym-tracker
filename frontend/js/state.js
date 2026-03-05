@@ -8,7 +8,7 @@ export const state = {
 
 export const API_URL = `http://${window.location.hostname}:5001`;
 
-// --- SCHEMAT KREATORA ---
+// === SCHEMAT BAZY ĆWICZEŃ (Zaktualizowany) ===
 const exerciseSchema = [
     { name: "Bench Press", category: "Chest", equipment: ["Barbell", "Dumbbell", "Machine"], angles: ["Flat", "Incline", "Decline"] },
     { name: "Chest Fly", category: "Chest", equipment: ["Dumbbell", "Machine", "Cable"] },
@@ -60,41 +60,85 @@ export function logout() {
     location.reload();
 }
 
-// --- GLOBALNY WIZARD (KREATOR) ---
+// === SMOOTH WIZARD KREATORA ĆWICZEŃ ===
 window.openExerciseWizard = (onCompleteCallback) => {
     const modal = document.createElement("div");
     modal.className = "modal-overlay dialog-overlay";
     modal.id = "ex-wizard";
 
-    let selectedEx = null, selEq = "", selAng = "", selVar = "";
+    let selectedEx = null;
+    let selEq = "", selAng = "", selVar = "";
+    let currentCat = "All";
+    const categories = ["All", ...new Set(exerciseSchema.map(e => e.category))];
+
+    // Budujemy bazowy szkielet raz (brak migania)
+    modal.innerHTML = `
+        <div class="modal-content" style="display:flex; flex-direction:column; max-height: 90vh;">
+            <div class="modal-header" id="wiz-header" style="display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
+                <h3 style="margin:0; font-size:20px; color:var(--primary);">Select Exercise</h3>
+                <button onclick="document.body.removeChild(document.getElementById('ex-wizard'))" style="background:none; border:none; color:var(--text); font-size:24px; cursor:pointer;">&times;</button>
+            </div>
+            <div id="wiz-filters" style="flex-shrink:0; padding: 10px 15px; border-bottom: 1px solid var(--border); overflow-x: auto; white-space: nowrap;"></div>
+            <div class="modal-body" id="wiz-body" style="overflow-y:auto; flex-grow:1; padding-top: 15px;"></div>
+            <div class="modal-footer" id="wiz-footer" style="flex-shrink:0; display:none;"></div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const wizHeader = document.getElementById("wiz-header");
+    const wizFilters = document.getElementById("wiz-filters");
+    const wizBody = document.getElementById("wiz-body");
+    const wizFooter = document.getElementById("wiz-footer");
 
     const renderStep1 = () => {
-        modal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center;">
-                    <h3 style="margin:0; font-size:20px; color:var(--primary);">Select Exercise</h3>
-                    <button onclick="document.body.removeChild(document.getElementById('ex-wizard'))" style="background:none; border:none; color:var(--text); font-size:24px; cursor:pointer;">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="exercise-grid">
-                        ${exerciseSchema.map(ex => `
-                            <div class="ex-card" onclick="window._wizSelBase('${ex.name}')">
-                                <div class="ex-card-title">${ex.name}</div>
-                                <div class="ex-card-cat">${ex.category}</div>
-                            </div>
-                        `).join('')}
+        wizFilters.style.display = "block";
+        wizFooter.style.display = "none";
+        wizHeader.innerHTML = `
+            <h3 style="margin:0; font-size:20px; color:var(--primary);">Select Exercise</h3>
+            <button onclick="document.body.removeChild(document.getElementById('ex-wizard'))" style="background:none; border:none; color:var(--text); font-size:24px; cursor:pointer;">&times;</button>
+        `;
+
+        renderFilters();
+        renderGrid();
+    };
+
+    const renderFilters = () => {
+        wizFilters.innerHTML = categories.map(cat => `
+            <button onclick="window._wizSetCat('${cat}')" 
+                    style="background:${currentCat === cat ? 'var(--primary)' : 'rgba(0,0,0,0.2)'}; 
+                           color:${currentCat === cat ? '#000' : 'var(--text)'}; 
+                           border:1px solid ${currentCat === cat ? 'var(--primary)' : 'var(--border)'}; 
+                           padding:6px 14px; border-radius:20px; margin-right:8px; font-weight:600; cursor:pointer; font-size:13px; transition:0.2s;">
+                ${cat}
+            </button>
+        `).join('');
+    };
+
+    const renderGrid = () => {
+        const list = currentCat === "All" ? exerciseSchema : exerciseSchema.filter(e => e.category === currentCat);
+        wizBody.innerHTML = `
+            <div class="exercise-grid">
+                ${list.map(ex => `
+                    <div class="ex-card" onclick="window._wizSelBase('${ex.name}')">
+                        <div class="ex-card-title">${ex.name}</div>
+                        <div class="ex-card-cat">${ex.category}</div>
                     </div>
-                </div>
+                `).join('')}
             </div>
         `;
     };
 
+    window._wizSetCat = (cat) => {
+        currentCat = cat;
+        renderFilters();
+        renderGrid();
+    };
+
     window._wizSelBase = (name) => {
         selectedEx = exerciseSchema.find(e => e.name === name);
-        const hasOptions = (selectedEx.equipment && selectedEx.equipment.length > 0) || 
-                           (selectedEx.angles && selectedEx.angles.length > 0) || 
-                           (selectedEx.variants && selectedEx.variants.length > 0);
-                           
+        const hasOptions = (selectedEx.equipment?.length > 0) || (selectedEx.angles?.length > 0) || (selectedEx.variants?.length > 0);
+        
         if (!hasOptions) {
             finishWizard();
         } else {
@@ -123,27 +167,30 @@ window.openExerciseWizard = (onCompleteCallback) => {
     };
 
     const renderStep2 = () => {
-        modal.innerHTML = `
-            <div class="modal-content" style="height: auto; max-height: 90vh;">
-                <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center;">
-                    <button onclick="window._wizGoBack()" style="background:none; border:none; color:var(--primary); font-size:16px; font-weight:600; cursor:pointer;">← Back</button>
-                    <h3 style="margin:0; font-size:18px;">Configure</h3>
-                    <div style="width:50px;"></div>
-                </div>
-                <div class="modal-body">
-                    <h2 style="margin-top:0; margin-bottom: 25px; color:var(--primary); text-align:center;">${selectedEx.name}</h2>
-                    ${drawOpts('Equipment', selectedEx.equipment, selEq, 'eq')}
-                    ${drawOpts('Angle', selectedEx.angles, selAng, 'ang')}
-                    ${drawOpts('Variant', selectedEx.variants, selVar, 'var')}
-                    
-                    <div style="margin-top: 30px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 12px; text-align:center; border: 1px solid var(--border);">
-                        <div style="font-size:12px; color:#8e8e93; margin-bottom:5px; font-weight:600;">FINAL EXERCISE</div>
-                        <div style="font-weight:bold; font-size:18px; color:var(--success);">${buildName()}</div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button onclick="window._wizFinish()" class="save-btn" style="background:var(--success);">Confirm & Add</button>
-                </div>
+        wizFilters.style.display = "none";
+        wizFooter.style.display = "block";
+        
+        wizHeader.innerHTML = `
+            <button onclick="window._wizGoBack()" style="background:none; border:none; color:var(--primary); font-size:16px; font-weight:600; cursor:pointer; padding:0;">← Back</button>
+            <h3 style="margin:0; font-size:18px;">Configure</h3>
+            <div style="width:40px;"></div>
+        `;
+
+        updateStep2Body();
+        
+        wizFooter.innerHTML = `<button onclick="window._wizFinish()" id="wiz-conf-btn" class="save-btn" style="background:var(--success);">Confirm & Add</button>`;
+    };
+
+    const updateStep2Body = () => {
+        wizBody.innerHTML = `
+            <h2 style="margin-top:0; margin-bottom: 25px; color:var(--primary); text-align:center;">${selectedEx.name}</h2>
+            ${drawOpts('Equipment', selectedEx.equipment, selEq, 'eq')}
+            ${drawOpts('Angle', selectedEx.angles, selAng, 'ang')}
+            ${drawOpts('Variant', selectedEx.variants, selVar, 'var')}
+            
+            <div style="margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 12px; text-align:center; border: 1px solid var(--border);">
+                <div style="font-size:12px; color:#8e8e93; margin-bottom:5px; font-weight:600;">FINAL EXERCISE</div>
+                <div style="font-weight:bold; font-size:18px; color:var(--success);">${buildName()}</div>
             </div>
         `;
     };
@@ -152,7 +199,7 @@ window.openExerciseWizard = (onCompleteCallback) => {
         if(type==='eq') selEq = val;
         if(type==='ang') selAng = val;
         if(type==='var') selVar = val;
-        renderStep2();
+        updateStep2Body(); // Odświeżamy tylko body! Żadnego migania.
     };
 
     window._wizGoBack = () => renderStep1();
@@ -168,11 +215,31 @@ window.openExerciseWizard = (onCompleteCallback) => {
 
     window._wizFinish = () => finishWizard();
 
-    const finishWizard = () => {
-        document.body.removeChild(modal);
-        if(onCompleteCallback) onCompleteCallback(buildName());
+    const finishWizard = async () => {
+        const finalName = buildName();
+        const category = selectedEx.category;
+        
+        const btn = document.getElementById("wiz-conf-btn");
+        if(btn) { btn.innerText = "Loading..."; btn.disabled = true; }
+
+        try {
+            // MAGICZNY ENDPOINT: Zlecamy serwerowi odnalezienie lub stworzenie ID!
+            const res = await authFetch(`${API_URL}/exercises/find-or-create`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: finalName, category: category })
+            });
+            
+            if(!res.ok) throw new Error("DB Error");
+            const data = await res.json(); // Zwraca { id, name, category }
+            
+            document.body.removeChild(modal);
+            if(onCompleteCallback) onCompleteCallback(data);
+        } catch(e) {
+            alert("Error connecting to database.");
+            if(btn) { btn.innerText = "Confirm & Add"; btn.disabled = false; }
+        }
     };
 
     renderStep1();
-    document.body.appendChild(modal);
 };

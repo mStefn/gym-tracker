@@ -46,6 +46,28 @@ func initDB() {
 	seedAdmin()
 }
 
+// NOWA FUNKCJA: Baza Danych jako serce Wizarda
+func GetOrCreateExerciseDB(name, category string) (int, error) {
+	var id int
+	// Sprawdzamy, czy ćwiczenie już istnieje
+	err := db.QueryRow("SELECT id FROM exercises WHERE name = ?", name).Scan(&id)
+
+	if err == sql.ErrNoRows {
+		// Jeśli nie ma, tworzymy je w locie!
+		res, err := db.Exec("INSERT INTO exercises (name, category) VALUES (?, ?)", name, category)
+		if err != nil {
+			return 0, err
+		}
+		newId, err := res.LastInsertId()
+		return int(newId), nil
+	} else if err != nil {
+		return 0, err
+	}
+
+	// Jeśli istnieje, po prostu zwracamy jego ID
+	return id, nil
+}
+
 func seedExercises() {
 	var count int
 	db.QueryRow("SELECT COUNT(*) FROM exercises").Scan(&count)
@@ -69,7 +91,6 @@ func seedExercises() {
 			return
 		}
 
-		// Generujemy wszystkie permutacje dla Kreatora
 		for _, ex := range exercises {
 			eqs := ex.Equipment
 			if len(eqs) == 0 {
@@ -88,7 +109,6 @@ func seedExercises() {
 				for _, ang := range angs {
 					for _, v := range vars {
 						parts := []string{}
-
 						if ang != "" && ang != "Flat" {
 							parts = append(parts, ang)
 						}
@@ -108,7 +128,7 @@ func seedExercises() {
 				}
 			}
 		}
-		fmt.Println("✅ Exercises seeded with dynamic permutations (Level Up Edition)")
+		fmt.Println("✅ Exercises seeded with dynamic permutations")
 	}
 }
 
@@ -117,9 +137,6 @@ func seedAdmin() {
 	db.QueryRow("SELECT COUNT(*) FROM users WHERE name = 'admin'").Scan(&count)
 	if count == 0 {
 		hashedPin, _ := bcrypt.GenerateFromPassword([]byte("1234"), bcrypt.DefaultCost)
-		_, err := db.Exec("INSERT INTO users (name, pin, is_admin) VALUES (?, ?, ?)", "admin", string(hashedPin), true)
-		if err == nil {
-			fmt.Println("✅ Default admin account created (PIN: 1234)")
-		}
+		db.Exec("INSERT INTO users (name, pin, is_admin) VALUES (?, ?, ?)", "admin", string(hashedPin), true)
 	}
 }

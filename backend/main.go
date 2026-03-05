@@ -49,9 +49,10 @@ func main() {
 		auth.POST("/plans", CreatePlan)
 		auth.POST("/plan-exercises", AddExerciseToPlan)
 		auth.DELETE("/plan/:id", DeletePlan)
-
-		// NOWA TRASA DLA STATYSTYK
 		auth.GET("/stats/:user_id", GetUserStats)
+
+		// NOWY ENDPOINT: Inteligentny kreator ćwiczeń (Find or Create)
+		auth.POST("/exercises/find-or-create", FindOrCreateExerciseHandler)
 	}
 
 	// Admin routes (auth + admin check)
@@ -66,4 +67,30 @@ func main() {
 	r.DELETE("/user/:id", AuthRequired(), AdminRequired(), DeleteAccount)
 
 	r.Run("0.0.0.0:4000")
+}
+
+// --- HANDLER DLA WIZARDA ---
+type FindOrCreateReq struct {
+	Name     string `json:"name"`
+	Category string `json:"category"`
+}
+
+func FindOrCreateExerciseHandler(c *gin.Context) {
+	var req FindOrCreateReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	id, err := GetOrCreateExerciseDB(req.Name, req.Category)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Database error while creating exercise"})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"id":       id,
+		"name":     req.Name,
+		"category": req.Category,
+	})
 }
