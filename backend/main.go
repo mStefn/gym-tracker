@@ -29,14 +29,10 @@ func main() {
 	}
 	r.Use(cors.New(corsConfig))
 
-	// Health check (public)
 	r.GET("/health", HealthCheck)
-
-	// Public routes
 	r.POST("/login", Login)
 	r.POST("/signup", SignUp)
 
-	// Authenticated routes
 	auth := r.Group("/")
 	auth.Use(AuthRequired())
 	{
@@ -52,12 +48,14 @@ func main() {
 		auth.GET("/stats/:user_id", GetUserStats)
 		auth.POST("/exercises/find-or-create", FindOrCreateExerciseHandler)
 
-		// NOWE TRASY DLA PRO DASHBOARDU
 		auth.POST("/weight", LogBodyWeight)
 		auth.GET("/dashboard/:user_id", GetDashboardData)
+
+		// NOWE TRASY DLA ZAAWANSOWANYCH STATYSTYK
+		auth.GET("/stats/advanced/:user_id", GetAdvancedStats)
+		auth.GET("/stats/exercise/:user_id/:ex_id", GetExerciseDeepDive)
 	}
 
-	// Admin routes
 	admin := r.Group("/admin")
 	admin.Use(AuthRequired(), AdminRequired())
 	{
@@ -70,7 +68,6 @@ func main() {
 	r.Run("0.0.0.0:4000")
 }
 
-// Handler dla Wizarda
 type FindOrCreateReq struct {
 	Name     string `json:"name"`
 	Category string `json:"category"`

@@ -414,3 +414,101 @@ func ChangePin(c *gin.Context) {
 func HealthCheck(c *gin.Context) {
 	c.JSON(200, gin.H{"status": "healthy"})
 }
+
+// --- ADVANCED STATISTICS ---
+
+func GetAdvancedStats(c *gin.Context) {
+	userID := c.Param("user_id")
+
+	// 1. Milestones (Kamienie milowe)
+	var totalVolume float64
+	var totalSets, totalWorkouts int
+
+	db.QueryRow("SELECT COALESCE(SUM(weight * reps), 0), COUNT(id), COUNT(DISTINCT DATE(created_at)) FROM logs WHERE user_id = ?", userID).Scan(&totalVolume, &totalSets, &totalWorkouts)
+
+	milestones := gin.H{
+		"volume":   totalVolume,
+		"sets":     totalSets,
+		"workouts": totalWorkouts,
+	}
+
+	// 2. Hall of Fame (Największe ciężary per ćwiczenie)
+	type Fame struct {
+		Name   string  `json:"name"`
+		Weight float64 `json:"weight"`
+	}
+	var hallOfFame []Fame
+	fRows, _ := db.Query(`SELECT e.name, MAX(l.weight) FROM logs l JOIN exercises e ON l.exercise_id = e.id WHERE l.user_id = ? AND l.weight > 0 GROUP BY e.name ORDER BY MAX(l.weight) DESC LIMIT 10`, userID)
+	defer fRows.Close()
+	for fRows.Next() {
+		var f Fame
+		fRows.Scan(&f.Name, &f.Weight)
+		hallOfFame = append(hallOfFame, f)
+	}
+
+	// 3. Muscle Distribution (Rozkład partii)
+	type Distribution struct {
+		Category string `json:"category"`
+		Count    int    `json:"count"`
+	}
+	var dist []Distribution
+	dRows, _ := db.Query(`SELECT e.category, COUNT(l.id) FROM logs l JOIN exercises e ON l.exercise_id = e.id WHERE l.user_id = ? GROUP BY e.category ORDER BY COUNT(l.id) DESC`, userID)
+	defer dRows.Close()
+
+	totalDistSets := 0
+	for dRows.Next() {
+		var d Distribution
+		dRows.Scan(&d.Category, &d.Count)
+		dist = append(dist, d)
+		totalDistSets += d.Count
+	}
+
+	// 4. Lista wykonanych ćwiczeń (do Deep Dive)
+	type UserExercise struct {
+		ID   int    `json:"id"`
+		Name string `json:"name"`
+	}
+	var exercises []UserExercise
+	eRows, _ := db.Query(`SELECT DISTINCT e.id, e.name FROM logs l JOIN exercises e ON l.exercise_id = e.id WHERE l.user_id = ? ORDER BY e.name ASC`, userID)
+	defer eRows.Close()
+	for eRows.Next() {
+		var ex UserExercise
+		eRows.Scan(&ex.ID, &ex.Name)
+		exercises = append(exercises, ex)
+	}
+
+	c.JSON(200, gin.H{
+		"milestones":    milestones,
+		"hallOfFame":    hallOfFame,
+		"distribution":  dist,
+		"totalDistSets": totalDistSets,
+		"exercises":     exercises,
+	})
+}
+
+func GetExerciseDeepDive(c *gin.Context) {
+	userID := c.Param("user_id")
+	exID := c.Param("ex_id")
+
+	type ChartPoint struct {
+		Date   string  `json:"date"`
+		Weight float64 `json:"weight"`
+	}
+	var points []ChartPoint
+
+	// Wyciąga maksymalny ciężar z każdego dnia dla danego ćwiczenia
+	rows, err := db.Query(`SELECT DATE(created_at), MAX(weight) FROM logs WHERE user_id = ? AND exercise_id = ? GROUP BY DATE(created_at) ORDER BY DATE(created_at) ASC`, userID, exID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to fetch exercise data"})
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var p ChartPoint
+		rows.Scan(&p.Date, &p.Weight)
+		points = append(points, p)
+	}
+
+	c.JSON(200, points)
+}
