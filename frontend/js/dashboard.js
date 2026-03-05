@@ -10,6 +10,48 @@ export async function renderDashboard() {
 
         const latestWeight = stats.weights && stats.weights.length > 0 ? stats.weights[0] : '--';
 
+        // NOWOŚĆ: Generowanie eleganckiego mini-wykresu (Sparkline) w SVG
+        const buildSparkline = (weights) => {
+            if (!weights || weights.length < 2) {
+                return `<div style="height: 40px; display: flex; align-items: center; color: #8e8e93; font-size: 11px;">Log at least 2 weights to see trend</div>`;
+            }
+
+            // Odwracamy tablicę, żeby najstarsza waga była po lewej, a najnowsza po prawej
+            const data = [...weights].reverse();
+            const min = Math.min(...data);
+            const max = Math.max(...data);
+            const range = max - min === 0 ? 1 : max - min;
+            const padding = max - min === 0 ? min * 0.05 : range * 0.2; // Zapas od góry/dołu
+            const paddedMin = min - padding;
+            const paddedRange = (max + padding) - paddedMin;
+
+            const width = 100; // ViewBox proste wartości procentowe
+            const height = 40;
+
+            const points = data.map((w, i) => {
+                const x = (i / (data.length - 1)) * width;
+                const y = height - ((w - paddedMin) / paddedRange) * height;
+                return `${x.toFixed(1)},${y.toFixed(1)}`;
+            });
+
+            const fillPoints = `0,${height} ${points.join(' ')} ${width},${height}`;
+            const lastY = height - ((data[data.length - 1] - paddedMin) / paddedRange) * height;
+
+            return `
+                <svg viewBox="0 0 100 40" preserveAspectRatio="none" style="width: 100%; height: 40px; margin-top: 15px; overflow: visible;">
+                    <defs>
+                        <linearGradient id="sparkline-gradient" x1="0" x2="0" y1="0" y2="1">
+                            <stop offset="0%" stop-color="var(--primary)" stop-opacity="0.3"/>
+                            <stop offset="100%" stop-color="var(--primary)" stop-opacity="0"/>
+                        </linearGradient>
+                    </defs>
+                    <polygon points="${fillPoints}" fill="url(#sparkline-gradient)" />
+                    <polyline points="${points.join(' ')}" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    <circle cx="${width}" cy="${lastY.toFixed(1)}" r="2.5" fill="var(--bg)" stroke="var(--primary)" stroke-width="1.5" />
+                </svg>
+            `;
+        };
+
         const buildHeatmap = (activeDates) => {
             let squares = '';
             for(let i = 44; i >= 0; i--) {
@@ -72,6 +114,7 @@ export async function renderDashboard() {
                             <button onclick="window.logWeight()" style="background: rgba(0, 210, 255, 0.1); color: var(--primary); border: none; border-radius: 8px; font-weight: bold; padding: 0 12px; cursor: pointer;">Log</button>
                         </div>
                     </div>
+                    ${buildSparkline(stats.weights)}
                 </div>
 
                 <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 15px;">
