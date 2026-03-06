@@ -25,13 +25,19 @@ export async function renderPlans() {
         if (plans && plans.length > 0) {
             plans.forEach(plan => {
                 const wrapper = document.createElement("div");
-                wrapper.style = "display: flex; gap: 10px; margin-bottom: 12px;";
+                wrapper.style = "display: flex; gap: 8px; margin-bottom: 12px;";
 
                 const startBtn = document.createElement("button");
                 startBtn.className = "save-btn";
                 startBtn.style = "margin: 0; flex: 1; text-align: left; padding-left: 20px; background: var(--card-bg); color: var(--text); border: 1px solid var(--border); font-weight: 600; font-size: 16px; cursor: pointer;";
                 startBtn.innerText = plan.name;
                 startBtn.onclick = () => window.renderWorkout(plan.id, plan.name);
+
+                // NOWY PRZYCISK EDIT
+                const editBtn = document.createElement("button");
+                editBtn.innerText = "Edit";
+                editBtn.style = "background: rgba(0, 210, 255, 0.1); border: 1px solid var(--primary); border-radius: 12px; padding: 0 15px; cursor: pointer; color: var(--primary); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; transition: 0.2s;";
+                editBtn.onclick = () => renderPlanEditor(plan.id, plan.name);
 
                 const deleteBtn = document.createElement("button");
                 deleteBtn.innerText = "Delete";
@@ -48,6 +54,7 @@ export async function renderPlans() {
                 };
 
                 wrapper.appendChild(startBtn);
+                wrapper.appendChild(editBtn);
                 wrapper.appendChild(deleteBtn);
                 list.appendChild(wrapper);
             });
@@ -64,5 +71,5 @@ export async function renderPlans() {
     }
 
     const addBtn = document.getElementById("add-plan-btn");
-    if (addBtn) addBtn.onclick = renderPlanEditor;
+    if (addBtn) addBtn.onclick = () => renderPlanEditor();
 }

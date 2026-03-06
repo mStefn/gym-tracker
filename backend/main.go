@@ -19,7 +19,7 @@ func main() {
 	}
 
 	corsConfig := cors.Config{
-		AllowMethods: []string{"GET", "POST", "DELETE", "OPTIONS"},
+		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders: []string{"Origin", "Content-Type", "Authorization"},
 	}
 	if allowOrigin == "*" {
@@ -42,9 +42,16 @@ func main() {
 		auth.POST("/log", LogSet)
 		auth.GET("/last/:user_id/:ex_id/:set", GetLastResult)
 		auth.GET("/exercises", GetExercises)
+
+		// Funkcje dla planów
 		auth.POST("/plans", CreatePlan)
-		auth.POST("/plan-exercises", AddExerciseToPlan)
+		auth.PUT("/plan/:id", UpdatePlanName) // NOWE
 		auth.DELETE("/plan/:id", DeletePlan)
+
+		// Funkcje dla ćwiczeń w planie
+		auth.POST("/plan-exercises", AddExerciseToPlan)
+		auth.DELETE("/plan-exercises/:plan_id", DeletePlanExercises) // NOWE
+
 		auth.GET("/stats/:user_id", GetUserStats)
 		auth.POST("/exercises/find-or-create", FindOrCreateExerciseHandler)
 
@@ -54,7 +61,6 @@ func main() {
 		auth.GET("/stats/advanced/:user_id", GetAdvancedStats)
 		auth.GET("/stats/exercise/:user_id/:ex_id", GetExerciseDeepDive)
 
-		// NOWE: Trasy dla sekcji Settings
 		auth.DELETE("/history/:user_id", ClearOwnLogs)
 		auth.DELETE("/account/:user_id", DeleteOwnAccount)
 	}

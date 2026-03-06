@@ -535,3 +535,32 @@ func DeleteOwnAccount(c *gin.Context) {
 	}
 	c.JSON(200, gin.H{"status": "deleted"})
 }
+
+// --- EDIT PLAN ENDPOINTS ---
+
+func UpdatePlanName(c *gin.Context) {
+	planID := c.Param("id")
+	var input struct {
+		Name string `json:"name"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid input"})
+		return
+	}
+	_, err := db.Exec("UPDATE plans SET name = ? WHERE id = ?", input.Name, planID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to update plan"})
+		return
+	}
+	c.JSON(200, gin.H{"status": "updated"})
+}
+
+func DeletePlanExercises(c *gin.Context) {
+	planID := c.Param("plan_id")
+	_, err := db.Exec("DELETE FROM plan_exercises WHERE plan_id = ?", planID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to clear old exercises"})
+		return
+	}
+	c.JSON(200, gin.H{"status": "cleared"})
+}
