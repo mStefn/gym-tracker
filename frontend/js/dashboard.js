@@ -10,10 +10,9 @@ export async function renderDashboard() {
 
         const latestWeight = stats.weights && stats.weights.length > 0 ? stats.weights[0] : '--';
 
-        // Generowanie eleganckiego mini-wykresu (Sparkline) w SVG
         const buildSparkline = (weights) => {
             if (!weights || weights.length < 2) {
-                return `<div style="height: 40px; display: flex; align-items: center; color: #8e8e93; font-size: 11px;">Log at least 2 weights to see trend</div>`;
+                return `<div style="height: 40px; display: flex; align-items: center; justify-content: center; color: #8e8e93; font-size: 11px;">Log at least 2 weights to see trend</div>`;
             }
 
             const data = [...weights].reverse();
@@ -52,20 +51,24 @@ export async function renderDashboard() {
         };
 
         const buildHeatmap = (activeDates) => {
+            // FIX: Zabezpieczenie przed błędem na nowych kontach
+            const safeDates = activeDates || [];
             let squares = '';
             for(let i = 44; i >= 0; i--) {
                 const d = new Date();
                 d.setDate(d.getDate() - i);
                 const dateStr = d.toISOString().split('T')[0];
-                const isActive = activeDates.includes(dateStr);
+                const isActive = safeDates.includes(dateStr);
                 squares += `<div style="width: 12px; height: 12px; border-radius: 2px; background: ${isActive ? 'var(--primary)' : 'rgba(255,255,255,0.05)'};"></div>`;
             }
             return squares;
         };
 
         const buildReadiness = (readinessObj) => {
+            // FIX: Zabezpieczenie na wypadek braku obiektu
+            const safeReadiness = readinessObj || {};
             return ['Chest', 'Back', 'Legs', 'Shoulders'].map(cat => {
-                const val = readinessObj[cat] || 100;
+                const val = safeReadiness[cat] !== undefined ? safeReadiness[cat] : 100;
                 let color = 'var(--success)';
                 if (val < 40) color = 'var(--danger)';
                 else if (val < 80) color = 'orange';
@@ -83,9 +86,7 @@ export async function renderDashboard() {
             }).join('');
         };
 
-        // NOWOŚĆ: Zawsze 4 słupki objętości
         const buildVolume = (volArray) => {
-            // Funkcja obliczająca format YEARWEEK zgodny z MySQL (ISO 8601)
             const getYearWeek = (d) => {
                 const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
                 const dayNum = date.getUTCDay() || 7;
@@ -95,7 +96,6 @@ export async function renderDashboard() {
                 return `${date.getUTCFullYear()}${weekNo.toString().padStart(2, '0')}`;
             };
 
-            // Generujemy 4 ostatnie tygodnie (od najstarszego do obecnego)
             const last4Weeks = [];
             for(let i = 3; i >= 0; i--) {
                 const d = new Date();
@@ -103,9 +103,9 @@ export async function renderDashboard() {
                 last4Weeks.push(getYearWeek(d));
             }
 
-            // Dopasowujemy dane z bazy. Jeśli brak wpisu -> 0
+            const safeVolArray = volArray || [];
             const finalData = last4Weeks.map(weekStr => {
-                const found = (volArray || []).find(v => v.week === weekStr);
+                const found = safeVolArray.find(v => v.week === weekStr);
                 return { week: weekStr, total: found ? found.total : 0 };
             });
 
@@ -114,7 +114,6 @@ export async function renderDashboard() {
             return finalData.map(v => {
                 const height = maxVol > 0 ? (v.total / maxVol) * 100 : 0;
                 const displayVol = v.total > 0 ? (v.total/1000).toFixed(1) + 'k' : '0.0k';
-                // Pusty słupek ma 2% wysokości, żeby widoczna była linia bazowa
                 const finalHeight = Math.max(height, 2); 
                 const opacity = height === 100 && maxVol > 0 ? '1' : '0.4';
 
