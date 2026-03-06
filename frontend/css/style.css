@@ -24,8 +24,7 @@ body {
 
 #main-bg {
     position: fixed;
-    top: 0; left: 0; 
-    width: 100vw; height: 100dvh;
+    top: 0; left: 0; right: 0; bottom: 0;
     background: url('../gym-tracker.webp') center 20% / cover no-repeat;
     z-index: -1;
     transition: all 0.5s ease;
@@ -196,3 +195,9 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 10px v
 
 @keyframes popIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+/* PIN Pad */
+.pin-btn { background: rgba(255, 255, 255, 0.05); color: var(--text); border: 1px solid var(--border); border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer; font-size: 24px; font-weight: 600; display: flex; align-items: center; justify-content: center; aspect-ratio: 1; transition: all 0.2s; }
+.pin-btn:active { transform: scale(0.9); background: rgba(0, 210, 255, 0.2); border-color: var(--primary); box-shadow: 0 0 15px var(--primary-glow); }
+.pin-btn.action-c { color: var(--danger); border-color: rgba(255, 59, 48, 0.4); }
+.pin-btn.action-ok { color: var(--success); border-color: rgba(255, 149, 0, 0.4); }

@@ -47,6 +47,7 @@ export async function renderStats() {
             optionsHtml += data.exercises.map(ex => `<option value="${ex.id}">${ex.name}</option>`).join('');
         }
 
+        // USUNIĘTO KAFELEK "WORKOUTS"
         container.innerHTML = `
             <div style="display: flex; flex-direction: column; gap: 20px; padding-bottom: 30px;">
                 <h2 style="margin: 0;">Lifetime Milestones</h2>
@@ -59,10 +60,6 @@ export async function renderStats() {
                     <div style="flex: 1; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 15px; text-align: center;">
                         <div style="font-size: 10px; color: #8e8e93; text-transform: uppercase; letter-spacing: 1px;">Sets</div>
                         <div style="font-size: 22px; font-weight: bold; color: var(--text); margin-top: 5px;">${data.milestones.sets}</div>
-                    </div>
-                    <div style="flex: 1; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 15px; text-align: center;">
-                        <div style="font-size: 10px; color: #8e8e93; text-transform: uppercase; letter-spacing: 1px;">Workouts</div>
-                        <div style="font-size: 22px; font-weight: bold; color: var(--text); margin-top: 5px;">${data.milestones.workouts}</div>
                     </div>
                 </div>
 
