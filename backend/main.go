@@ -51,9 +51,12 @@ func main() {
 		auth.POST("/weight", LogBodyWeight)
 		auth.GET("/dashboard/:user_id", GetDashboardData)
 
-		// NOWE TRASY DLA ZAAWANSOWANYCH STATYSTYK
 		auth.GET("/stats/advanced/:user_id", GetAdvancedStats)
 		auth.GET("/stats/exercise/:user_id/:ex_id", GetExerciseDeepDive)
+
+		// NOWE: Trasy dla sekcji Settings
+		auth.DELETE("/history/:user_id", ClearOwnLogs)
+		auth.DELETE("/account/:user_id", DeleteOwnAccount)
 	}
 
 	admin := r.Group("/admin")

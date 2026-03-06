@@ -51,7 +51,6 @@ export async function renderDashboard() {
         };
 
         const buildHeatmap = (activeDates) => {
-            // FIX: Zabezpieczenie przed błędem na nowych kontach
             const safeDates = activeDates || [];
             let squares = '';
             for(let i = 44; i >= 0; i--) {
@@ -65,7 +64,6 @@ export async function renderDashboard() {
         };
 
         const buildReadiness = (readinessObj) => {
-            // FIX: Zabezpieczenie na wypadek braku obiektu
             const safeReadiness = readinessObj || {};
             return ['Chest', 'Back', 'Legs', 'Shoulders'].map(cat => {
                 const val = safeReadiness[cat] !== undefined ? safeReadiness[cat] : 100;
@@ -130,9 +128,7 @@ export async function renderDashboard() {
 
         container.innerHTML = `
             <div style="display: flex; flex-direction: column; gap: 15px; padding-bottom: 20px;">
-                
                 <h2 style="margin: 0 0 5px 0;">Home</h2>
-
                 <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 15px;">
                     <h4 style="margin: 0 0 10px 0; color: #8e8e93; font-size: 12px; text-transform: uppercase;">Body Weight</h4>
                     <div style="display: flex; align-items: center; justify-content: space-between;">
@@ -144,19 +140,16 @@ export async function renderDashboard() {
                     </div>
                     ${buildSparkline(stats.weights)}
                 </div>
-
                 <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 15px;">
                     <h4 style="margin: 0 0 15px 0; color: #8e8e93; font-size: 12px; text-transform: uppercase;">Muscle Readiness</h4>
                     ${buildReadiness(stats.readiness)}
                 </div>
-
                 <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 15px;">
                     <h4 style="margin: 0 0 10px 0; color: #8e8e93; font-size: 12px; text-transform: uppercase;">Activity (Last 45 Days)</h4>
                     <div style="display: flex; flex-wrap: wrap; gap: 4px; justify-content: center;">
                         ${buildHeatmap(stats.heatmap)}
                     </div>
                 </div>
-
                 <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 15px;">
                     <h4 style="margin: 0 0 10px 0; color: #8e8e93; font-size: 12px; text-transform: uppercase;">Volume (Last 4 Weeks)</h4>
                     <div style="display: flex; justify-content: space-between; align-items: flex-end; width: 100%; padding-top: 10px;">
@@ -185,5 +178,103 @@ window.logWeight = async () => {
         window.navigate('home'); 
     } catch(e) {
         alert("Failed to log weight");
+    }
+};
+
+// --- SETTINGS ---
+
+window.renderSettings = () => {
+    const container = document.getElementById("exercises");
+    container.innerHTML = `
+        <div style="max-width: 400px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; padding-bottom: 40px;">
+            <h2 style="margin-bottom: 5px;">Settings</h2>
+            
+            <div class="exercise-card">
+                <h3 style="margin-bottom: 15px; font-size: 16px; color: var(--primary);">Security</h3>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <input type="password" id="old-pin" placeholder="Current PIN" style="padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text);">
+                    <input type="password" id="new-pin" maxlength="4" placeholder="New PIN (4 digits)" style="padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text);">
+                    <input type="password" id="conf-pin" maxlength="4" placeholder="Confirm New PIN" style="padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text);">
+                    <button onclick="window.updatePin()" class="save-btn" style="margin-top: 5px;">Update PIN</button>
+                </div>
+            </div>
+
+            <div class="exercise-card">
+                <h3 style="margin-bottom: 15px; font-size: 16px; color: orange;">Data Management</h3>
+                <p style="font-size: 12px; color: #8e8e93; margin-bottom: 15px;">Wipe all your workout logs and volume history. Your training plans will remain intact.</p>
+                <button onclick="window.clearUserHistory()" style="width: 100%; background: transparent; color: orange; border: 1px solid orange; padding: 12px; border-radius: 12px; font-weight: bold; cursor: pointer;">Clear Workout History</button>
+            </div>
+
+            <div class="exercise-card">
+                <h3 style="margin-bottom: 15px; font-size: 16px; color: var(--danger);">Danger Zone</h3>
+                <p style="font-size: 12px; color: #8e8e93; margin-bottom: 15px;">Permanently delete your account, plans, and all data. This action cannot be undone.</p>
+                <button onclick="window.deleteUserAccount()" style="width: 100%; background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 12px; border-radius: 12px; font-weight: bold; cursor: pointer;">Delete Account</button>
+            </div>
+        </div>
+    `;
+};
+
+window.updatePin = async () => {
+    const oldPin = document.getElementById("old-pin").value;
+    const newPin = document.getElementById("new-pin").value;
+    const confPin = document.getElementById("conf-pin").value;
+
+    if (newPin !== confPin) return alert("New PINs do not match");
+    if (newPin.length !== 4) return alert("PIN must be exactly 4 digits");
+    
+    try {
+        const res = await authFetch(`${API_URL}/change-pin`, {
+            method: "POST", 
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({user_id: parseInt(state.currentUserId), old_pin: oldPin, new_pin: newPin})
+        });
+        if (res.ok) {
+            alert("PIN successfully updated");
+            window.navigate('settings');
+        } else {
+            alert("Error: Current PIN is incorrect");
+        }
+    } catch (e) {
+        alert("Server connection error");
+    }
+};
+
+window.clearUserHistory = async () => {
+    const confirmation = prompt("Type 'clear' to delete all your workout logs:");
+    if (confirmation !== 'clear') {
+        if (confirmation !== null) alert("Action canceled: Text did not match.");
+        return;
+    }
+
+    try {
+        const res = await authFetch(`${API_URL}/history/${state.currentUserId}`, { method: "DELETE" });
+        if (res.ok) {
+            alert("Workout history cleared.");
+            window.navigate('settings');
+        } else {
+            alert("Error clearing history.");
+        }
+    } catch (e) {
+        alert("Server error");
+    }
+};
+
+window.deleteUserAccount = async () => {
+    const confirmation = prompt("Type 'delete' to permanently delete your account:");
+    if (confirmation !== 'delete') {
+        if (confirmation !== null) alert("Action canceled: Text did not match.");
+        return;
+    }
+
+    try {
+        const res = await authFetch(`${API_URL}/account/${state.currentUserId}`, { method: "DELETE" });
+        if (res.ok) {
+            alert("Account deleted.");
+            if (window.appLogout) window.appLogout();
+        } else {
+            alert("Error deleting account.");
+        }
+    } catch (e) {
+        alert("Server error");
     }
 };

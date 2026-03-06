@@ -512,3 +512,26 @@ func GetExerciseDeepDive(c *gin.Context) {
 
 	c.JSON(200, points)
 }
+
+// --- SETTINGS MANAGEMENT ---
+
+func ClearOwnLogs(c *gin.Context) {
+	userID := c.Param("user_id")
+	_, err := db.Exec("DELETE FROM logs WHERE user_id = ?", userID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to clear history"})
+		return
+	}
+	c.JSON(200, gin.H{"status": "cleared"})
+}
+
+func DeleteOwnAccount(c *gin.Context) {
+	userID := c.Param("user_id")
+	// Dzięki kaskadowemu usuwaniu (ON DELETE CASCADE) z bazy znikną też plany, logi i waga
+	_, err := db.Exec("DELETE FROM users WHERE id = ?", userID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to delete account"})
+		return
+	}
+	c.JSON(200, gin.H{"status": "deleted"})
+}
