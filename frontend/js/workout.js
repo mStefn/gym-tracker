@@ -84,12 +84,12 @@ export async function renderWorkout(planId, planName) {
                 <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 10px;">
                     <div style="display: flex; flex-direction: column; flex: 1;">
                         <label style="font-size: 11px; color: #8e8e93; font-weight: 600; margin-bottom: 4px; text-align: center;">Reps</label>
-                        <input type="number" class="reps-in" id="reps-${ex.exercise_id}-${s}" onkeydown="window.handleEnter(event, 'weight-${ex.exercise_id}-${s}')" onfocus="window.scrollToInput(this)" style="width: 100%; padding: 12px 5px; font-size: 16px; text-align: center; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); margin-bottom: 0;">
+                        <input type="number" inputmode="numeric" pattern="[0-9]*" class="reps-in" id="reps-${ex.exercise_id}-${s}" onkeydown="window.handleEnter(event, 'weight-${ex.exercise_id}-${s}')" style="width: 100%; padding: 12px 5px; font-size: 16px; text-align: center; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); margin-bottom: 0;">
                     </div>
                     
                     <div style="display: flex; flex-direction: column; flex: 1;">
                         <label style="font-size: 11px; color: #8e8e93; font-weight: 600; margin-bottom: 4px; text-align: center;">kg</label>
-                        <input type="number" class="weight-in" id="weight-${ex.exercise_id}-${s}" onfocus="window.scrollToInput(this)" style="width: 100%; padding: 12px 5px; font-size: 16px; text-align: center; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); margin-bottom: 0;">
+                        <input type="number" inputmode="decimal" class="weight-in" id="weight-${ex.exercise_id}-${s}" style="width: 100%; padding: 12px 5px; font-size: 16px; text-align: center; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); margin-bottom: 0;">
                     </div>
                     
                     <label style="display: flex; align-items: center; justify-content: center; color: #8e8e93; font-size: 13px; font-weight: 600; cursor: pointer; user-select: none; flex: 1.5; text-align: center; height: 46px; margin-bottom: 0;">
@@ -225,19 +225,13 @@ window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) =>
     document.getElementById('confirm-overload-btn').onclick = window.saveOverloadLocal;
 };
 
-// NOWE FUNKCJE - Obsługa klawiatury i skrolowania
+// Obsługa klawiatury
 window.handleEnter = (e, nextFieldId) => {
     if (e.key === 'Enter') {
         e.preventDefault();
         const nextField = document.getElementById(nextFieldId);
         if (nextField) nextField.focus();
     }
-};
-
-window.scrollToInput = (element) => {
-    setTimeout(() => {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 300);
 };
 
 window.renderWorkout = renderWorkout;
