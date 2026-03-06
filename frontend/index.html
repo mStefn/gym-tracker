@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, interactive-widget=resizes-content">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, interactive-widget=overlays-content">
     <title>Gym Tracker</title>
     
     <link rel="manifest" href="manifest.json">
@@ -12,12 +12,18 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
+      // Rejestracja Service Workera
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('./sw.js')
             .then(reg => console.log('Service Worker: Registered (Scope: ' + reg.scope + ')'))
             .catch(err => console.log('Service Worker: Error: ' + err));
         });
+      }
+
+      // Wymuszenie nakrywania klawiatury na aplikację (Virtual Keyboard API)
+      if ('virtualKeyboard' in navigator) {
+          navigator.virtualKeyboard.overlaysContent = true;
       }
     </script>
 </head>
