@@ -29,7 +29,6 @@ export async function renderPlanEditor(planId = null, planName = "") {
         </div>
     `;
 
-    // Jeśli edytujemy, pobierz przypisane ćwiczenia
     if (editingPlanId) {
         try {
             const res = await authFetch(`${API_URL}/plan-exercises/${editingPlanId}`);
@@ -49,6 +48,13 @@ export async function renderPlanEditor(planId = null, planName = "") {
 
     document.getElementById('add-ex-btn').addEventListener('click', () => {
         window.openExerciseWizard((newExercise) => {
+            // BLOKADA DUPLIKATÓW
+            const isDuplicate = selectedExercisesForPlan.some(ex => ex.id === newExercise.id);
+            if (isDuplicate) {
+                alert("This exercise is already in your plan. You can increase the number of sets instead.");
+                return;
+            }
+
             selectedExercisesForPlan.push({
                 id: newExercise.id,
                 name: newExercise.name,
@@ -119,7 +125,6 @@ window.saveFullPlan = async () => {
         let finalPlanId = editingPlanId;
 
         if (!editingPlanId) {
-            // Tworzenie nowego planu
             const res = await authFetch(`${API_URL}/plans`, {
                 method: "POST", headers: {"Content-Type":"application/json"},
                 body: JSON.stringify({ name: planName, user_id: parseInt(state.currentUserId) })
@@ -127,17 +132,13 @@ window.saveFullPlan = async () => {
             const planData = await res.json();
             finalPlanId = planData.id;
         } else {
-            // Edycja istniejącego planu
-            // 1. Aktualizacja nazwy planu
             await authFetch(`${API_URL}/plan/${finalPlanId}`, {
                 method: "PUT", headers: {"Content-Type":"application/json"},
                 body: JSON.stringify({ name: planName })
             });
-            // 2. Usunięcie starych przypisań ćwiczeń
             await authFetch(`${API_URL}/plan-exercises/${finalPlanId}`, { method: "DELETE" });
         }
 
-        // Dodanie nowych przypisań ćwiczeń do bazy
         for (const ex of selectedExercisesForPlan) {
             await authFetch(`${API_URL}/plan-exercises`, {
                 method: "POST", headers: {"Content-Type":"application/json"},

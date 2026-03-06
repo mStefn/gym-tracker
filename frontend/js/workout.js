@@ -81,16 +81,23 @@ export async function renderWorkout(planId, planName) {
                     </div>
                 </div>
 
-                <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
-                    <input type="number" class="reps-in" placeholder="Reps" id="reps-${ex.exercise_id}-${s}" style="flex: 1; padding: 12px 5px; font-size: 16px; text-align: center; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text);">
-                    <input type="number" class="weight-in" placeholder="kg" id="weight-${ex.exercise_id}-${s}" style="flex: 1; padding: 12px 5px; font-size: 16px; text-align: center; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text);">
+                <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 10px;">
+                    <div style="display: flex; flex-direction: column; flex: 1;">
+                        <label style="font-size: 11px; color: #8e8e93; font-weight: 600; margin-bottom: 4px; text-align: center;">Reps</label>
+                        <input type="number" class="reps-in" id="reps-${ex.exercise_id}-${s}" onkeydown="window.handleEnter(event, 'weight-${ex.exercise_id}-${s}')" onfocus="window.scrollToInput(this)" style="width: 100%; padding: 12px 5px; font-size: 16px; text-align: center; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); margin-bottom: 0;">
+                    </div>
                     
-                    <label style="display: flex; align-items: center; justify-content: center; color: #8e8e93; font-size: 13px; font-weight: 600; cursor: pointer; user-select: none; flex: 1.5; text-align: center;">
+                    <div style="display: flex; flex-direction: column; flex: 1;">
+                        <label style="font-size: 11px; color: #8e8e93; font-weight: 600; margin-bottom: 4px; text-align: center;">kg</label>
+                        <input type="number" class="weight-in" id="weight-${ex.exercise_id}-${s}" onfocus="window.scrollToInput(this)" style="width: 100%; padding: 12px 5px; font-size: 16px; text-align: center; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); margin-bottom: 0;">
+                    </div>
+                    
+                    <label style="display: flex; align-items: center; justify-content: center; color: #8e8e93; font-size: 13px; font-weight: 600; cursor: pointer; user-select: none; flex: 1.5; text-align: center; height: 46px; margin-bottom: 0;">
                         Set to failure?
                         <input type="checkbox" id="fail-${ex.exercise_id}-${s}" style="margin-left: 8px; width: 22px; height: 22px; accent-color: var(--danger); cursor: pointer; margin-bottom: 0;">
                     </label>
 
-                    <button onclick="window.saveSet(this, ${ex.exercise_id}, ${s}, '${safeExName}')" style="background: rgba(0, 210, 255, 0.1); color: var(--primary); border: none; width: 70px; height: 46px; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.2s;">Save</button>
+                    <button onclick="window.saveSet(this, ${ex.exercise_id}, ${s}, '${safeExName}')" style="background: rgba(0, 210, 255, 0.1); color: var(--primary); border: none; width: 70px; height: 46px; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-bottom: 0;">Save</button>
                 </div>
             `;
             document.getElementById(`ex-${ex.exercise_id}`).appendChild(row);
@@ -216,6 +223,21 @@ window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) =>
     };
 
     document.getElementById('confirm-overload-btn').onclick = window.saveOverloadLocal;
+};
+
+// NOWE FUNKCJE - Obsługa klawiatury i skrolowania
+window.handleEnter = (e, nextFieldId) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const nextField = document.getElementById(nextFieldId);
+        if (nextField) nextField.focus();
+    }
+};
+
+window.scrollToInput = (element) => {
+    setTimeout(() => {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
 };
 
 window.renderWorkout = renderWorkout;
