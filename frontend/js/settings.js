@@ -3,7 +3,6 @@ import { state, API_URL, authFetch, logout } from './state.js';
 export function renderSettings() {
     const container = document.getElementById("exercises");
     
-    // Sprawdzanie statusu PWA
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
     
     let installBtnHtml = '';
@@ -41,7 +40,6 @@ export function renderSettings() {
         </div>
     `;
 
-    // Obsługa instalacji PWA
     const installBtn = document.getElementById('install-btn');
     if (installBtn) {
         installBtn.addEventListener('click', async () => {
@@ -54,11 +52,22 @@ export function renderSettings() {
                     installBtn.style.display = 'none'; 
                 }
             } else {
-                alert("To install, open browser menu and select 'Add to Home Screen'.");
+                // ZMIANA Z ALERTU NA CUSTOMOWY MODAL
+                window.openInstallModal();
             }
         });
     }
 }
+
+// LOGIKA MODALA INSTALACJI
+window.openInstallModal = () => {
+    const overlay = document.getElementById('install-guide-overlay');
+    if (overlay) overlay.classList.add('show');
+};
+window.closeInstallModal = () => {
+    const overlay = document.getElementById('install-guide-overlay');
+    if (overlay) overlay.classList.remove('show');
+};
 
 // ==========================================
 // KLAWIATURA PIN DO ZMIANY HASŁA
@@ -166,17 +175,12 @@ window.submitPinChange = async () => {
     }
 };
 
-// ==========================================
-// ZABEZPIECZONE AKCJE USUWANIA
-// ==========================================
-
 window.triggerClearHistory = async () => {
     if (navigator.vibrate) navigator.vibrate([10, 30, 10]);
     const confirmClear = confirm("Are you sure you want to delete ALL your workout history? This cannot be undone.");
     if (!confirmClear) return;
 
     try {
-        // ZAKTUALIZOWANA ŚCIEŻKA (zgodnie z main.go)
         const res = await authFetch(`${API_URL}/history/${state.currentUserId}`, { method: 'DELETE' });
         if (res.ok) {
             alert("Workout history cleared!");
@@ -197,7 +201,6 @@ window.triggerDeleteAccount = async () => {
     }
 
     try {
-        // ZAKTUALIZOWANA ŚCIEŻKA (zgodnie z main.go)
         const res = await authFetch(`${API_URL}/account/${state.currentUserId}`, { method: 'DELETE' });
         if (res.ok) {
             alert("Account deleted. Goodbye!");

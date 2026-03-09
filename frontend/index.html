@@ -12,7 +12,6 @@
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
-      // 1. Rejestracja Service Workera
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('./sw.js')
@@ -21,13 +20,12 @@
         });
       }
 
-      // 2. JS HEIGHT LOCK (Zamrażanie wysokości ekranu dla PWA)
       const setAppHeight = () => {
           document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
       };
       window.addEventListener('resize', setAppHeight);
       window.addEventListener('orientationchange', setAppHeight);
-      setAppHeight(); // Wywołanie przy starcie
+      setAppHeight(); 
     </script>
 </head>
 <body>
@@ -51,6 +49,22 @@
             
             <div id="exercises"></div>
         </main>
+    </div>
+
+    <div id="install-guide-overlay">
+        <div class="install-card">
+            <h2 style="margin-top:0; color:var(--primary); margin-bottom: 10px;">Install App</h2>
+            <p style="color:#8e8e93; font-size:14px; margin-bottom: 25px;">Follow these steps to install Gym Tracker on your home screen for a full-screen native experience.</p>
+            
+            <div class="install-step">
+                <strong style="color:var(--primary);">1.</strong> Tap the <b>Share</b> icon <span style="font-size:18px; vertical-align: middle;">⍗</span> (on iOS Safari) or the <b>Menu</b> icon <span style="font-size:18px; vertical-align: middle;">⋮</span> (on Android Chrome).
+            </div>
+            <div class="install-step">
+                <strong style="color:var(--primary);">2.</strong> Scroll down and select <br><b style="color:var(--text);">"Add to Home Screen"</b> ➕.
+            </div>
+            
+            <button onclick="window.closeInstallModal()" class="save-btn" style="margin-top:15px; background:rgba(255,255,255,0.05); color:var(--text); border:1px solid var(--border); box-shadow:none;">Got it</button>
+        </div>
     </div>
 
     <script type="module" src="js/app.js"></script>
