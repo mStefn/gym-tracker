@@ -1,9 +1,17 @@
 import { state, logout } from './state.js';
 import { renderAuthScreen } from './auth.js';
 import { renderDashboard } from './dashboard.js';
-import { renderPlans } from './plans.js'; // NOWY IMPORT
+import { renderPlans } from './plans.js'; 
 import { renderWorkout } from './workout.js';
 import { renderStats } from './stats.js';
+import { renderSettings } from './settings.js'; // IMPORT NOWEJ ZAKŁADKI
+
+// Przechwytywanie PWA Install Prompt
+window.deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    window.deferredPrompt = e;
+});
 
 window.openAuth = (mode) => renderAuthScreen(mode);
 window.renderWorkout = renderWorkout;
@@ -21,24 +29,16 @@ window.navigate = (tab) => {
     setTimeout(() => {
         switch (tab) {
             case 'home':
-                renderDashboard(); // HOME = STATYSTYKI
+                renderDashboard(); 
                 break;
             case 'workout':
-                renderPlans(); // WORKOUT = PLANY TRENINGOWE
+                renderPlans(); 
                 break;
             case 'stats':
                 renderStats();
                 break;
-            case 'library':
-                container.innerHTML = `
-                    <div style="text-align:center; margin-top:60px; color:#8e8e93;">
-                        <div style="font-size:60px; margin-bottom:20px; text-shadow: 0 0 15px var(--primary-glow);">📚</div>
-                        <h2>Exercise Library</h2>
-                        <p>Accessing mainframe... Coming soon.</p>
-                    </div>`;
-                break;
             case 'settings':
-                if (window.renderSettings) window.renderSettings();
+                renderSettings();
                 break;
             default:
                 renderDashboard();

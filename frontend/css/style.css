@@ -11,10 +11,9 @@
     --card-bg: rgba(20, 25, 40, 0.65);
     --border: rgba(0, 210, 255, 0.15);
     --glass-blur: blur(12px);
-    --app-height: 100vh; /* Fallback zanim zadziała JS */
+    --app-height: 100vh; 
 }
 
-/* Włączenie akceleracji GPU i usunięcie brzydkich podświetleń kliknięć na mobilkach */
 * {
     -webkit-tap-highlight-color: transparent;
 }
@@ -24,8 +23,9 @@ html, body {
     height: 100%;
     margin: 0;
     padding: 0;
-    overflow: hidden; /* Totalna blokada przewijania tła */
-    position: fixed; /* Przyklejenie apki do ekranu */
+    overflow: hidden; 
+    overscroll-behavior: none; /* WYŁĄCZENIE GUMKI W IOS */
+    position: fixed; 
     top: 0; left: 0; right: 0; bottom: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background: var(--bg-color);
@@ -50,10 +50,10 @@ html, body {
    ========================================= */
 #app-container {
     display: flex;
-    height: var(--app-height); /* Używamy zamrożonej wysokości z JS! */
+    height: var(--app-height); 
     width: 100vw;
     overflow: hidden;
-    transform: translateZ(0); /* Akceleracja GPU */
+    transform: translateZ(0); 
 }
 
 #main-content {
@@ -66,13 +66,13 @@ html, body {
 #top-bar {
     flex-shrink: 0; 
     display: flex; justify-content: space-between; align-items: center;
-    padding: 15px 30px; 
+    /* SAFE AREA: Uwzględnienie notcha/wycięcia na aparat */
+    padding: calc(15px + env(safe-area-inset-top)) 30px 15px 30px; 
     background: rgba(10, 15, 25, 0.85);
     backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
     border-bottom: 1px solid var(--border); z-index: 1000;
 }
 
-/* --- GÓRNY PASEK NAWIGACJI --- */
 #sidebar {
     width: 100%;
     background: rgba(10, 15, 25, 0.85);
@@ -80,6 +80,7 @@ html, body {
     border-bottom: 1px solid var(--border);
     display: flex; justify-content: center;
     z-index: 999;
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
 .sidebar-header { display: none; }
@@ -114,15 +115,16 @@ html, body {
     -webkit-overflow-scrolling: touch; 
 }
 
-.btn-logout {
-    background: rgba(255, 59, 48, 0.15); color: var(--danger); border: 1px solid rgba(255, 59, 48, 0.3);
-    padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s;
-}
-.btn-logout:hover { background: rgba(255, 59, 48, 0.3); }
-
 /* =========================================
-   3. POWIĘKSZONE ELEMENTY INTERFEJSU
+   3. ANIMACJE I ELEMENTY INTERFEJSU
    ========================================= */
+
+/* ANIMACJA WCISKANIA GUZIKÓW (HAPTIC FEEL) */
+button:active, .save-btn:active, .nav-item:active, .pin-btn:active {
+    transform: scale(0.96) !important;
+    transition: transform 0.1s;
+}
+
 .exercise-card {
     background: var(--card-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
     border: 1px solid var(--border); border-radius: 22px; padding: 25px;
@@ -139,7 +141,7 @@ input, select, textarea {
     font-size: 18px !important; font-weight: 600;
     background: rgba(0, 0, 0, 0.4); color: var(--text);
     margin-bottom: 12px; box-sizing: border-box; outline: none; transition: all 0.2s;
-    transform: translateZ(0); /* Akceleracja GPU dla inputów */
+    transform: translateZ(0); 
 }
 input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-glow); }
 
@@ -149,7 +151,7 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 10px v
     font-size: 16px; transition: all 0.2s; box-shadow: 0 0 15px var(--primary-glow); 
     text-transform: uppercase; letter-spacing: 1px;
 }
-.save-btn:hover { filter: brightness(1.2); transform: translateY(-1px); }
+.save-btn:hover { filter: brightness(1.2); }
 .save-btn:disabled { background: #3a3a3c; color: #8e8e93; box-shadow: none; cursor: not-allowed; }
 
 .spinner {
@@ -163,7 +165,6 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 10px v
    4. WERSJA MOBILNA
    ========================================= */
 @media (max-width: 768px) {
-    #top-bar { padding: 15px 20px; }
     #exercises { padding: 20px 15px; }
     
     .nav-links { justify-content: flex-start; }
@@ -212,6 +213,6 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 10px v
 
 /* PIN Pad */
 .pin-btn { background: rgba(255, 255, 255, 0.05); color: var(--text); border: 1px solid var(--border); border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer; font-size: 24px; font-weight: 600; display: flex; align-items: center; justify-content: center; aspect-ratio: 1; transition: all 0.2s; }
-.pin-btn:active { transform: scale(0.9); background: rgba(0, 210, 255, 0.2); border-color: var(--primary); box-shadow: 0 0 15px var(--primary-glow); }
+.pin-btn:active { transform: scale(0.9) !important; background: rgba(0, 210, 255, 0.2); border-color: var(--primary); box-shadow: 0 0 15px var(--primary-glow); }
 .pin-btn.action-c { color: var(--danger); border-color: rgba(255, 59, 48, 0.4); }
 .pin-btn.action-ok { color: var(--success); border-color: rgba(255, 149, 0, 0.4); }

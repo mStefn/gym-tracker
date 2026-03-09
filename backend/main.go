@@ -45,12 +45,12 @@ func main() {
 
 		// Funkcje dla planów
 		auth.POST("/plans", CreatePlan)
-		auth.PUT("/plan/:id", UpdatePlanName) // NOWE
+		auth.PUT("/plan/:id", UpdatePlanName)
 		auth.DELETE("/plan/:id", DeletePlan)
 
 		// Funkcje dla ćwiczeń w planie
 		auth.POST("/plan-exercises", AddExerciseToPlan)
-		auth.DELETE("/plan-exercises/:plan_id", DeletePlanExercises) // NOWE
+		auth.DELETE("/plan-exercises/:plan_id", DeletePlanExercises)
 
 		auth.GET("/stats/:user_id", GetUserStats)
 		auth.POST("/exercises/find-or-create", FindOrCreateExerciseHandler)
@@ -61,6 +61,7 @@ func main() {
 		auth.GET("/stats/advanced/:user_id", GetAdvancedStats)
 		auth.GET("/stats/exercise/:user_id/:ex_id", GetExerciseDeepDive)
 
+		// Funkcje zarządzania kontem (Settings)
 		auth.DELETE("/history/:user_id", ClearOwnLogs)
 		auth.DELETE("/account/:user_id", DeleteOwnAccount)
 	}

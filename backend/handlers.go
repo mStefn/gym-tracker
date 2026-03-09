@@ -138,7 +138,7 @@ func GetUserStats(c *gin.Context) {
 	c.JSON(200, stats)
 }
 
-// --- NOWY: PRO DASHBOARD HANDLERS ---
+// --- PRO DASHBOARD HANDLERS ---
 func LogBodyWeight(c *gin.Context) {
 	var input struct {
 		UserID int     `json:"user_id"`
@@ -148,7 +148,6 @@ func LogBodyWeight(c *gin.Context) {
 		c.JSON(400, gin.H{"error": "Invalid input"})
 		return
 	}
-	// Upsert (zapisz lub nadpisz jeśli dzisiaj już logowano)
 	_, err := db.Exec("INSERT INTO user_weights (user_id, weight, logged_at) VALUES (?, ?, CURDATE()) ON DUPLICATE KEY UPDATE weight = ?", input.UserID, input.Weight, input.Weight)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Failed to log weight"})
@@ -160,7 +159,7 @@ func LogBodyWeight(c *gin.Context) {
 func GetDashboardData(c *gin.Context) {
 	userID := c.Param("user_id")
 
-	// 1. Ostatnia waga ciała (max 7 wpisów)
+	// 1. Ostatnia waga ciała
 	var weights []float64
 	wRows, _ := db.Query("SELECT weight FROM user_weights WHERE user_id = ? ORDER BY logged_at DESC LIMIT 7", userID)
 	for wRows.Next() {
@@ -194,17 +193,17 @@ func GetDashboardData(c *gin.Context) {
 	}
 	rRows.Close()
 
-	// 3. Heatmap (Aktywność z ostatnich 45 dni)
+	// 3. Heatmap
 	var heatmap []string
 	hRows, _ := db.Query("SELECT DISTINCT DATE(created_at) FROM logs WHERE user_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 45 DAY)", userID)
 	for hRows.Next() {
 		var d string
 		hRows.Scan(&d)
-		heatmap = append(heatmap, d[:10]) // wyciąga tylko YYYY-MM-DD
+		heatmap = append(heatmap, d[:10])
 	}
 	hRows.Close()
 
-	// 4. Weekly Volume (Ostatnie 4 tygodnie)
+	// 4. Weekly Volume
 	type VolData struct {
 		Week  string  `json:"week"`
 		Total float64 `json:"total"`
@@ -416,11 +415,9 @@ func HealthCheck(c *gin.Context) {
 }
 
 // --- ADVANCED STATISTICS ---
-
 func GetAdvancedStats(c *gin.Context) {
 	userID := c.Param("user_id")
 
-	// 1. Milestones (Kamienie milowe)
 	var totalVolume float64
 	var totalSets, totalWorkouts int
 
@@ -432,7 +429,6 @@ func GetAdvancedStats(c *gin.Context) {
 		"workouts": totalWorkouts,
 	}
 
-	// 2. Hall of Fame (Największe ciężary per ćwiczenie)
 	type Fame struct {
 		Name   string  `json:"name"`
 		Weight float64 `json:"weight"`
@@ -446,7 +442,6 @@ func GetAdvancedStats(c *gin.Context) {
 		hallOfFame = append(hallOfFame, f)
 	}
 
-	// 3. Muscle Distribution (Rozkład partii)
 	type Distribution struct {
 		Category string `json:"category"`
 		Count    int    `json:"count"`
@@ -463,7 +458,6 @@ func GetAdvancedStats(c *gin.Context) {
 		totalDistSets += d.Count
 	}
 
-	// 4. Lista wykonanych ćwiczeń (do Deep Dive)
 	type UserExercise struct {
 		ID   int    `json:"id"`
 		Name string `json:"name"`
@@ -496,7 +490,6 @@ func GetExerciseDeepDive(c *gin.Context) {
 	}
 	var points []ChartPoint
 
-	// Wyciąga maksymalny ciężar z każdego dnia dla danego ćwiczenia
 	rows, err := db.Query(`SELECT DATE(created_at), MAX(weight) FROM logs WHERE user_id = ? AND exercise_id = ? GROUP BY DATE(created_at) ORDER BY DATE(created_at) ASC`, userID, exID)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Failed to fetch exercise data"})
@@ -514,7 +507,6 @@ func GetExerciseDeepDive(c *gin.Context) {
 }
 
 // --- SETTINGS MANAGEMENT ---
-
 func ClearOwnLogs(c *gin.Context) {
 	userID := c.Param("user_id")
 	_, err := db.Exec("DELETE FROM logs WHERE user_id = ?", userID)
@@ -527,7 +519,6 @@ func ClearOwnLogs(c *gin.Context) {
 
 func DeleteOwnAccount(c *gin.Context) {
 	userID := c.Param("user_id")
-	// Dzięki kaskadowemu usuwaniu (ON DELETE CASCADE) z bazy znikną też plany, logi i waga
 	_, err := db.Exec("DELETE FROM users WHERE id = ?", userID)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Failed to delete account"})
@@ -537,7 +528,6 @@ func DeleteOwnAccount(c *gin.Context) {
 }
 
 // --- EDIT PLAN ENDPOINTS ---
-
 func UpdatePlanName(c *gin.Context) {
 	planID := c.Param("id")
 	var input struct {
