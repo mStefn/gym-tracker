@@ -35,8 +35,8 @@ html, body {
 
 #main-bg {
     position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;    
-    background: url('../gym-tracker.webp') center top / cover no-repeat;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: url('../Gym-tracker.jpg') center top / cover no-repeat;
     z-index: -1;
     transition: all 0.5s ease;
 }
@@ -79,7 +79,6 @@ html, body {
     border-bottom: 1px solid var(--border);
     display: flex; justify-content: center;
     z-index: 999;
-    /* ZMNIEJSZENIE WYSOKOŚCI PASKA */
     padding-top: 4px;
     padding-bottom: calc(4px + env(safe-area-inset-bottom));
 }
@@ -94,7 +93,6 @@ html, body {
 .nav-links::-webkit-scrollbar { display: none; }
 
 .nav-item {
-    /* ZMNIEJSZENIE MARGINESÓW WEWNĘTRZNYCH (Paska i odległości podświetlenia) */
     padding: 10px 16px;
     border-radius: 0; border: none; background: transparent;
     font-size: 14px; font-weight: 600; color: #a1a1aa;
@@ -171,7 +169,16 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 10px v
     .nav-item { padding: 10px 12px; font-size: 14px; }
     
     .modal-overlay { align-items: flex-end; }
-    .modal-content { width: 100%; height: var(--app-height); max-height: 90%; border-radius: 24px 24px 0 0; margin: 0; animation: slideUp 0.3s ease-out; }
+    
+    /* Na telefonach rozciągamy tylko duże modale (Baza, PWA) */
+    .modal-content:not(.modal-content-small) { 
+        width: 100%; 
+        height: var(--app-height); 
+        max-height: 90%; 
+        border-radius: 24px 24px 0 0; 
+        margin: 0; 
+        animation: slideUp 0.3s ease-out; 
+    }
 }
 
 /* =========================================
@@ -180,9 +187,13 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 10px v
 .auth-wrapper { display: flex; align-items: center; justify-content: center; flex-direction: column; min-height: 80%; width: 100%; }
 .level-up-badge { display: inline-block; background: var(--success); color: #000; padding: 2px 8px; border-radius: 4px; font-weight: 900; font-size: 11px; margin-left: 10px; transform: skewX(-10deg); box-shadow: 0 0 10px rgba(255,149,0,0.6); vertical-align: middle; }
 
-/* Modal Bazy */
+/* Modal Bazy (Standardowy) */
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 3000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 .modal-content { background: var(--card-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border: 1px solid var(--border); width: 95%; max-width: 600px; height: 85%; display: flex; flex-direction: column; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.modal-header, .modal-filters { flex-shrink: 0; background: rgba(10, 15, 25, 0.9); padding: 15px 20px; border-bottom: 1px solid var(--border); }
+.modal-body { flex: 1; overflow-y: auto; padding: 20px; -webkit-overflow-scrolling: touch; }
+.modal-footer { flex-shrink: 0; padding: 20px; background: rgba(10, 15, 25, 0.95); border-top: 1px solid var(--border); z-index: 10; }
+
 
 /* Custom PWA Install Modal */
 #install-guide-overlay {
@@ -210,6 +221,31 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 10px v
 .pin-btn:active { transform: scale(0.9) !important; background: rgba(0, 210, 255, 0.2); border-color: var(--primary); box-shadow: 0 0 15px var(--primary-glow); }
 .pin-btn.action-c { color: var(--danger); border-color: rgba(255, 59, 48, 0.4); }
 .pin-btn.action-ok { color: var(--success); border-color: rgba(255, 149, 0, 0.4); }
+
+
+/* =========================================
+   6. OVERLOAD MODAL (NAPRAWA BŁĘDU ROZCIĄGANIA)
+   ========================================= */
+.dialog-overlay { 
+    align-items: center; /* Zawsze centruje ten konkretny modal na PC i Telefonie */
+}
+.modal-content-small { 
+    height: auto !important; /* Nadpisuje błędne 85% */
+    max-height: 90%; 
+    margin: 0 20px; 
+    border-radius: 24px !important; /* Zabezpiecza rogi */
+    border: 1px solid var(--success); 
+    box-shadow: 0 0 30px rgba(255, 153, 0, 0.2); 
+    display: block !important; /* Usuwa flex, zapobiega rozciąganiu w dół */
+}
+
+/* Przyciski i elementy Overload */
+.stepper-row { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 16px; margin-bottom: 12px; border: 1px solid var(--border); }
+.stepper-label { font-weight: 600; font-size: 15px; color: #a1a1aa; }
+.stepper-controls { display: flex; align-items: center; gap: 15px; }
+.stepper-btn { width: 38px; height: 38px; border-radius: 50%; border: none; background: rgba(255,255,255,0.05); color: var(--success); box-shadow: 0 2px 8px rgba(0,0,0,0.1); font-size: 22px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.stepper-btn:active { transform: scale(0.9); }
+.stepper-val { font-size: 18px; font-weight: 700; min-width: 45px; text-align: center; }
 
 @keyframes popIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
