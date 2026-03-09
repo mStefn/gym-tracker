@@ -2,29 +2,32 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, interactive-widget=overlays-content">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Gym Tracker</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0b101e">
     
     <link rel="stylesheet" href="css/style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
-      // Rejestracja Service Workera
+      // 1. Rejestracja Service Workera
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker: Registered (Scope: ' + reg.scope + ')'))
-            .catch(err => console.log('Service Worker: Error: ' + err));
+            .then(reg => console.log('Service Worker: Registered'))
+            .catch(err => console.log('Service Worker Error: ', err));
         });
       }
 
-      // Wymuszenie nakrywania klawiatury na aplikację (Virtual Keyboard API)
-      if ('virtualKeyboard' in navigator) {
-          navigator.virtualKeyboard.overlaysContent = true;
-      }
+      // 2. JS HEIGHT LOCK (Zamrażanie wysokości ekranu dla PWA)
+      const setAppHeight = () => {
+          document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+      };
+      window.addEventListener('resize', setAppHeight);
+      window.addEventListener('orientationchange', setAppHeight);
+      setAppHeight(); // Wywołanie przy starcie
     </script>
 </head>
 <body>

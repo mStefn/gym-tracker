@@ -11,19 +11,30 @@
     --card-bg: rgba(20, 25, 40, 0.65);
     --border: rgba(0, 210, 255, 0.15);
     --glass-blur: blur(12px);
+    --app-height: 100vh; /* Fallback zanim zadziała JS */
 }
 
-body {
+/* Włączenie akceleracji GPU i usunięcie brzydkich podświetleń kliknięć na mobilkach */
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* Totalna blokada przewijania tła */
+    position: fixed; /* Przyklejenie apki do ekranu */
+    top: 0; left: 0; right: 0; bottom: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background: var(--bg-color);
     color: var(--text);
-    margin: 0;
     -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
 }
 
 #main-bg {
-    position: fixed;
+    position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
     background: url('../gym-tracker.webp') center 20% / cover no-repeat;
     z-index: -1;
@@ -39,13 +50,15 @@ body {
    ========================================= */
 #app-container {
     display: flex;
-    min-height: 100dvh;
+    height: var(--app-height); /* Używamy zamrożonej wysokości z JS! */
     width: 100vw;
-    overflow-x: hidden;
+    overflow: hidden;
+    transform: translateZ(0); /* Akceleracja GPU */
 }
 
 #main-content {
-    flex: 1; display: flex; flex-direction: column; height: 100dvh;
+    flex: 1; display: flex; flex-direction: column; 
+    height: 100%;
     overflow: hidden; 
     background: transparent; 
 }
@@ -59,7 +72,7 @@ body {
     border-bottom: 1px solid var(--border); z-index: 1000;
 }
 
-/* --- NOWY GÓRNY PASEK NAWIGACJI --- */
+/* --- GÓRNY PASEK NAWIGACJI --- */
 #sidebar {
     width: 100%;
     background: rgba(10, 15, 25, 0.85);
@@ -121,11 +134,12 @@ body {
     margin-top: 0; margin-bottom: 20px;
 }
 
-input, select {
+input, select, textarea {
     width: 100%; padding: 16px; border: 1px solid var(--border); border-radius: 12px; 
     font-size: 18px !important; font-weight: 600;
     background: rgba(0, 0, 0, 0.4); color: var(--text);
     margin-bottom: 12px; box-sizing: border-box; outline: none; transition: all 0.2s;
+    transform: translateZ(0); /* Akceleracja GPU dla inputów */
 }
 input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-glow); }
 
@@ -156,18 +170,18 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 10px v
     .nav-item { padding: 14px 15px; font-size: 14px; }
     
     .modal-overlay { align-items: flex-end; }
-    .modal-content { width: 100%; height: 90dvh; border-radius: 24px 24px 0 0; margin: 0; animation: slideUp 0.3s ease-out; }
+    .modal-content { width: 100%; height: var(--app-height); max-height: 90%; border-radius: 24px 24px 0 0; margin: 0; animation: slideUp 0.3s ease-out; }
 }
 
 /* =========================================
    5. INNE WIDŻETY I MODALE
    ========================================= */
-.auth-wrapper { display: flex; align-items: center; justify-content: center; flex-direction: column; min-height: 80dvh; width: 100%; }
+.auth-wrapper { display: flex; align-items: center; justify-content: center; flex-direction: column; min-height: 80%; width: 100%; }
 .level-up-badge { display: inline-block; background: var(--success); color: #000; padding: 2px 8px; border-radius: 4px; font-weight: 900; font-size: 11px; margin-left: 10px; transform: skewX(-10deg); box-shadow: 0 0 10px rgba(255,149,0,0.6); vertical-align: middle; }
 
 /* Modal */
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 3000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-.modal-content { background: var(--card-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border: 1px solid var(--border); width: 95%; max-width: 600px; height: 85dvh; display: flex; flex-direction: column; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.modal-content { background: var(--card-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border: 1px solid var(--border); width: 95%; max-width: 600px; height: 85%; display: flex; flex-direction: column; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 .modal-header, .modal-filters { flex-shrink: 0; background: rgba(10, 15, 25, 0.9); padding: 15px 20px; border-bottom: 1px solid var(--border); }
 .modal-body { flex: 1; overflow-y: auto; padding: 20px; -webkit-overflow-scrolling: touch; }
 .modal-footer { flex-shrink: 0; padding: 20px; background: rgba(10, 15, 25, 0.95); border-top: 1px solid var(--border); z-index: 10; }
