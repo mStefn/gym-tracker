@@ -81,6 +81,20 @@ func LogSet(c *gin.Context) {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
+
+	// SYSTEM RPG: Wyliczenie i zapis EXP po serii
+	expGained := int(input.Weight * float64(input.Reps) * 0.1)
+	if expGained <= 0 && input.Reps > 0 {
+		expGained = input.Reps // dla ćwiczeń z masą ciała
+	}
+	if expGained <= 0 {
+		expGained = 1 // minium 1 exp
+	}
+
+	db.Exec("UPDATE users SET exp = exp + ? WHERE id = ?", expGained, input.UserID)
+	// Co 1000 exp przeskakuje level
+	db.Exec("UPDATE users SET level = FLOOR(exp / 1000) + 1 WHERE id = ?", input.UserID)
+
 	c.JSON(200, gin.H{"status": "success"})
 }
 
@@ -159,6 +173,15 @@ func LogBodyWeight(c *gin.Context) {
 func GetDashboardData(c *gin.Context) {
 	userID := c.Param("user_id")
 
+	// 0. RPG Data
+	var exp, level int
+	db.QueryRow("SELECT exp, level FROM users WHERE id = ?", userID).Scan(&exp, &level)
+	if level == 0 {
+		level = 1
+	}
+	currentLevelBaseExp := (level - 1) * 1000
+	expProgress := exp - currentLevelBaseExp
+
 	// 1. Ostatnia waga ciała
 	var weights []float64
 	wRows, _ := db.Query("SELECT weight FROM user_weights WHERE user_id = ? ORDER BY logged_at DESC LIMIT 7", userID)
@@ -219,10 +242,13 @@ func GetDashboardData(c *gin.Context) {
 	vRows.Close()
 
 	c.JSON(200, gin.H{
-		"weights":   weights,
-		"readiness": readiness,
-		"heatmap":   heatmap,
-		"volume":    volume,
+		"weights":    weights,
+		"readiness":  readiness,
+		"heatmap":    heatmap,
+		"volume":     volume,
+		"level":      level,
+		"exp":        expProgress,
+		"exp_target": 1000,
 	})
 }
 
@@ -527,7 +553,6 @@ func DeleteOwnAccount(c *gin.Context) {
 	c.JSON(200, gin.H{"status": "deleted"})
 }
 
-// --- EDIT PLAN ENDPOINTS ---
 func UpdatePlanName(c *gin.Context) {
 	planID := c.Param("id")
 	var input struct {

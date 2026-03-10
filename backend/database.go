@@ -42,10 +42,13 @@ func initDB() {
 	db.Exec(`CREATE TABLE IF NOT EXISTS logs (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, exercise_id INT, set_number INT, reps INT, weight FLOAT, is_failure BOOLEAN DEFAULT FALSE, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE);`)
 	db.Exec(`CREATE INDEX IF NOT EXISTS idx_logs_lookup ON logs (user_id, exercise_id, set_number, created_at DESC);`)
 
-	// NOWA TABELA: Śledzenie wagi ciała
 	db.Exec(`CREATE TABLE IF NOT EXISTS user_weights (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, weight FLOAT, logged_at DATE, UNIQUE(user_id, logged_at), FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE);`)
 
 	db.Exec(`ALTER TABLE logs ADD COLUMN is_failure BOOLEAN DEFAULT FALSE;`)
+
+	// SYSTEM RPG: Bezpieczne dodanie kolumn dla doświadczenia i levelu (ignoruje błąd jeśli już istnieją)
+	db.Exec(`ALTER TABLE users ADD COLUMN exp INT DEFAULT 0;`)
+	db.Exec(`ALTER TABLE users ADD COLUMN level INT DEFAULT 1;`)
 
 	seedExercises()
 	seedAdmin()
