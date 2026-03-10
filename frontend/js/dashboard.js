@@ -210,9 +210,9 @@ const buildVisualReadiness = (readinessObj) => {
   };
 
   return `
-    <div style="display:flex; justify-content:space-around; font-size:10px; font-weight:900; color:#52525b; letter-spacing:5px; margin-bottom:20px; text-transform:uppercase; opacity:0.8;">
-      <span>Anterior</span>
-      <span>Posterior</span>
+    <div style="display:flex; justify-content:space-around; font-size:10px; font-weight:900; color:#a1a1aa; letter-spacing:5px; margin-bottom:20px; text-transform:uppercase;">
+      <span>FRONT</span>
+      <span>BACK</span>
     </div>
 
     <div style="display:flex; justify-content:center; align-items:center;">
@@ -221,15 +221,15 @@ const buildVisualReadiness = (readinessObj) => {
         <g transform="translate(10, 0)">
           <polygon points="42,5 58,5 62,15 50,25 38,15" fill="rgba(255,255,255,0.05)" />
           
-          <polygon points="28,42 50,48 72,42 78,65 50,72 22,65" fill="${getColor("Chest")}" />
+          <polygon points="TL 32,40 50,45 68,40 75,62 50,68 25,62" fill="${getColor("Chest")}" />
           
-          <polygon points="18,45 26,42 32,65 20,70" fill="${getColor("Shoulders")}" />
-          <polygon points="82,45 74,42 68,65 80,70" fill="${getColor("Shoulders")}" />
+          <polygon points="10,40 22,38 30,60 18,65" fill="${getColor("Shoulders")}" />
+          <polygon points="90,40 78,38 70,60 82,65" fill="${getColor("Shoulders")}" />
           
-          <polygon points="32,75 68,75 64,115 50,125 36,115" fill="${getColor("Abs")}" />
+          <polygon points="35,70 65,70 62,110 50,120 38,110" fill="${getColor("Abs")}" />
           
-          <polygon points="15,75 22,72 26,110 18,115" fill="${getColor("Biceps")}" />
-          <polygon points="85,75 78,72 74,110 82,115" fill="${getColor("Biceps")}" />
+          <polygon points="10,68 18,65 24,105 16,110" fill="${getColor("Biceps")}" />
+          <polygon points="90,68 82,65 76,105 84,110" fill="${getColor("Biceps")}" />
           
           <polygon points="34,130 49,130 46,200 30,195" fill="${getColor("Quads")}" />
           <polygon points="66,130 51,130 54,200 70,195" fill="${getColor("Quads")}" />
@@ -238,18 +238,18 @@ const buildVisualReadiness = (readinessObj) => {
         <g transform="translate(130, 0)">
           <polygon points="42,5 58,5 62,15 50,25 38,15" fill="rgba(255,255,255,0.05)" />
           
-          <polygon points="25,42 50,35 75,42 82,90 50,105 18,90" fill="${getColor("Back")}" />
+          <polygon points="42,30 58,30 (Traps top) 75,40 (Shoulder meet) 82,75 (Wide Lat) 50,105 (Waist) 18,75 (Wide Lat) 25,40 (Shoulder meet)" fill="${getColor("Back")}" />
           
-          <polygon points="30,110 70,110 75,140 50,150 25,140" fill="${getColor("Glutes")}" />
+          <polygon points="35,110 65,110 68,130 50,138 32,130" fill="${getColor("Glutes")}" />
           
-          <polygon points="15,75 22,72 26,110 18,115" fill="${getColor("Triceps")}" />
-          <polygon points="85,75 78,72 74,110 82,115" fill="${getColor("Triceps")}" />
+          <polygon points="10,70 18,65 22,105 14,110" fill="${getColor("Triceps")}" />
+          <polygon points="90,70 82,65 78,105 86,110" fill="${getColor("Triceps")}" />
           
-          <polygon points="30,155 48,155 45,210 32,210" fill="${getColor("Hamstrings")}" />
-          <polygon points="70,155 52,155 55,210 68,210" fill="${getColor("Hamstrings")}" />
+          <polygon points="30,145 48,145 45,200 32,200" fill="${getColor("Hamstrings")}" />
+          <polygon points="70,145 52,145 55,200 68,200" fill="${getColor("Hamstrings")}" />
 
-          <polygon points="32,215 44,215 42,245 34,245" fill="${getColor("Calves")}" />
-          <polygon points="68,215 56,215 58,245 66,245" fill="${getColor("Calves")}" />
+          <polygon points="32,210 44,210 42,240 34,240" fill="${getColor("Calves")}" />
+          <polygon points="68,210 56,210 58,240 66,240" fill="${getColor("Calves")}" />
         </g>
       </svg>
     </div>
