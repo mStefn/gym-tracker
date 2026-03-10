@@ -36,7 +36,6 @@ html, body {
 #main-bg {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
-    /* TWOJA NOWA GRAFIKA */
     background: url('../gym-tracker.webp') center top / cover no-repeat;
     z-index: -1;
     transition: all 0.5s ease;
@@ -168,12 +167,10 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 10px v
     
     .nav-links { justify-content: flex-start; }
     
-    /* SMUKŁY PASEK NA MOBILE */
     .nav-item { padding: 4px 12px; font-size: 13px; }
     
     .modal-overlay { align-items: flex-end; }
     
-    /* Rozciąganie tylko dużych okien */
     .modal-content:not(.modal-content-small) { 
         width: 100%; 
         height: var(--app-height); 
@@ -185,7 +182,7 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 10px v
 }
 
 /* =========================================
-   5. INNE WIDŻETY I MODALE
+   5. INNE WIDŻETY I MODALE (WIZARD!)
    ========================================= */
 .auth-wrapper { display: flex; align-items: center; justify-content: center; flex-direction: column; min-height: 80%; width: 100%; }
 .level-up-badge { display: inline-block; background: var(--success); color: #000; padding: 2px 8px; border-radius: 4px; font-weight: 900; font-size: 11px; margin-left: 10px; transform: skewX(-10deg); box-shadow: 0 0 10px rgba(255,149,0,0.6); vertical-align: middle; }
@@ -195,6 +192,38 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 10px v
 .modal-header, .modal-filters { flex-shrink: 0; background: rgba(10, 15, 25, 0.9); padding: 15px 20px; border-bottom: 1px solid var(--border); }
 .modal-body { flex: 1; overflow-y: auto; padding: 20px; -webkit-overflow-scrolling: touch; }
 .modal-footer { flex-shrink: 0; padding: 20px; background: rgba(10, 15, 25, 0.95); border-top: 1px solid var(--border); z-index: 10; }
+
+/* KAFELKI DO WIZARDA ĆWICZEŃ (NOWE) */
+.tile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 15px;
+    padding: 10px 0;
+}
+.wizard-tile {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 10px;
+    text-align: center;
+    color: var(--text);
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 80px;
+    user-select: none;
+}
+.wizard-tile:hover, .wizard-tile:active {
+    background: rgba(0, 210, 255, 0.15);
+    border-color: var(--primary);
+    box-shadow: 0 0 15px var(--primary-glow);
+    transform: scale(0.95);
+}
 
 /* Custom PWA Install Modal */
 #install-guide-overlay {

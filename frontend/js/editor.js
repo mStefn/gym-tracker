@@ -1,5 +1,42 @@
 import { state, API_URL, authFetch } from './state.js';
 
+const EXERCISES_DB = [
+  { "name": "Bench Press", "category": "Chest", "equipment": ["Barbell", "Dumbbell", "Machine"], "angles": ["Flat", "Incline", "Decline"] },
+  { "name": "Chest Fly", "category": "Chest", "equipment": ["Dumbbell", "Machine", "Cable"] },
+  { "name": "Push-Up", "category": "Chest", "equipment": ["Bodyweight"] },
+  { "name": "Pull-Up", "category": "Back", "equipment": ["Bodyweight", "Assisted"] },
+  { "name": "Row", "category": "Back", "equipment": ["Barbell", "Cable", "T-Bar", "Dumbbell", "Machine"] },
+  { "name": "Lat Pulldown", "category": "Back", "equipment": ["Cable", "Machine"] },
+  { "name": "Straight Arm Pulldown", "category": "Back", "equipment": ["Cable"] },
+  { "name": "Squat", "category": "Legs", "equipment": ["Barbell", "Dumbbell", "Machine"] },
+  { "name": "Deadlift", "category": "Legs", "equipment": ["Barbell", "Dumbbell"] },
+  { "name": "Romanian Deadlift", "category": "Legs", "equipment": ["Barbell", "Dumbbell"] },
+  { "name": "Leg Press", "category": "Legs", "equipment": ["Machine"] },
+  { "name": "Leg Extension", "category": "Legs", "equipment": ["Machine"] },
+  { "name": "Leg Curl", "category": "Legs", "equipment": ["Machine"] },
+  { "name": "Hip Thrust", "category": "Legs", "equipment": ["Barbell", "Machine"] },
+  { "name": "Lunge", "category": "Legs", "equipment": ["Dumbbell", "Barbell"], "variants": ["Walking", "Bulgarian"] },
+  { "name": "Calf Raise", "category": "Legs", "equipment": ["Machine", "Bodyweight", "Barbell"] },
+  { "name": "Hip Abduction", "category": "Legs", "equipment": ["Machine"] },
+  { "name": "Hip Adduction", "category": "Legs", "equipment": ["Machine"] },
+  { "name": "Shoulder Press", "category": "Shoulders", "equipment": ["Barbell", "Dumbbell", "Machine"] },
+  { "name": "Lateral Raise", "category": "Shoulders", "equipment": ["Dumbbell", "Cable"] },
+  { "name": "Front Raise", "category": "Shoulders", "equipment": ["Dumbbell", "Cable"] },
+  { "name": "Rear Delt Fly", "category": "Shoulders", "equipment": ["Machine", "Dumbbell"] },
+  { "name": "Face Pull", "category": "Shoulders", "equipment": ["Cable"] },
+  { "name": "Upright Row", "category": "Shoulders", "equipment": ["Barbell", "Cable"] },
+  { "name": "Biceps Curl", "category": "Biceps", "equipment": ["Barbell", "Dumbbell", "Cable", "Machine"], "variants": ["Standard", "Hammer", "Preacher"] },
+  { "name": "Triceps Extension", "category": "Triceps", "equipment": ["Cable", "Dumbbell", "Barbell"], "variants": ["Pushdown", "Overhead", "Skull Crusher"] },
+  { "name": "Dip", "category": "Triceps", "equipment": ["Bodyweight", "Machine"] },
+  { "name": "Close Grip Bench Press", "category": "Triceps", "equipment": ["Barbell"] },
+  { "name": "Plank", "category": "Abs", "equipment": ["Bodyweight"] },
+  { "name": "Leg Raise", "category": "Abs", "equipment": ["Bodyweight"], "variants": ["Hanging", "Lying"] },
+  { "name": "Crunch", "category": "Abs", "equipment": ["Machine", "Cable", "Bodyweight"] },
+  { "name": "Ab Wheel Rollout", "category": "Abs", "equipment": ["Ab Wheel"] },
+  { "name": "Russian Twist", "category": "Abs", "equipment": ["Bodyweight", "Weight"] },
+  { "name": "Sit-Up", "category": "Abs", "equipment": ["Bodyweight", "Weight"] }
+];
+
 let selectedExercisesForPlan = [];
 let editingPlanId = null;
 
@@ -35,7 +72,7 @@ export async function renderPlanEditor(planId = null, planName = "") {
             const existing = await res.json();
             if (existing && existing.length > 0) {
                 selectedExercisesForPlan = existing.map(e => ({
-                    id: e.exercise_id,
+                    id: e.exercise_id || e.exercise_name.replace(/\s+/g, '-').toLowerCase(),
                     name: e.exercise_name,
                     category: e.category,
                     sets: e.target_sets
@@ -48,7 +85,6 @@ export async function renderPlanEditor(planId = null, planName = "") {
 
     document.getElementById('add-ex-btn').addEventListener('click', () => {
         window.openExerciseWizard((newExercise) => {
-            // BLOKADA DUPLIKATÓW
             const isDuplicate = selectedExercisesForPlan.some(ex => ex.id === newExercise.id);
             if (isDuplicate) {
                 alert("This exercise is already in your plan. You can increase the number of sets instead.");
@@ -84,6 +120,7 @@ window.renderSelectedList = () => {
     selectedExercisesForPlan.forEach((ex, index) => {
         const div = document.createElement("div");
         div.className = "selected-ex-row";
+        div.style.cssText = "display:flex; justify-content:space-between; align-items:center; padding:15px; background:rgba(0,0,0,0.3); border-radius:12px; margin-bottom:10px; border:1px solid var(--border);";
         div.innerHTML = `
             <div style="flex:1;">
                 <div style="font-weight:600; font-size:15px; color:var(--text); line-height: 1.2;">${ex.name}</div>
@@ -92,7 +129,7 @@ window.renderSelectedList = () => {
             <div style="display:flex; align-items:center; gap:15px;">
                 <div style="display:flex; flex-direction:column; align-items:center;">
                     <label style="font-size:12px; color:#8e8e93; font-weight: 600; margin-bottom:4px;">Sets</label>
-                    <input type="number" class="ex-sets" data-index="${index}" value="${ex.sets}" min="1" max="10" onchange="window.updateSets(${index}, this.value)" style="width:60px; padding:12px 5px; margin:0; text-align:center; border-radius:10px; font-size: 16px !important;">
+                    <input type="number" class="ex-sets" data-index="${index}" value="${ex.sets}" min="1" max="10" onchange="window.updateSets(${index}, this.value)" style="width:50px; padding:10px 5px; margin:0; text-align:center; border-radius:10px; font-size: 16px !important; background:rgba(255,255,255,0.05);">
                 </div>
                 <button type="button" onclick="window.removeExercise(${index})" style="background:none; border:none; color:var(--danger); font-size:28px; padding:5px; cursor:pointer; display:flex; align-items:center;">&times;</button>
             </div>
@@ -142,7 +179,7 @@ window.saveFullPlan = async () => {
         for (const ex of selectedExercisesForPlan) {
             await authFetch(`${API_URL}/plan-exercises`, {
                 method: "POST", headers: {"Content-Type":"application/json"},
-                body: JSON.stringify({ plan_id: finalPlanId, exercise_id: ex.id, target_sets: ex.sets })
+                body: JSON.stringify({ plan_id: finalPlanId, exercise_id: ex.id, target_sets: ex.sets, exercise_name: ex.name, category: ex.category })
             });
         }
         window.navigate('workout');
@@ -151,4 +188,124 @@ window.saveFullPlan = async () => {
         saveBtn.innerText = editingPlanId ? "Update Plan" : "Save Workout Plan";
         saveBtn.disabled = false;
     }
+};
+
+// =========================================
+// INTERACTIVE EXERCISE WIZARD LOGIC
+// =========================================
+window.openExerciseWizard = (onComplete) => {
+    let wizardModal = document.getElementById('exercise-wizard');
+    if (!wizardModal) {
+        wizardModal = document.createElement('div');
+        wizardModal.id = 'exercise-wizard';
+        wizardModal.className = 'modal-overlay';
+        document.body.appendChild(wizardModal);
+    }
+
+    let selection = {
+        category: null,
+        baseExercise: null,
+        equipment: null,
+        angle: null,
+        variant: null
+    };
+
+    const categories = [...new Set(EXERCISES_DB.map(e => e.category))];
+
+    const renderView = () => {
+        let title = "Select Muscle";
+        let items = [];
+        let onClick = null;
+        let showBack = true;
+
+        if (!selection.category) {
+            title = "Select Muscle Group";
+            items = categories;
+            showBack = false;
+            onClick = (val) => { selection.category = val; renderView(); };
+        } 
+        else if (!selection.baseExercise) {
+            title = `Select ${selection.category} Exercise`;
+            items = EXERCISES_DB.filter(e => e.category === selection.category).map(e => e.name);
+            onClick = (val) => { 
+                selection.baseExercise = EXERCISES_DB.find(e => e.name === val); 
+                renderView(); 
+            };
+        } 
+        else {
+            const ex = selection.baseExercise;
+            if (ex.equipment && !selection.equipment) {
+                title = "Select Equipment";
+                items = ex.equipment;
+                onClick = (val) => { selection.equipment = val; renderView(); };
+            } 
+            else if (ex.angles && !selection.angle) {
+                title = "Select Angle";
+                items = ex.angles;
+                onClick = (val) => { selection.angle = val; renderView(); };
+            } 
+            else if (ex.variants && !selection.variant) {
+                title = "Select Variant";
+                items = ex.variants;
+                onClick = (val) => { selection.variant = val; renderView(); };
+            } 
+            else {
+                // Formatting final dynamic name (e.g., Incline Barbell Bench Press)
+                const nameParts = [selection.angle, selection.variant, selection.equipment, selection.baseExercise.name];
+                const finalName = nameParts.filter(Boolean).join(" ");
+                const finalId = finalName.replace(/\s+/g, '-').toLowerCase();
+
+                wizardModal.classList.remove('show');
+                setTimeout(() => wizardModal.remove(), 300);
+                
+                onComplete({
+                    id: finalId,
+                    name: finalName,
+                    category: selection.category
+                });
+                return;
+            }
+        }
+
+        const tilesHtml = items.map(item => `
+            <div class="wizard-tile" onclick="window.wizardSelect('${item}')">
+                ${item}
+            </div>
+        `).join('');
+
+        window.wizardSelect = onClick;
+
+        wizardModal.innerHTML = `
+            <div class="modal-content" style="height: auto; max-height: 80%;">
+                <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="display:flex; align-items:center;">
+                        ${showBack ? `<button onclick="window.wizardBack()" style="background:none; border:none; color:var(--text); font-size:24px; cursor:pointer; margin-right:15px; padding:0;">←</button>` : ''}
+                        <h3 style="margin:0; font-size:18px; color:var(--primary);">${title}</h3>
+                    </div>
+                    <button onclick="window.wizardClose()" style="background:none; border:none; color:#8e8e93; font-size:24px; cursor:pointer; padding:0;">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="tile-grid">
+                        ${tilesHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+    };
+
+    window.wizardBack = () => {
+        if (selection.variant) selection.variant = null;
+        else if (selection.angle) selection.angle = null;
+        else if (selection.equipment) selection.equipment = null;
+        else if (selection.baseExercise) selection.baseExercise = null;
+        else if (selection.category) selection.category = null;
+        renderView();
+    };
+
+    window.wizardClose = () => {
+        wizardModal.remove();
+    };
+
+    wizardModal.classList.add('show');
+    renderView();
 };
