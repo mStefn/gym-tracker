@@ -1,8 +1,6 @@
 package main
 
 import (
-	"time"
-
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -192,17 +190,21 @@ func GetDashboardData(c *gin.Context) {
 	}
 	wRows.Close()
 
-	// 2. Readiness (Regeneracja)
-	readiness := map[string]int{"Chest": 100, "Back": 100, "Legs": 100, "Shoulders": 100, "Biceps": 100, "Triceps": 100}
-	rRows, _ := db.Query(`SELECT e.category, MAX(l.created_at) FROM logs l JOIN exercises e ON l.exercise_id = e.id WHERE l.user_id = ? GROUP BY e.category`, userID)
+	// 2. Readiness (Regeneracja) - Zaktualizowane rozwiązanie z MySQL TIMESTAMPDIFF i Abs!
+	readiness := map[string]int{"Chest": 100, "Back": 100, "Legs": 100, "Shoulders": 100, "Biceps": 100, "Triceps": 100, "Abs": 100}
+
+	// MySQL samo policzy godziny od ostatniego treningu do teraz
+	rRows, _ := db.Query(`
+		SELECT e.category, TIMESTAMPDIFF(HOUR, MAX(l.created_at), NOW()) 
+		FROM logs l 
+		JOIN exercises e ON l.exercise_id = e.id 
+		WHERE l.user_id = ? 
+		GROUP BY e.category`, userID)
+
 	for rRows.Next() {
 		var cat string
-		var lastDateStr string
-		rRows.Scan(&cat, &lastDateStr)
-
-		lastDate, err := time.Parse("2006-01-02 15:04:05", lastDateStr)
-		if err == nil {
-			hours := time.Since(lastDate).Hours()
+		var hours int
+		if err := rRows.Scan(&cat, &hours); err == nil {
 			pct := 100
 			if hours < 24 {
 				pct = 15

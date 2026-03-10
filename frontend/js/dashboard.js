@@ -63,10 +63,10 @@ export async function renderDashboard() {
             return squares;
         };
 
-        // NOWY: SVG Muscle Heatmap 
         const buildVisualReadiness = (readinessObj) => {
             const safeR = readinessObj || {};
             
+            // Poprawiona logika: wszystko powyżej/równe 80 to zielony (100% gotowości)
             const getColor = (cat) => {
                 const val = safeR[cat] !== undefined ? safeR[cat] : 100;
                 if (val < 40) return 'var(--danger)';
@@ -83,7 +83,7 @@ export async function renderDashboard() {
                         <path d="M 32 45 Q 50 50 68 45 L 65 65 Q 50 70 35 65 Z" fill="${getColor('Chest')}" stroke="#0b101e" stroke-width="2"/>
                         <path d="M 25 45 L 32 45 L 35 65 L 28 80 Z" fill="${getColor('Back')}" stroke="#0b101e" stroke-width="2"/>
                         <path d="M 75 45 L 68 45 L 65 65 L 72 80 Z" fill="${getColor('Back')}" stroke="#0b101e" stroke-width="2"/>
-                        <path d="M 35 65 Q 50 70 65 65 L 60 90 Q 50 95 40 90 Z" fill="rgba(255,255,255,0.05)" stroke="#0b101e" stroke-width="2"/>
+                        <path d="M 35 65 Q 50 70 65 65 L 60 90 Q 50 95 40 90 Z" fill="${getColor('Abs')}" stroke="#0b101e" stroke-width="2"/>
                         <path d="M 25 45 L 18 70 L 28 72 L 32 45 Z" fill="${getColor('Biceps')}" stroke="#0b101e" stroke-width="2"/>
                         <path d="M 75 45 L 82 70 L 72 72 L 68 45 Z" fill="${getColor('Biceps')}" stroke="#0b101e" stroke-width="2"/>
                         <path d="M 18 70 L 12 90 L 20 92 L 28 72 Z" fill="${getColor('Triceps')}" stroke="#0b101e" stroke-width="2"/>
@@ -93,7 +93,7 @@ export async function renderDashboard() {
                     </svg>
                 </div>
                 <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 15px;">
-                    ${['Chest', 'Back', 'Legs', 'Shoulders', 'Biceps', 'Triceps'].map(cat => `
+                    ${['Chest', 'Back', 'Legs', 'Shoulders', 'Biceps', 'Triceps', 'Abs'].map(cat => `
                         <div style="font-size: 11px; color: #8e8e93; display: flex; align-items: center; gap: 4px; font-weight: 600; text-transform: uppercase;">
                             <div style="width:8px; height:8px; border-radius:50%; background:${getColor(cat)};"></div> ${cat}
                         </div>
