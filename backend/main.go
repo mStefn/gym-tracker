@@ -5,14 +5,24 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/zsais/go-gin-prometheus" // Biblioteka do metryk
 )
 
 func main() {
+	// 1. Inicjalizacja baz danych i auth
 	initDB()
 	initAuth()
 
+	// 2. Utworzenie routera Gin
 	r := gin.Default()
 
+	// --- 3. KONFIGURACJA PROMETHEUSA ---
+	// Wystawia endpoint /metrics dla Twojej lokalnej instancji Prometheusa
+	p := ginprometheus.NewPrometheus("gin")
+	p.Use(r)
+	// ----------------------------------
+
+	// 4. Konfiguracja CORS (Twoje oryginalne ustawienia)
 	allowOrigin := os.Getenv("CORS_ORIGIN")
 	if allowOrigin == "" {
 		allowOrigin = "*"
@@ -29,10 +39,12 @@ func main() {
 	}
 	r.Use(cors.New(corsConfig))
 
+	// 5. Trasy Publiczne
 	r.GET("/health", HealthCheck)
 	r.POST("/login", Login)
 	r.POST("/signup", SignUp)
 
+	// 6. Trasy Zabezpieczone (Grupa Auth)
 	auth := r.Group("/")
 	auth.Use(AuthRequired())
 	{
@@ -66,6 +78,7 @@ func main() {
 		auth.DELETE("/account/:user_id", DeleteOwnAccount)
 	}
 
+	// 7. Administracja
 	admin := r.Group("/admin")
 	admin.Use(AuthRequired(), AdminRequired())
 	{
@@ -73,10 +86,14 @@ func main() {
 		admin.POST("/reset-pin", AdminResetPin)
 	}
 
+	// Dodatkowa trasa admina
 	r.DELETE("/user/:id", AuthRequired(), AdminRequired(), DeleteAccount)
 
+	// 8. Start serwera na Twoim porcie 4000
 	r.Run("0.0.0.0:4000")
 }
+
+// --- Dodatkowe Typy i Handlery z Twojego pliku ---
 
 type FindOrCreateReq struct {
 	Name     string `json:"name"`

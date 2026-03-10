@@ -1,6 +1,7 @@
 services:
   db:
     image: mariadb:10.11
+    container_name: gym-db
     restart: always
     env_file: .env
     environment:
@@ -15,7 +16,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend
+    container_name: gym-backend
     ports:
+      # Twój backend jest na zewnątrz widoczny pod 5001. 
+      # Prometheus na hoście będzie skrobał: http://localhost:5001/metrics
       - "5001:4000"
     env_file: .env
     environment:
@@ -24,14 +28,32 @@ services:
       - CORS_ORIGIN=${CORS_ORIGIN}
     depends_on:
       - db
+    restart: always
 
   frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+    container_name: gym-frontend
     ports:
       - "5000:8081"
     restart: always
+
+  # --- NOWY ELEMENT: MONITORING ZASOBÓW (CPU/RAM) ---
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: gym-cadvisor
+    restart: always
+    ports:
+      # Prometheus na hoście będzie skrobał: http://localhost:8081/metrics
+      - "8081:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
 
 volumes:
   mariadb_data:
