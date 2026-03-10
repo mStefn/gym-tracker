@@ -11,7 +11,7 @@ export async function renderDashboard() {
     const latestWeight =
       stats.weights && stats.weights.length > 0 ? stats.weights[0] : "--";
 
-    // --- 1. TREND LINE (Waga) ---
+    // --- 1. TREND LINE (Weight) ---
     const buildSparkline = (weights) => {
       if (!weights || weights.length < 2) {
         return `
@@ -82,7 +82,7 @@ export async function renderDashboard() {
       `;
     };
 
-    // --- 2. HEATMAP (Aktywność - kwadraciki) ---
+    // --- 2. HEATMAP (Activity squares) ---
     const buildHeatmap = (activeDates) => {
       const safeDates = activeDates || [];
       let squares = "";
@@ -109,7 +109,7 @@ export async function renderDashboard() {
       return squares;
     };
 
-    // --- 3. VOLUME (Objętość - słupki) ---
+    // --- 3. VOLUME (Bar charts) ---
     const buildVolume = (volArray) => {
       const getYearWeek = (d) => {
         const date = new Date(
@@ -203,14 +203,41 @@ export async function renderDashboard() {
 
       const getColor = (cat) => {
         const val = safeR[cat] !== undefined ? safeR[cat] : 100;
-        if (val <= 15) return "#ff3b30"; // Krytyczny
-        if (val <= 50) return "#ff9500"; // Średni
-        if (val <= 85) return "#ffcc00"; // Lekki
-        return "#32d74b"; // Gotowy
+        if (val <= 15) return "#ff3b30"; // Critical
+        if (val <= 50) return "#ff9500"; // Moderate
+        if (val <= 85) return "#ffcc00"; // Light
+        return "#32d74b"; // Ready
+      };
+
+      // Helper function to create interactive polygons
+      const createPoly = (points, name) => {
+        return `<polygon 
+                  points="${points}" 
+                  fill="${getColor(name)}" 
+                  class="muscle-part" 
+                  data-name="${name}" 
+                  stroke="var(--bg)" 
+                  stroke-width="1.5" 
+                />`;
       };
 
       return `
-        <div style="display:flex; justify-content:space-around; font-size:10px; font-weight:900; color:#a1a1aa; letter-spacing:5px; margin-bottom:20px; text-transform:uppercase;">
+        <style>
+          .muscle-part { 
+            transition: filter 0.2s ease, opacity 0.2s ease; 
+            cursor: pointer; 
+          }
+          .muscle-part:hover { 
+            filter: brightness(1.3); 
+            opacity: 0.9;
+          }
+        </style>
+
+        <div id="muscle-label" style="text-align:center; height:16px; font-weight:900; color:var(--text); letter-spacing:3px; margin-bottom:15px; text-transform:uppercase; font-size:12px; transition: color 0.3s ease;">
+          SELECT A MUSCLE
+        </div>
+
+        <div style="display:flex; justify-content:space-around; font-size:10px; font-weight:900; color:#a1a1aa; letter-spacing:5px; margin-bottom:10px; text-transform:uppercase;">
           <span>FRONT</span>
           <span>BACK</span>
         </div>
@@ -221,35 +248,38 @@ export async function renderDashboard() {
             <g transform="translate(10, 0)">
               <polygon points="42,5 58,5 62,15 50,25 38,15" fill="rgba(255,255,255,0.05)" />
               
-              <polygon points="32,40 50,45 68,40 75,62 50,68 25,62" fill="${getColor("Chest")}" />
+              ${createPoly("32,40 50,45 68,40 70,62 50,68 30,62", "Chest")}
               
-              <polygon points="10,40 22,38 30,60 18,65" fill="${getColor("Shoulders")}" />
-              <polygon points="90,40 78,38 70,60 82,65" fill="${getColor("Shoulders")}" />
+              ${createPoly("10,40 22,40 25,52 16,62 7,52", "Shoulders")}
+              ${createPoly("78,40 90,40 93,52 84,62 75,52", "Shoulders")}
               
-              <polygon points="35,70 65,70 62,110 50,120 38,110" fill="${getColor("Abs")}" />
+              ${createPoly("35,70 65,70 62,110 50,120 38,110", "Abs")}
               
-              <polygon points="10,68 18,65 24,105 16,110" fill="${getColor("Biceps")}" />
-              <polygon points="90,68 82,65 76,105 84,110" fill="${getColor("Biceps")}" />
+              ${createPoly("10,66 18,63 24,105 16,110", "Biceps")}
+              ${createPoly("90,66 82,63 76,105 84,110", "Biceps")}
               
-              <polygon points="34,130 49,130 46,200 30,195" fill="${getColor("Quads")}" />
-              <polygon points="66,130 51,130 54,200 70,195" fill="${getColor("Quads")}" />
+              ${createPoly("34,125 49,125 46,195 30,190", "Quads")}
+              ${createPoly("66,125 51,125 54,195 70,190", "Quads")}
             </g>
 
             <g transform="translate(130, 0)">
               <polygon points="42,5 58,5 62,15 50,25 38,15" fill="rgba(255,255,255,0.05)" />
               
-              <polygon points="42,30 58,30 75,40 82,75 50,105 18,75 25,40" fill="${getColor("Back")}" />
+              ${createPoly("28,40 72,40 62,105 38,105", "Back")}
               
-              <polygon points="35,110 65,110 68,130 50,138 32,130" fill="${getColor("Glutes")}" />
+              ${createPoly("35,110 65,110 68,130 50,138 32,130", "Glutes")}
               
-              <polygon points="10,70 18,65 22,105 14,110" fill="${getColor("Triceps")}" />
-              <polygon points="90,70 82,65 78,105 86,110" fill="${getColor("Triceps")}" />
+              ${createPoly("10,40 22,40 25,52 16,62 7,52", "Shoulders")}
+              ${createPoly("78,40 90,40 93,52 84,62 75,52", "Shoulders")}
               
-              <polygon points="30,145 48,145 45,200 32,200" fill="${getColor("Hamstrings")}" />
-              <polygon points="70,145 52,145 55,200 68,200" fill="${getColor("Hamstrings")}" />
+              ${createPoly("10,66 18,63 22,105 14,110", "Triceps")}
+              ${createPoly("90,66 82,63 78,105 86,110", "Triceps")}
+              
+              ${createPoly("30,145 48,145 45,200 32,200", "Hamstrings")}
+              ${createPoly("70,145 52,145 55,200 68,200", "Hamstrings")}
 
-              <polygon points="32,210 44,210 42,240 34,240" fill="${getColor("Calves")}" />
-              <polygon points="68,210 56,210 58,240 66,240" fill="${getColor("Calves")}" />
+              ${createPoly("32,205 44,205 42,240 34,240", "Calves")}
+              ${createPoly("68,205 56,205 58,240 66,240", "Calves")}
             </g>
           </svg>
         </div>
@@ -355,6 +385,36 @@ export async function renderDashboard() {
 
       </div>
     `;
+
+    // --- INTERACTIVITY SCRIPT (Hover/Tap functionality) ---
+    const muscleLabel = document.getElementById("muscle-label");
+    const muscleParts = document.querySelectorAll(".muscle-part");
+
+    muscleParts.forEach(part => {
+      // Hover for desktop
+      part.addEventListener("mouseenter", (e) => {
+        muscleLabel.innerText = e.target.getAttribute("data-name");
+        muscleLabel.style.color = "var(--primary)";
+      });
+      
+      part.addEventListener("mouseleave", () => {
+        muscleLabel.innerText = "SELECT A MUSCLE";
+        muscleLabel.style.color = "var(--text)";
+      });
+
+      // Tap for mobile
+      part.addEventListener("click", (e) => {
+        muscleLabel.innerText = e.target.getAttribute("data-name");
+        muscleLabel.style.color = "var(--primary)";
+        
+        // Reset after 2 seconds on mobile
+        setTimeout(() => {
+          muscleLabel.innerText = "SELECT A MUSCLE";
+          muscleLabel.style.color = "var(--text)";
+        }, 2000);
+      });
+    });
+
   } catch (e) {
     console.error("Dashboard error:", e);
 
