@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -80,17 +82,15 @@ func LogSet(c *gin.Context) {
 		return
 	}
 
-	// SYSTEM RPG: Wyliczenie i zapis EXP po serii
 	expGained := int(input.Weight * float64(input.Reps) * 0.1)
 	if expGained <= 0 && input.Reps > 0 {
-		expGained = input.Reps // dla ćwiczeń z masą ciała
+		expGained = input.Reps
 	}
 	if expGained <= 0 {
-		expGained = 1 // minium 1 exp
+		expGained = 1
 	}
 
 	db.Exec("UPDATE users SET exp = exp + ? WHERE id = ?", expGained, input.UserID)
-	// Co 1000 exp przeskakuje level
 	db.Exec("UPDATE users SET level = FLOOR(exp / 1000) + 1 WHERE id = ?", input.UserID)
 
 	c.JSON(200, gin.H{"status": "success"})
@@ -171,7 +171,6 @@ func LogBodyWeight(c *gin.Context) {
 func GetDashboardData(c *gin.Context) {
 	userID := c.Param("user_id")
 
-	// 0. RPG Data
 	var exp, level int
 	db.QueryRow("SELECT exp, level FROM users WHERE id = ?", userID).Scan(&exp, &level)
 	if level == 0 {
@@ -180,7 +179,6 @@ func GetDashboardData(c *gin.Context) {
 	currentLevelBaseExp := (level - 1) * 1000
 	expProgress := exp - currentLevelBaseExp
 
-	// 1. Ostatnia waga ciała
 	var weights []float64
 	wRows, _ := db.Query("SELECT weight FROM user_weights WHERE user_id = ? ORDER BY logged_at DESC LIMIT 7", userID)
 	for wRows.Next() {
@@ -190,21 +188,40 @@ func GetDashboardData(c *gin.Context) {
 	}
 	wRows.Close()
 
-	// 2. Readiness (Regeneracja) - Zaktualizowane rozwiązanie z MySQL TIMESTAMPDIFF i Abs!
-	readiness := map[string]int{"Chest": 100, "Back": 100, "Legs": 100, "Shoulders": 100, "Biceps": 100, "Triceps": 100, "Abs": 100}
+	// TWARDE USTAWIANIE DOMYŚLNYCH WARTOŚCI NA 100% (ZIELONY)
+	readiness := map[string]int{
+		"Chest": 100, "Back": 100, "Shoulders": 100, "Biceps": 100,
+		"Triceps": 100, "Abs": 100, "Quads": 100, "Hamstrings": 100,
+		"Glutes": 100, "Calves": 100,
+	}
 
-	// MySQL samo policzy godziny od ostatniego treningu do teraz
 	rRows, _ := db.Query(`
-		SELECT e.category, TIMESTAMPDIFF(HOUR, MAX(l.created_at), NOW()) 
+		SELECT e.name, e.category, TIMESTAMPDIFF(HOUR, MAX(l.created_at), NOW()) 
 		FROM logs l 
 		JOIN exercises e ON l.exercise_id = e.id 
 		WHERE l.user_id = ? 
-		GROUP BY e.category`, userID)
+		GROUP BY e.id`, userID)
 
 	for rRows.Next() {
-		var cat string
+		var exName, cat string
 		var hours int
-		if err := rRows.Scan(&cat, &hours); err == nil {
+		if err := rRows.Scan(&exName, &cat, &hours); err == nil {
+
+			// MAPOWANIE PRECYZYJNYCH PARTII MIĘŚNIOWYCH
+			detailedCat := cat
+			if cat == "Legs" {
+				nameLower := strings.ToLower(exName)
+				if strings.Contains(nameLower, "calf") || strings.Contains(nameLower, "calves") {
+					detailedCat = "Calves"
+				} else if strings.Contains(nameLower, "deadlift") || strings.Contains(nameLower, "curl") {
+					detailedCat = "Hamstrings"
+				} else if strings.Contains(nameLower, "thrust") || strings.Contains(nameLower, "glute") || strings.Contains(nameLower, "abduction") || strings.Contains(nameLower, "adduction") {
+					detailedCat = "Glutes"
+				} else {
+					detailedCat = "Quads" // Squaty, Lunge, prasa
+				}
+			}
+
 			pct := 100
 			if hours < 24 {
 				pct = 15
@@ -213,12 +230,15 @@ func GetDashboardData(c *gin.Context) {
 			} else if hours < 72 {
 				pct = 85
 			}
-			readiness[cat] = pct
+
+			// Szukamy NAJBARDZIEJ zmęczonego ćwiczenia z danej grupy (nadpisuje mniejszą wartość)
+			if pct < readiness[detailedCat] {
+				readiness[detailedCat] = pct
+			}
 		}
 	}
 	rRows.Close()
 
-	// 3. Heatmap
 	var heatmap []string
 	hRows, _ := db.Query("SELECT DISTINCT DATE(created_at) FROM logs WHERE user_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 45 DAY)", userID)
 	for hRows.Next() {
@@ -228,7 +248,6 @@ func GetDashboardData(c *gin.Context) {
 	}
 	hRows.Close()
 
-	// 4. Weekly Volume
 	type VolData struct {
 		Week  string  `json:"week"`
 		Total float64 `json:"total"`

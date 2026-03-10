@@ -66,38 +66,68 @@ export async function renderDashboard() {
         const buildVisualReadiness = (readinessObj) => {
             const safeR = readinessObj || {};
             
-            // Poprawiona logika: wszystko powyżej/równe 80 to zielony (100% gotowości)
+            // Sztywne kolory dla Mapy (Niezależne od styli CSS)
             const getColor = (cat) => {
                 const val = safeR[cat] !== undefined ? safeR[cat] : 100;
-                if (val < 40) return 'var(--danger)';
-                if (val < 80) return 'orange';
-                return 'var(--success)';
+                if (val <= 15) return '#ff3b30'; // Czerwony - Zmęczony
+                if (val <= 50) return '#ff9500'; // Pomarańczowy - Regeneracja
+                if (val <= 85) return '#ffcc00'; // Żółty - Gotowy
+                return '#32d74b';                // Zielony - Pełna moc
             };
 
             return `
-                <div style="display: flex; justify-content: center; padding: 10px 0;">
-                    <svg viewBox="0 0 100 150" style="height: 180px; width: 100%; filter: drop-shadow(0 0 10px rgba(0,210,255,0.15));">
-                        <circle cx="50" cy="15" r="10" fill="rgba(255,255,255,0.05)" stroke="var(--border)" stroke-width="1"/>
-                        <rect x="47" y="25" width="6" height="10" fill="rgba(255,255,255,0.05)" />
-                        <path d="M 30 35 Q 50 30 70 35 L 75 45 Q 50 40 25 45 Z" fill="${getColor('Shoulders')}" stroke="#0b101e" stroke-width="2"/>
-                        <path d="M 32 45 Q 50 50 68 45 L 65 65 Q 50 70 35 65 Z" fill="${getColor('Chest')}" stroke="#0b101e" stroke-width="2"/>
-                        <path d="M 25 45 L 32 45 L 35 65 L 28 80 Z" fill="${getColor('Back')}" stroke="#0b101e" stroke-width="2"/>
-                        <path d="M 75 45 L 68 45 L 65 65 L 72 80 Z" fill="${getColor('Back')}" stroke="#0b101e" stroke-width="2"/>
-                        <path d="M 35 65 Q 50 70 65 65 L 60 90 Q 50 95 40 90 Z" fill="${getColor('Abs')}" stroke="#0b101e" stroke-width="2"/>
-                        <path d="M 25 45 L 18 70 L 28 72 L 32 45 Z" fill="${getColor('Biceps')}" stroke="#0b101e" stroke-width="2"/>
-                        <path d="M 75 45 L 82 70 L 72 72 L 68 45 Z" fill="${getColor('Biceps')}" stroke="#0b101e" stroke-width="2"/>
-                        <path d="M 18 70 L 12 90 L 20 92 L 28 72 Z" fill="${getColor('Triceps')}" stroke="#0b101e" stroke-width="2"/>
-                        <path d="M 82 70 L 88 90 L 80 92 L 72 72 Z" fill="${getColor('Triceps')}" stroke="#0b101e" stroke-width="2"/>
-                        <path d="M 40 90 L 30 140 L 45 140 L 48 93 Z" fill="${getColor('Legs')}" stroke="#0b101e" stroke-width="2"/>
-                        <path d="M 60 90 L 70 140 L 55 140 L 52 93 Z" fill="${getColor('Legs')}" stroke="#0b101e" stroke-width="2"/>
+                <div style="display: flex; justify-content: space-around; font-size: 13px; font-weight: 800; color: #a1a1aa; letter-spacing: 2px;">
+                    <span>FRONT</span>
+                    <span>BACK</span>
+                </div>
+                
+                <div style="display: flex; justify-content: center; padding: 15px 0;">
+                    <svg viewBox="0 0 200 150" style="height: 180px; width: 100%; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));">
+                        
+                        <g transform="translate(0, 0)">
+                            <circle cx="50" cy="15" r="8" fill="rgba(255,255,255,0.05)" stroke="#0b101e" stroke-width="1"/>
+                            <rect x="47" y="22" width="6" height="5" fill="rgba(255,255,255,0.05)" />
+                            
+                            <path d="M35 25 Q50 22 65 25 L70 35 Q50 30 30 35 Z" fill="${getColor('Shoulders')}" stroke="#0b101e" stroke-width="1.5"/>
+                            <path d="M38 35 Q50 40 62 35 L60 50 Q50 55 40 50 Z" fill="${getColor('Chest')}" stroke="#0b101e" stroke-width="1.5"/>
+                            <path d="M40 50 Q50 55 60 50 L56 75 Q50 80 44 75 Z" fill="${getColor('Abs')}" stroke="#0b101e" stroke-width="1.5"/>
+                            
+                            <path d="M30 35 L22 55 L28 58 L35 45 Z" fill="${getColor('Biceps')}" stroke="#0b101e" stroke-width="1.5"/>
+                            <path d="M70 35 L78 55 L72 58 L65 45 Z" fill="${getColor('Biceps')}" stroke="#0b101e" stroke-width="1.5"/>
+                            
+                            <path d="M44 75 L35 110 L45 110 L48 78 Z" fill="${getColor('Quads')}" stroke="#0b101e" stroke-width="1.5"/>
+                            <path d="M56 75 L65 110 L55 110 L52 78 Z" fill="${getColor('Quads')}" stroke="#0b101e" stroke-width="1.5"/>
+                            
+                            <path d="M35 112 L32 135 L42 135 L45 112 Z" fill="rgba(255,255,255,0.05)" stroke="#0b101e" stroke-width="1.5"/>
+                            <path d="M65 112 L68 135 L58 135 L55 112 Z" fill="rgba(255,255,255,0.05)" stroke="#0b101e" stroke-width="1.5"/>
+                        </g>
+
+                        <g transform="translate(100, 0)">
+                            <circle cx="50" cy="15" r="8" fill="rgba(255,255,255,0.05)" stroke="#0b101e" stroke-width="1"/>
+                            <rect x="47" y="22" width="6" height="5" fill="rgba(255,255,255,0.05)" />
+                            
+                            <path d="M35 25 Q50 22 65 25 L70 35 Q50 30 30 35 Z" fill="${getColor('Shoulders')}" stroke="#0b101e" stroke-width="1.5"/>
+                            <path d="M38 35 Q50 40 62 35 L60 60 Q50 65 40 60 Z" fill="${getColor('Back')}" stroke="#0b101e" stroke-width="1.5"/>
+                            <path d="M40 60 Q50 65 60 60 L58 75 Q50 80 42 75 Z" fill="${getColor('Glutes')}" stroke="#0b101e" stroke-width="1.5"/>
+                            
+                            <path d="M30 35 L22 55 L28 58 L35 45 Z" fill="${getColor('Triceps')}" stroke="#0b101e" stroke-width="1.5"/>
+                            <path d="M70 35 L78 55 L72 58 L65 45 Z" fill="${getColor('Triceps')}" stroke="#0b101e" stroke-width="1.5"/>
+                            
+                            <path d="M42 75 L35 110 L45 110 L48 78 Z" fill="${getColor('Hamstrings')}" stroke="#0b101e" stroke-width="1.5"/>
+                            <path d="M58 75 L65 110 L55 110 L52 78 Z" fill="${getColor('Hamstrings')}" stroke="#0b101e" stroke-width="1.5"/>
+                            
+                            <path d="M35 112 L32 135 L42 135 L45 112 Z" fill="${getColor('Calves')}" stroke="#0b101e" stroke-width="1.5"/>
+                            <path d="M65 112 L68 135 L58 135 L55 112 Z" fill="${getColor('Calves')}" stroke="#0b101e" stroke-width="1.5"/>
+                        </g>
+
                     </svg>
                 </div>
-                <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 15px;">
-                    ${['Chest', 'Back', 'Legs', 'Shoulders', 'Biceps', 'Triceps', 'Abs'].map(cat => `
-                        <div style="font-size: 11px; color: #8e8e93; display: flex; align-items: center; gap: 4px; font-weight: 600; text-transform: uppercase;">
-                            <div style="width:8px; height:8px; border-radius:50%; background:${getColor(cat)};"></div> ${cat}
-                        </div>
-                    `).join('')}
+                
+                <div style="display: flex; justify-content: space-between; font-size: 10px; color: #a1a1aa; margin-top: 10px; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 12px; border: 1px solid var(--border);">
+                    <div style="display: flex; align-items: center; gap: 5px; font-weight: bold;"><div style="width:12px; height:12px; border-radius:3px; background:#32d74b; box-shadow: 0 0 5px #32d74b;"></div> Fresh</div>
+                    <div style="display: flex; align-items: center; gap: 5px; font-weight: bold;"><div style="width:12px; height:12px; border-radius:3px; background:#ffcc00; box-shadow: 0 0 5px #ffcc00;"></div> Good</div>
+                    <div style="display: flex; align-items: center; gap: 5px; font-weight: bold;"><div style="width:12px; height:12px; border-radius:3px; background:#ff9500; box-shadow: 0 0 5px #ff9500;"></div> Sore</div>
+                    <div style="display: flex; align-items: center; gap: 5px; font-weight: bold;"><div style="width:12px; height:12px; border-radius:3px; background:#ff3b30; box-shadow: 0 0 5px #ff3b30;"></div> Dead</div>
                 </div>
             `;
         };
