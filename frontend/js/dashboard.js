@@ -203,53 +203,53 @@ const buildVisualReadiness = (readinessObj) => {
 
   const getColor = (cat) => {
     const val = safeR[cat] !== undefined ? safeR[cat] : 100;
-    if (val <= 15) return "#ff3b30"; // Czerwony (Zajechane)
-    if (val <= 50) return "#ff9500"; // Pomarańczowy
-    if (val <= 85) return "#ffcc00"; // Żółty
-    return "#32d74b"; // Zielony (Gotowe)
+    if (val <= 15) return "#ff3b30"; // Krytyczny
+    if (val <= 50) return "#ff9500"; // Średni
+    if (val <= 85) return "#ffcc00"; // Lekki
+    return "#32d74b"; // Gotowy
   };
 
   return `
-    <div style="display:flex; justify-content:space-around; font-size:10px; font-weight:900; color:#52525b; letter-spacing:4px; margin-bottom:15px; text-transform:uppercase;">
+    <div style="display:flex; justify-content:space-around; font-size:10px; font-weight:900; color:#52525b; letter-spacing:5px; margin-bottom:20px; text-transform:uppercase; opacity:0.8;">
       <span>Anterior</span>
       <span>Posterior</span>
     </div>
 
-    <div style="display:flex; justify-content:center; align-items:center; gap:20px;">
-      <svg viewBox="0 0 240 220" style="width:100%; max-width:450px; height:auto;">
+    <div style="display:flex; justify-content:center; align-items:center;">
+      <svg viewBox="0 0 240 250" style="width:100%; max-width:500px; height:auto; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));">
         
         <g transform="translate(10, 0)">
-          <path d="M42,5 L58,5 L62,15 L50,25 L38,15 Z" fill="rgba(255,255,255,0.05)" />
+          <polygon points="42,5 58,5 62,15 50,25 38,15" fill="rgba(255,255,255,0.05)" />
           
-          <path d="M30,30 L70,30 L75,55 L50,60 L25,55 Z" fill="${getColor("Chest")}" />
+          <polygon points="28,42 50,48 72,42 78,65 50,72 22,65" fill="${getColor("Chest")}" />
           
-          <path d="M32,62 L68,62 L65,95 L50,100 L35,95 Z" fill="${getColor("Abs")}" />
+          <polygon points="18,45 26,42 32,65 20,70" fill="${getColor("Shoulders")}" />
+          <polygon points="82,45 74,42 68,65 80,70" fill="${getColor("Shoulders")}" />
           
-          <path d="M22,32 L28,30 L35,45 L25,55 Z" fill="${getColor("Shoulders")}" />
-          <path d="M78,32 L72,30 L65,45 L75,55 Z" fill="${getColor("Shoulders")}" />
+          <polygon points="32,75 68,75 64,115 50,125 36,115" fill="${getColor("Abs")}" />
           
-          <path d="M18,58 L24,55 L28,90 L20,95 Z" fill="${getColor("Biceps")}" />
-          <path d="M82,58 L76,55 L72,90 L80,95 Z" fill="${getColor("Biceps")}" />
+          <polygon points="15,75 22,72 26,110 18,115" fill="${getColor("Biceps")}" />
+          <polygon points="85,75 78,72 74,110 82,115" fill="${getColor("Biceps")}" />
           
-          <path d="M33,105 L48,105 L46,165 L32,160 Z" fill="${getColor("Quads")}" />
-          <path d="M67,105 L52,105 L54,165 L68,160 Z" fill="${getColor("Quads")}" />
+          <polygon points="34,130 49,130 46,200 30,195" fill="${getColor("Quads")}" />
+          <polygon points="66,130 51,130 54,200 70,195" fill="${getColor("Quads")}" />
         </g>
 
         <g transform="translate(130, 0)">
-          <path d="M42,5 L58,5 L62,15 L50,25 L38,15 Z" fill="rgba(255,255,255,0.05)" />
+          <polygon points="42,5 58,5 62,15 50,25 38,15" fill="rgba(255,255,255,0.05)" />
           
-          <path d="M30,30 L70,30 L78,80 L50,90 L22,80 Z" fill="${getColor("Back")}" />
+          <polygon points="25,42 50,35 75,42 82,90 50,105 18,90" fill="${getColor("Back")}" />
           
-          <path d="M28,95 L72,95 L68,120 L50,125 L32,120 Z" fill="${getColor("Glutes")}" />
+          <polygon points="30,110 70,110 75,140 50,150 25,140" fill="${getColor("Glutes")}" />
           
-          <path d="M18,58 L24,55 L28,90 L20,95 Z" fill="${getColor("Triceps")}" />
-          <path d="M82,58 L76,55 L72,90 L80,95 Z" fill="${getColor("Triceps")}" />
+          <polygon points="15,75 22,72 26,110 18,115" fill="${getColor("Triceps")}" />
+          <polygon points="85,75 78,72 74,110 82,115" fill="${getColor("Triceps")}" />
           
-          <path d="M32,128 L48,128 L46,175 L32,170 Z" fill="${getColor("Hamstrings")}" />
-          <path d="M68,128 L52,128 L54,175 L68,170 Z" fill="${getColor("Hamstrings")}" />
-          
-          <path d="M32,180 L46,180 L44,215 L34,215 Z" fill="${getColor("Calves")}" />
-          <path d="M68,180 L54,180 L56,215 L66,215 Z" fill="${getColor("Calves")}" />
+          <polygon points="30,155 48,155 45,210 32,210" fill="${getColor("Hamstrings")}" />
+          <polygon points="70,155 52,155 55,210 68,210" fill="${getColor("Hamstrings")}" />
+
+          <polygon points="32,215 44,215 42,245 34,245" fill="${getColor("Calves")}" />
+          <polygon points="68,215 56,215 58,245 66,245" fill="${getColor("Calves")}" />
         </g>
       </svg>
     </div>
