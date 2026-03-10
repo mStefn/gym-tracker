@@ -198,63 +198,63 @@ export async function renderDashboard() {
     };
 
     // --- 4. MUSCLE READINESS ---
-const buildVisualReadiness = (readinessObj) => {
-  const safeR = readinessObj || {};
+    const buildVisualReadiness = (readinessObj) => {
+      const safeR = readinessObj || {};
 
-  const getColor = (cat) => {
-    const val = safeR[cat] !== undefined ? safeR[cat] : 100;
-    if (val <= 15) return "#ff3b30"; // Krytyczny
-    if (val <= 50) return "#ff9500"; // Średni
-    if (val <= 85) return "#ffcc00"; // Lekki
-    return "#32d74b"; // Gotowy
-  };
+      const getColor = (cat) => {
+        const val = safeR[cat] !== undefined ? safeR[cat] : 100;
+        if (val <= 15) return "#ff3b30"; // Krytyczny
+        if (val <= 50) return "#ff9500"; // Średni
+        if (val <= 85) return "#ffcc00"; // Lekki
+        return "#32d74b"; // Gotowy
+      };
 
-  return `
-    <div style="display:flex; justify-content:space-around; font-size:10px; font-weight:900; color:#a1a1aa; letter-spacing:5px; margin-bottom:20px; text-transform:uppercase;">
-      <span>FRONT</span>
-      <span>BACK</span>
-    </div>
+      return `
+        <div style="display:flex; justify-content:space-around; font-size:10px; font-weight:900; color:#a1a1aa; letter-spacing:5px; margin-bottom:20px; text-transform:uppercase;">
+          <span>FRONT</span>
+          <span>BACK</span>
+        </div>
 
-    <div style="display:flex; justify-content:center; align-items:center;">
-      <svg viewBox="0 0 240 250" style="width:100%; max-width:500px; height:auto; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));">
-        
-        <g transform="translate(10, 0)">
-          <polygon points="42,5 58,5 62,15 50,25 38,15" fill="rgba(255,255,255,0.05)" />
-          
-          <polygon points="TL 32,40 50,45 68,40 75,62 50,68 25,62" fill="${getColor("Chest")}" />
-          
-          <polygon points="10,40 22,38 30,60 18,65" fill="${getColor("Shoulders")}" />
-          <polygon points="90,40 78,38 70,60 82,65" fill="${getColor("Shoulders")}" />
-          
-          <polygon points="35,70 65,70 62,110 50,120 38,110" fill="${getColor("Abs")}" />
-          
-          <polygon points="10,68 18,65 24,105 16,110" fill="${getColor("Biceps")}" />
-          <polygon points="90,68 82,65 76,105 84,110" fill="${getColor("Biceps")}" />
-          
-          <polygon points="34,130 49,130 46,200 30,195" fill="${getColor("Quads")}" />
-          <polygon points="66,130 51,130 54,200 70,195" fill="${getColor("Quads")}" />
-        </g>
+        <div style="display:flex; justify-content:center; align-items:center;">
+          <svg viewBox="0 0 240 250" style="width:100%; max-width:500px; height:auto; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));">
+            
+            <g transform="translate(10, 0)">
+              <polygon points="42,5 58,5 62,15 50,25 38,15" fill="rgba(255,255,255,0.05)" />
+              
+              <polygon points="32,40 50,45 68,40 75,62 50,68 25,62" fill="${getColor("Chest")}" />
+              
+              <polygon points="10,40 22,38 30,60 18,65" fill="${getColor("Shoulders")}" />
+              <polygon points="90,40 78,38 70,60 82,65" fill="${getColor("Shoulders")}" />
+              
+              <polygon points="35,70 65,70 62,110 50,120 38,110" fill="${getColor("Abs")}" />
+              
+              <polygon points="10,68 18,65 24,105 16,110" fill="${getColor("Biceps")}" />
+              <polygon points="90,68 82,65 76,105 84,110" fill="${getColor("Biceps")}" />
+              
+              <polygon points="34,130 49,130 46,200 30,195" fill="${getColor("Quads")}" />
+              <polygon points="66,130 51,130 54,200 70,195" fill="${getColor("Quads")}" />
+            </g>
 
-        <g transform="translate(130, 0)">
-          <polygon points="42,5 58,5 62,15 50,25 38,15" fill="rgba(255,255,255,0.05)" />
-          
-          <polygon points="42,30 58,30 (Traps top) 75,40 (Shoulder meet) 82,75 (Wide Lat) 50,105 (Waist) 18,75 (Wide Lat) 25,40 (Shoulder meet)" fill="${getColor("Back")}" />
-          
-          <polygon points="35,110 65,110 68,130 50,138 32,130" fill="${getColor("Glutes")}" />
-          
-          <polygon points="10,70 18,65 22,105 14,110" fill="${getColor("Triceps")}" />
-          <polygon points="90,70 82,65 78,105 86,110" fill="${getColor("Triceps")}" />
-          
-          <polygon points="30,145 48,145 45,200 32,200" fill="${getColor("Hamstrings")}" />
-          <polygon points="70,145 52,145 55,200 68,200" fill="${getColor("Hamstrings")}" />
+            <g transform="translate(130, 0)">
+              <polygon points="42,5 58,5 62,15 50,25 38,15" fill="rgba(255,255,255,0.05)" />
+              
+              <polygon points="42,30 58,30 75,40 82,75 50,105 18,75 25,40" fill="${getColor("Back")}" />
+              
+              <polygon points="35,110 65,110 68,130 50,138 32,130" fill="${getColor("Glutes")}" />
+              
+              <polygon points="10,70 18,65 22,105 14,110" fill="${getColor("Triceps")}" />
+              <polygon points="90,70 82,65 78,105 86,110" fill="${getColor("Triceps")}" />
+              
+              <polygon points="30,145 48,145 45,200 32,200" fill="${getColor("Hamstrings")}" />
+              <polygon points="70,145 52,145 55,200 68,200" fill="${getColor("Hamstrings")}" />
 
-          <polygon points="32,210 44,210 42,240 34,240" fill="${getColor("Calves")}" />
-          <polygon points="68,210 56,210 58,240 66,240" fill="${getColor("Calves")}" />
-        </g>
-      </svg>
-    </div>
-  `;
-};
+              <polygon points="32,210 44,210 42,240 34,240" fill="${getColor("Calves")}" />
+              <polygon points="68,210 56,210 58,240 66,240" fill="${getColor("Calves")}" />
+            </g>
+          </svg>
+        </div>
+      `;
+    };
 
     const currentExp = stats.exp || 0;
     const currentLevel = stats.level || 1;
@@ -275,7 +275,6 @@ const buildVisualReadiness = (readinessObj) => {
           </div>
         </div>
 
-        <!-- XP CARD -->
         <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:16px; padding:20px; text-align:center;">
           <h3 style="margin:0 0 5px 0; color:var(--primary); font-size:14px; text-transform:uppercase;">
             Experience Points
@@ -298,7 +297,6 @@ const buildVisualReadiness = (readinessObj) => {
           </div>
         </div>
 
-        <!-- WEIGHT -->
         <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:16px; padding:15px;">
           <h4 style="margin:0 0 10px 0; color:#8e8e93; font-size:12px;">
             Body Weight
@@ -327,7 +325,6 @@ const buildVisualReadiness = (readinessObj) => {
           ${buildSparkline(stats.weights)}
         </div>
 
-        <!-- MUSCLE READINESS -->
         <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:16px; padding:15px;">
           <h4 style="margin:0 0 15px 0; color:#8e8e93; font-size:12px;">
             Muscle Readiness
@@ -336,7 +333,6 @@ const buildVisualReadiness = (readinessObj) => {
           ${buildVisualReadiness(stats.readiness)}
         </div>
 
-        <!-- HEATMAP -->
         <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:16px; padding:15px;">
           <h4 style="margin:0 0 10px 0; color:#8e8e93; font-size:12px;">
             Activity (Last 45 Days)
@@ -347,7 +343,6 @@ const buildVisualReadiness = (readinessObj) => {
           </div>
         </div>
 
-        <!-- VOLUME -->
         <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:16px; padding:15px;">
           <h4 style="margin:0 0 10px 0; color:#8e8e93; font-size:12px;">
             Volume (Last 4 Weeks)
