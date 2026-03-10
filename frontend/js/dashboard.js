@@ -198,76 +198,63 @@ export async function renderDashboard() {
     };
 
     // --- 4. MUSCLE READINESS ---
-    const buildVisualReadiness = (readinessObj) => {
-      const safeR = readinessObj || {};
+const buildVisualReadiness = (readinessObj) => {
+  const safeR = readinessObj || {};
 
-      const getColor = (cat) => {
-        const val = safeR[cat] !== undefined ? safeR[cat] : 100;
+  const getColor = (cat) => {
+    const val = safeR[cat] !== undefined ? safeR[cat] : 100;
+    if (val <= 15) return "#ff3b30"; // Czerwony (Zajechane)
+    if (val <= 50) return "#ff9500"; // Pomarańczowy
+    if (val <= 85) return "#ffcc00"; // Żółty
+    return "#32d74b"; // Zielony (Gotowe)
+  };
 
-        if (val <= 15) return "#ff3b30";
-        if (val <= 50) return "#ff9500";
-        if (val <= 85) return "#ffcc00";
+  return `
+    <div style="display:flex; justify-content:space-around; font-size:10px; font-weight:900; color:#52525b; letter-spacing:4px; margin-bottom:15px; text-transform:uppercase;">
+      <span>Anterior</span>
+      <span>Posterior</span>
+    </div>
 
-        return "#32d74b";
-      };
+    <div style="display:flex; justify-content:center; align-items:center; gap:20px;">
+      <svg viewBox="0 0 240 220" style="width:100%; max-width:450px; height:auto;">
+        
+        <g transform="translate(10, 0)">
+          <path d="M42,5 L58,5 L62,15 L50,25 L38,15 Z" fill="rgba(255,255,255,0.05)" />
+          
+          <path d="M30,30 L70,30 L75,55 L50,60 L25,55 Z" fill="${getColor("Chest")}" />
+          
+          <path d="M32,62 L68,62 L65,95 L50,100 L35,95 Z" fill="${getColor("Abs")}" />
+          
+          <path d="M22,32 L28,30 L35,45 L25,55 Z" fill="${getColor("Shoulders")}" />
+          <path d="M78,32 L72,30 L65,45 L75,55 Z" fill="${getColor("Shoulders")}" />
+          
+          <path d="M18,58 L24,55 L28,90 L20,95 Z" fill="${getColor("Biceps")}" />
+          <path d="M82,58 L76,55 L72,90 L80,95 Z" fill="${getColor("Biceps")}" />
+          
+          <path d="M33,105 L48,105 L46,165 L32,160 Z" fill="${getColor("Quads")}" />
+          <path d="M67,105 L52,105 L54,165 L68,160 Z" fill="${getColor("Quads")}" />
+        </g>
 
-      return `
-        <!-- FRONT / BACK LABEL -->
-        <div style="display:flex; justify-content:space-around; font-size:11px; font-weight:900; color:#a1a1aa; letter-spacing:3px; margin-bottom:10px;">
-          <span>FRONT</span>
-          <span>BACK</span>
-        </div>
-
-        <div style="display:flex; justify-content:center; gap:20px; padding-bottom:10px;">
-
-          <svg viewBox="0 0 240 250"
-               style="width:100%; max-width:400px; height:auto; filter:drop-shadow(0 0 15px rgba(0,0,0,0.3));">
-
-            <!-- FRONT -->
-            <g transform="translate(10,0)">
-              <circle cx="50" cy="20" r="14" fill="rgba(255,255,255,0.05)" />
-
-              <circle cx="22" cy="55" r="12" fill="${getColor("Shoulders")}" />
-              <circle cx="78" cy="55" r="12" fill="${getColor("Shoulders")}" />
-
-              <rect x="12" y="72" width="20" height="50" rx="10" fill="${getColor("Biceps")}" />
-              <rect x="68" y="72" width="20" height="50" rx="10" fill="${getColor("Biceps")}" />
-
-              <rect x="30" y="45" width="40" height="28" rx="10" fill="${getColor("Chest")}" />
-
-              <rect x="34" y="77" width="32" height="45" rx="10" fill="${getColor("Abs")}" />
-
-              <rect x="32" y="128" width="16" height="65" rx="8" fill="${getColor("Quads")}" />
-              <rect x="52" y="128" width="16" height="65" rx="8" fill="${getColor("Quads")}" />
-            </g>
-
-            <!-- BACK -->
-            <g transform="translate(130,0)">
-              <circle cx="50" cy="20" r="14" fill="rgba(255,255,255,0.05)" />
-
-              <circle cx="22" cy="55" r="12" fill="${getColor("Shoulders")}" />
-              <circle cx="78" cy="55" r="12" fill="${getColor("Shoulders")}" />
-
-              <rect x="12" y="72" width="20" height="50" rx="10" fill="${getColor("Triceps")}" />
-              <rect x="68" y="72" width="20" height="50" rx="10" fill="${getColor("Triceps")}" />
-
-              <rect x="30" y="45" width="40" height="77" rx="10" fill="${getColor("Back")}" />
-
-              <circle cx="36" cy="130" r="12" fill="${getColor("Glutes")}" />
-              <circle cx="64" cy="130" r="12" fill="${getColor("Glutes")}" />
-
-              <rect x="28" y="145" width="16" height="50" rx="8" fill="${getColor("Hamstrings")}" />
-              <rect x="56" y="145" width="16" height="50" rx="8" fill="${getColor("Hamstrings")}" />
-
-              <rect x="28" y="200" width="16" height="45" rx="8" fill="${getColor("Calves")}" />
-              <rect x="56" y="200" width="16" height="45" rx="8" fill="${getColor("Calves")}" />
-            </g>
-
-          </svg>
-
-        </div>
-      `;
-    };
+        <g transform="translate(130, 0)">
+          <path d="M42,5 L58,5 L62,15 L50,25 L38,15 Z" fill="rgba(255,255,255,0.05)" />
+          
+          <path d="M30,30 L70,30 L78,80 L50,90 L22,80 Z" fill="${getColor("Back")}" />
+          
+          <path d="M28,95 L72,95 L68,120 L50,125 L32,120 Z" fill="${getColor("Glutes")}" />
+          
+          <path d="M18,58 L24,55 L28,90 L20,95 Z" fill="${getColor("Triceps")}" />
+          <path d="M82,58 L76,55 L72,90 L80,95 Z" fill="${getColor("Triceps")}" />
+          
+          <path d="M32,128 L48,128 L46,175 L32,170 Z" fill="${getColor("Hamstrings")}" />
+          <path d="M68,128 L52,128 L54,175 L68,170 Z" fill="${getColor("Hamstrings")}" />
+          
+          <path d="M32,180 L46,180 L44,215 L34,215 Z" fill="${getColor("Calves")}" />
+          <path d="M68,180 L54,180 L56,215 L66,215 Z" fill="${getColor("Calves")}" />
+        </g>
+      </svg>
+    </div>
+  `;
+};
 
     const currentExp = stats.exp || 0;
     const currentLevel = stats.level || 1;
