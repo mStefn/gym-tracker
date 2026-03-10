@@ -218,11 +218,22 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 10px v
     min-height: 80px;
     user-select: none;
 }
-.wizard-tile:hover, .wizard-tile:active {
+/* Efekt kliknięcia (działa na telefonie i na komputerze) */
+.wizard-tile:active {
     background: rgba(0, 210, 255, 0.15);
     border-color: var(--primary);
     box-shadow: 0 0 15px var(--primary-glow);
     transform: scale(0.95);
+}
+
+/* Efekt najechania (TYLKO dla urządzeń z fizyczną myszką) */
+@media (hover: hover) and (pointer: fine) {
+    .wizard-tile:hover {
+        background: rgba(0, 210, 255, 0.15);
+        border-color: var(--primary);
+        box-shadow: 0 0 15px var(--primary-glow);
+        transform: scale(0.95);
+    }
 }
 
 /* Custom PWA Install Modal */
