@@ -2,7 +2,8 @@ import { state, API_URL, authFetch } from './state.js';
 
 const EXERCISES_DB = [
   { "name": "Bench Press", "category": "Chest", "equipment": ["Barbell", "Dumbbell", "Machine"], "angles": ["Flat", "Incline", "Decline"] },
-  { "name": "Chest Fly", "category": "Chest", "equipment": ["Dumbbell", "Machine", "Cable"] },
+  // DODANE KĄTY DO CHEST FLY:
+  { "name": "Chest Fly", "category": "Chest", "equipment": ["Dumbbell", "Machine", "Cable"], "angles": ["Flat", "Incline", "Decline"] },
   { "name": "Push-Up", "category": "Chest", "equipment": ["Bodyweight"] },
   { "name": "Pull-Up", "category": "Back", "equipment": ["Bodyweight", "Assisted"] },
   { "name": "Row", "category": "Back", "equipment": ["Barbell", "Cable", "T-Bar", "Dumbbell", "Machine"] },
@@ -195,10 +196,28 @@ window.saveFullPlan = async () => {
 // =========================================
 window.openExerciseWizard = (onComplete) => {
     let wizardModal = document.getElementById('exercise-wizard');
+    
+    // BUDUJEMY SZKIELET MODALA TYLKO RAZ
     if (!wizardModal) {
         wizardModal = document.createElement('div');
         wizardModal.id = 'exercise-wizard';
         wizardModal.className = 'modal-overlay';
+        
+        wizardModal.innerHTML = `
+            <div class="modal-content" style="height: auto; max-height: 80%;">
+                <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="display:flex; align-items:center;">
+                        <button id="wizard-back-btn" onclick="window.wizardBack()" style="background:none; border:none; color:var(--text); font-size:24px; cursor:pointer; margin-right:15px; padding:0; display:none;">←</button>
+                        <h3 id="wizard-title" style="margin:0; font-size:18px; color:var(--primary);">Select Muscle Group</h3>
+                    </div>
+                    <button onclick="window.wizardClose()" style="background:none; border:none; color:#8e8e93; font-size:24px; cursor:pointer; padding:0;">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="wizard-grid" class="tile-grid">
+                        </div>
+                </div>
+            </div>
+        `;
         document.body.appendChild(wizardModal);
     }
 
@@ -212,8 +231,9 @@ window.openExerciseWizard = (onComplete) => {
 
     const categories = [...new Set(EXERCISES_DB.map(e => e.category))];
 
+    // FUNKCJA TYLKO ODŚWIEŻAJĄCA ŚRODEK OKNA
     const renderView = () => {
-        let title = "Select Muscle";
+        let title = "Select Muscle Group";
         let items = [];
         let onClick = null;
         let showBack = true;
@@ -250,7 +270,7 @@ window.openExerciseWizard = (onComplete) => {
                 onClick = (val) => { selection.variant = val; renderView(); };
             } 
             else {
-                // Formatting final dynamic name (e.g., Incline Barbell Bench Press)
+                // Koniec ścieżki - budujemy nazwę
                 const nameParts = [selection.angle, selection.variant, selection.equipment, selection.baseExercise.name];
                 const finalName = nameParts.filter(Boolean).join(" ");
                 const finalId = finalName.replace(/\s+/g, '-').toLowerCase();
@@ -267,30 +287,18 @@ window.openExerciseWizard = (onComplete) => {
             }
         }
 
+        // Aktualizacja DOM bez niszczenia modala
+        document.getElementById('wizard-title').innerText = title;
+        document.getElementById('wizard-back-btn').style.display = showBack ? 'block' : 'none';
+        
         const tilesHtml = items.map(item => `
             <div class="wizard-tile" onclick="window.wizardSelect('${item}')">
                 ${item}
             </div>
         `).join('');
 
+        document.getElementById('wizard-grid').innerHTML = tilesHtml;
         window.wizardSelect = onClick;
-
-        wizardModal.innerHTML = `
-            <div class="modal-content" style="height: auto; max-height: 80%;">
-                <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center;">
-                    <div style="display:flex; align-items:center;">
-                        ${showBack ? `<button onclick="window.wizardBack()" style="background:none; border:none; color:var(--text); font-size:24px; cursor:pointer; margin-right:15px; padding:0;">←</button>` : ''}
-                        <h3 style="margin:0; font-size:18px; color:var(--primary);">${title}</h3>
-                    </div>
-                    <button onclick="window.wizardClose()" style="background:none; border:none; color:#8e8e93; font-size:24px; cursor:pointer; padding:0;">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="tile-grid">
-                        ${tilesHtml}
-                    </div>
-                </div>
-            </div>
-        `;
     };
 
     window.wizardBack = () => {
@@ -303,7 +311,8 @@ window.openExerciseWizard = (onComplete) => {
     };
 
     window.wizardClose = () => {
-        wizardModal.remove();
+        wizardModal.classList.remove('show');
+        setTimeout(() => wizardModal.remove(), 300);
     };
 
     wizardModal.classList.add('show');

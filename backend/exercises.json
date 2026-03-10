@@ -8,7 +8,8 @@
   {
     "name": "Chest Fly",
     "category": "Chest",
-    "equipment": ["Dumbbell", "Machine", "Cable"]
+    "equipment": ["Dumbbell", "Machine", "Cable"],
+    "angles": ["Flat", "Incline", "Decline"]
   },
   {
     "name": "Push-Up",
