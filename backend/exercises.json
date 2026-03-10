@@ -24,12 +24,12 @@
   {
     "name": "Row",
     "category": "Back",
-    "equipment": ["Barbell", "Cable", "T-Bar", "Dumbbell"]
+    "equipment": ["Barbell", "Cable", "T-Bar", "Dumbbell", "Machine"]
   },
   {
     "name": "Lat Pulldown",
     "category": "Back",
-    "equipment": ["Cable"]
+    "equipment": ["Cable", "Machine"]
   },
   {
     "name": "Straight Arm Pulldown",
