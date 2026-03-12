@@ -224,16 +224,21 @@ export async function renderDashboard() {
       return `
         <style>
           .muscle-part { 
-            transition: filter 0.2s ease, opacity 0.2s ease; 
+            transition: filter 0.3s ease, opacity 0.3s ease, stroke 0.3s ease; 
             cursor: pointer; 
           }
-          .muscle-part:hover { 
-            filter: brightness(1.3); 
-            opacity: 0.9;
+          /* Dodałem glow (drop-shadow) i rozjaśnienie przy najechaniu/kliknięciu */
+          .muscle-part:hover, .muscle-part.active { 
+            filter: drop-shadow(0 0 8px #ffffff88) brightness(1.2); 
+            opacity: 1;
+            stroke: #fff;
+          }
+          .legend-dot { 
+            width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; 
           }
         </style>
 
-        <div id="muscle-label" style="text-align:center; height:16px; font-weight:900; color:var(--text); letter-spacing:3px; margin-bottom:15px; text-transform:uppercase; font-size:12px; transition: color 0.3s ease;">
+        <div id="muscle-label" style="text-align:center; height:16px; font-weight:900; color:var(--primary); letter-spacing:3px; margin-bottom:15px; text-transform:uppercase; font-size:12px; transition: color 0.3s ease;">
           SELECT A MUSCLE
         </div>
 
@@ -282,6 +287,13 @@ export async function renderDashboard() {
               ${createPoly("68,205 56,205 58,240 66,240", "Calves")}
             </g>
           </svg>
+        </div>
+
+        <div style="margin-top:20px; display:flex; justify-content:center; gap:15px; flex-wrap:wrap; border-top:1px solid rgba(255,255,255,0.05); padding-top:15px;">
+          <div style="font-size:10px; color:#8e8e93; font-weight: 600;"><span class="legend-dot" style="background:#ff3b30;"></span>&lt;24h (REST)</div>
+          <div style="font-size:10px; color:#8e8e93; font-weight: 600;"><span class="legend-dot" style="background:#ff9500;"></span>~48h (RECOV)</div>
+          <div style="font-size:10px; color:#8e8e93; font-weight: 600;"><span class="legend-dot" style="background:#ffcc00;"></span>~72h (READY)</div>
+          <div style="font-size:10px; color:#8e8e93; font-weight: 600;"><span class="legend-dot" style="background:#32d74b;"></span>&gt;72h (FRESH)</div>
         </div>
       `;
     };
@@ -386,32 +398,46 @@ export async function renderDashboard() {
       </div>
     `;
 
-    // --- INTERACTIVITY SCRIPT (Hover/Tap functionality) ---
+    // --- INTERACTIVITY SCRIPT (Zmieniona logika podświetlania i blokowania nazw) ---
     const muscleLabel = document.getElementById("muscle-label");
     const muscleParts = document.querySelectorAll(".muscle-part");
 
     muscleParts.forEach(part => {
-      // Hover for desktop
+      // Najechanie myszką (tylko na komputerze)
       part.addEventListener("mouseenter", (e) => {
-        muscleLabel.innerText = e.target.getAttribute("data-name");
-        muscleLabel.style.color = "var(--primary)";
+        // Jeśli żaden element nie jest zablokowany ("locked"), pokaż nazwę najechanego
+        if (![...muscleParts].some(p => p.classList.contains('locked'))) {
+          muscleLabel.innerText = e.target.getAttribute("data-name");
+          muscleLabel.style.color = "var(--primary)";
+        }
       });
       
+      // Zjechanie myszką
       part.addEventListener("mouseleave", () => {
-        muscleLabel.innerText = "SELECT A MUSCLE";
-        muscleLabel.style.color = "var(--text)";
-      });
-
-      // Tap for mobile
-      part.addEventListener("click", (e) => {
-        muscleLabel.innerText = e.target.getAttribute("data-name");
-        muscleLabel.style.color = "var(--primary)";
-        
-        // Reset after 2 seconds on mobile
-        setTimeout(() => {
+        // Jeśli żaden element nie jest zablokowany, zresetuj napis
+        if (![...muscleParts].some(p => p.classList.contains('locked'))) {
           muscleLabel.innerText = "SELECT A MUSCLE";
           muscleLabel.style.color = "var(--text)";
-        }, 2000);
+        }
+      });
+
+      // Kliknięcie / Tapnięcie (Zamraża nazwę na wybranym mięśniu)
+      part.addEventListener("click", (e) => {
+        // Usuwamy "locked" i "active" z innych mięśni, chyba że klikamy w ten sam
+        const isAlreadyLocked = part.classList.contains('locked');
+        
+        muscleParts.forEach(p => p.classList.remove('active', 'locked'));
+
+        if (isAlreadyLocked) {
+          // Jeśli kliknąłeś w już zaznaczony mięsień - odznacz go
+          muscleLabel.innerText = "SELECT A MUSCLE";
+          muscleLabel.style.color = "var(--text)";
+        } else {
+          // Jeśli kliknąłeś w nowy mięsień - zaznacz go
+          part.classList.add('active', 'locked');
+          muscleLabel.innerText = e.target.getAttribute("data-name");
+          muscleLabel.style.color = "var(--primary)";
+        }
       });
     });
 
