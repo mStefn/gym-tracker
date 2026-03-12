@@ -116,11 +116,11 @@ func GetLastResult(c *gin.Context) {
 func GetUserStats(c *gin.Context) {
 	userID := c.Param("user_id")
 	rows, err := db.Query(`
-		SELECT l.created_at, e.name, l.weight, l.reps, e.id
-		FROM logs l
-		JOIN exercises e ON l.exercise_id = e.id
-		WHERE l.user_id = ?
-		ORDER BY l.created_at ASC`, userID)
+        SELECT l.created_at, e.name, l.weight, l.reps, e.id
+        FROM logs l
+        JOIN exercises e ON l.exercise_id = e.id
+        WHERE l.user_id = ?
+        ORDER BY l.created_at ASC`, userID)
 
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Failed to fetch stats"})
@@ -196,11 +196,11 @@ func GetDashboardData(c *gin.Context) {
 	}
 
 	rRows, _ := db.Query(`
-		SELECT e.name, e.category, TIMESTAMPDIFF(HOUR, MAX(l.created_at), NOW()) 
-		FROM logs l 
-		JOIN exercises e ON l.exercise_id = e.id 
-		WHERE l.user_id = ? 
-		GROUP BY e.id`, userID)
+        SELECT e.name, e.category, TIMESTAMPDIFF(HOUR, MAX(l.created_at), NOW()) 
+        FROM logs l 
+        JOIN exercises e ON l.exercise_id = e.id 
+        WHERE l.user_id = ? 
+        GROUP BY e.id`, userID)
 
 	for rRows.Next() {
 		var exName, cat string
@@ -313,15 +313,26 @@ func CreatePlan(c *gin.Context) {
 
 func AddExerciseToPlan(c *gin.Context) {
 	var input struct {
-		PlanID     int `json:"plan_id"`
-		ExerciseID int `json:"exercise_id"`
-		TargetSets int `json:"target_sets"`
+		PlanID       int    `json:"plan_id"`
+		ExerciseID   string `json:"exercise_id"` // Przymujemy jako tekst (żeby nie rzucać 400 Bad Request)
+		TargetSets   int    `json:"target_sets"`
+		ExerciseName string `json:"exercise_name"` // Złapiemy z frontu
+		Category     string `json:"category"`      // Złapiemy z frontu
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(400, gin.H{"error": "Invalid input"})
 		return
 	}
-	_, err := db.Exec("INSERT INTO plan_exercises (plan_id, exercise_id, target_sets) VALUES (?, ?, ?)", input.PlanID, input.ExerciseID, input.TargetSets)
+
+	// 1. Upewniamy się, że to ćwiczenie fizycznie istnieje w bazie i wyciągamy poprawne ID (Integer)
+	realExerciseID, err := GetOrCreateExerciseDB(input.ExerciseName, input.Category)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to resolve exercise ID"})
+		return
+	}
+
+	// 2. Wrzucamy do planu prawdziwe liczbowe ID
+	_, err = db.Exec("INSERT INTO plan_exercises (plan_id, exercise_id, target_sets) VALUES (?, ?, ?)", input.PlanID, realExerciseID, input.TargetSets)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Failed to add exercise to plan"})
 		return
@@ -352,10 +363,10 @@ func GetUserPlans(c *gin.Context) {
 func GetPlanExercises(c *gin.Context) {
 	planID := c.Param("plan_id")
 	rows, err := db.Query(`
-		SELECT e.id, e.name, pe.target_sets 
-		FROM plan_exercises pe 
-		JOIN exercises e ON pe.exercise_id = e.id 
-		WHERE pe.plan_id = ?`, planID)
+        SELECT e.id, e.name, pe.target_sets 
+        FROM plan_exercises pe 
+        JOIN exercises e ON pe.exercise_id = e.id 
+        WHERE pe.plan_id = ?`, planID)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Failed to fetch plan exercises"})
 		return
