@@ -4,6 +4,7 @@ services:
     container_name: gym-db
     restart: always
     env_file: .env
+    # Upewniamy się, że environment bierze dane z .env
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
@@ -11,15 +12,16 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - mariadb_data:/var/lib/mysql
+    networks:
+      - gym_network
 
   backend:
     build:
       context: .
       dockerfile: Dockerfile.backend
     container_name: gym-backend
+    restart: always
     ports:
-      # Twój backend jest na zewnątrz widoczny pod 5001. 
-      # Prometheus na hoście będzie skrobał: http://localhost:5001/metrics
       - "5001:4000"
     env_file: .env
     environment:
@@ -28,24 +30,26 @@ services:
       - CORS_ORIGIN=${CORS_ORIGIN}
     depends_on:
       - db
-    restart: always
+    networks:
+      - gym_network
 
   frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
     container_name: gym-frontend
+    restart: always
     ports:
       - "5000:8081"
-    restart: always
+    networks:
+      - gym_network
 
-  # --- NOWY ELEMENT: MONITORING ZASOBÓW (CPU/RAM) ---
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: gym-cadvisor
     restart: always
+    # Port 8081 na hoście pozwoli Ci sprawdzić surowe dane metryk
     ports:
-      # Prometheus na hoście będzie skrobał: http://localhost:8081/metrics
       - "8081:8080"
     volumes:
       - /:/rootfs:ro
@@ -54,6 +58,41 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
     privileged: true
+    networks:
+      - gym_network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: gym-prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - gym_network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: gym-grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin} # Możesz dodać GRAFANA_PASSWORD do .env
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - gym_network
+
+networks:
+  gym_network:
+    driver: bridge
 
 volumes:
   mariadb_data:
+  grafana_data:
+  prometheus_data:
