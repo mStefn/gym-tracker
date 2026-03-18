@@ -4,7 +4,6 @@ services:
     container_name: gym-db
     restart: always
     env_file: .env
-    # Upewniamy się, że environment bierze dane z .env
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
@@ -12,6 +11,8 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - mariadb_data:/var/lib/mysql
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     networks:
       - gym_network
 
@@ -30,6 +31,9 @@ services:
       - CORS_ORIGIN=${CORS_ORIGIN}
     depends_on:
       - db
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     networks:
       - gym_network
 
@@ -41,6 +45,9 @@ services:
     restart: always
     ports:
       - "5000:8081"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     networks:
       - gym_network
 
@@ -48,7 +55,6 @@ services:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: gym-cadvisor
     restart: always
-    # Port 8081 na hoście pozwoli Ci sprawdzić surowe dane metryk
     ports:
       - "8081:8080"
     volumes:
@@ -57,6 +63,8 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     privileged: true
     networks:
       - gym_network
@@ -70,6 +78,8 @@ services:
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     networks:
       - gym_network
 
@@ -80,9 +90,11 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin} # Możesz dodać GRAFANA_PASSWORD do .env
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
     volumes:
       - grafana_data:/var/lib/grafana
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     depends_on:
       - prometheus
     networks:
