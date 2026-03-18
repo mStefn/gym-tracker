@@ -36,7 +36,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "afgbcc8l0tts0d"
+        "uid": "PBFE396EC0B189D67"
       },
       "fieldConfig": {
         "defaults": {
@@ -150,7 +150,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "afgbcc8l0tts0d"
+        "uid": "PBFE396EC0B189D67"
       },
       "fieldConfig": {
         "defaults": {
@@ -251,7 +251,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "afgbcc8l0tts0d"
+        "uid": "PBFE396EC0B189D67"
       },
       "fieldConfig": {
         "defaults": {
@@ -365,7 +365,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "afgbcc8l0tts0d"
+        "uid": "PBFE396EC0B189D67"
       },
       "fieldConfig": {
         "defaults": {
@@ -466,7 +466,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "afgbcc8l0tts0d"
+        "uid": "PBFE396EC0B189D67"
       },
       "fieldConfig": {
         "defaults": {
@@ -580,7 +580,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "afgbcc8l0tts0d"
+        "uid": "PBFE396EC0B189D67"
       },
       "fieldConfig": {
         "defaults": {
@@ -730,12 +730,12 @@
       {
         "allValue": ".*",
         "current": {
-          "text": "All",
-          "value": "$__all"
+          "text": "cadvisor:8080",
+          "value": "cadvisor:8080"
         },
         "datasource": {
           "type": "prometheus",
-          "uid": "afgbcc8l0tts0d"
+          "uid": "PBFE396EC0B189D67"
         },
         "definition": "label_values(up,instance)",
         "includeAll": true,
@@ -763,7 +763,7 @@
         },
         "datasource": {
           "type": "prometheus",
-          "uid": "afgbcc8l0tts0d"
+          "uid": "PBFE396EC0B189D67"
         },
         "definition": "label_values(container_cpu_usage_seconds_total,name)",
         "includeAll": true,
@@ -784,13 +784,13 @@
     ]
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "Cadvisor exporter",
   "uid": "pMEd7m0Mz",
-  "version": 8,
+  "version": 1,
   "weekStart": ""
 }
