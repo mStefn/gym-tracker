@@ -716,6 +716,53 @@
         }
       ],
       "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "P8E80F9AEF21F6940"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 17,
+        "w": 24,
+        "x": 0,
+        "y": 37
+      },
+      "id": 20,
+      "options": {
+        "dedupStrategy": "none",
+        "detailsMode": "inline",
+        "enableInfiniteScrolling": false,
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showControls": false,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "syntaxHighlighting": true,
+        "unwrappedColumns": false,
+        "wrapLogMessage": true
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "P8E80F9AEF21F6940"
+          },
+          "direction": "backward",
+          "editorMode": "code",
+          "expr": "{container=~\".+\", container=~\"$container\"} \r\n| logfmt \r\n| line_format \"{{.level}} | {{.caller}} | status: {{.status}} | {{.query}}\"",
+          "queryType": "range",
+          "refId": "{container=~\"$container\"}"
+        }
+      ],
+      "title": "Container Logs",
+      "type": "logs"
     }
   ],
   "preload": false,
