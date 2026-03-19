@@ -1,0 +1,29 @@
+// 1. Znajdź wszystkie działające kontenery na tym serwerze
+discovery.docker "local" {
+  host = "unix:///var/run/docker.sock"
+}
+
+// 2. Przypisz logom etykiety (np. nazwa kontenera), żebyś mógł je filtrować w Grafanie
+discovery.relabel "logs" {
+  targets = discovery.docker.local.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+}
+
+// 3. Pobierz logi z wyłapanych kontenerów
+loki.source.docker "local" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.logs.output
+  forward_to = [loki.write.endpoint.receiver]
+}
+
+// 4. Wyślij zebrane logi prosto do bazy danych Loki
+loki.write "endpoint" {
+  endpoint {
+    url = "http://gym-loki:3100/loki/api/v1/push"
+  }
+}

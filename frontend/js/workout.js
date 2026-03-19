@@ -11,9 +11,9 @@ export async function renderWorkout(planId, planName) {
         container.innerHTML = `
             <div style="padding: 10px;">
                 <button onclick="window.navigate('workout')" style="background: transparent; border: none; color: var(--primary); padding: 0; margin-bottom: 20px; font-size: 16px; font-weight: 600; cursor: pointer;">← Back to Workouts</button>
-                <h2 style="margin: 0px 0 15px 0;">${planName}</h2>
+                <h2 style="margin: 0px 0 25px 0;">${planName}</h2>
                 <div id="workout-content"></div>
-                <button onclick="window.navigate('workout')" class="save-btn" style="margin-top: 20px; background: var(--success);">Finish Workout 🏆</button>
+                <button onclick="window.navigate('workout')" class="save-btn" style="margin-top: 20px; background: var(--success);">Finish Workout</button>
             </div>
         `;
 
@@ -55,28 +55,50 @@ export async function renderWorkout(planId, planName) {
 
             const row = document.createElement("div");
             row.className = "set-row";
-            row.style = "display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 12px;";
+            row.style = "display: flex; flex-direction: column; gap: 15px; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 20px;";
             
             const safeExName = ex.exercise_name.replace(/'/g, "\\'");
 
+            let prevDisplay = '-';
+            if (last.weight > 0) {
+                const failureTag = last.is_failure ? '<span style="color:var(--danger); font-weight:bold;"> F</span>' : '';
+                prevDisplay = `${last.weight}kg x ${last.reps}${failureTag}`;
+            }
+
             row.innerHTML = `
-                <div style="font-weight:bold; color:var(--primary); font-size:16px; width: 25px;">S${s}</div>
-                
-                <div style="flex: 1; min-width: 50px;">
-                    <div style="font-size: 10px; color: #8e8e93;">Prev</div>
-                    <div style="font-weight: 600; font-size: 12px;">${last.weight > 0 ? `${last.weight}kg x ${last.reps}` : '-'}</div>
-                    <div id="target-${ex.exercise_id}-${s}" style="font-size:10px; color:var(--success); font-weight:700; margin-top:2px;">${targetInfo}</div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-weight:bold; color:var(--primary); font-size:18px; width: 40px;">S${s}</div>
+                    
+                    <div style="flex: 1;">
+                        <div style="font-size: 11px; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px;">Prev</div>
+                        <div style="font-weight: 600; font-size: 15px;">${prevDisplay}</div>
+                        <div id="target-${ex.exercise_id}-${s}" style="font-size:12px; color:var(--success); font-weight:700; margin-top:2px;">${targetInfo}</div>
+                    </div>
+
+                    <div style="flex: 1; text-align: right;">
+                        <div style="font-size: 11px; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px;">Today</div>
+                        <div id="today-${ex.exercise_id}-${s}" style="font-weight: 600; font-size: 15px; color: var(--primary);">-</div>
+                    </div>
                 </div>
 
-                <div style="flex: 1; min-width: 50px;">
-                    <div style="font-size: 10px; color: #8e8e93;">Today</div>
-                    <div id="today-${ex.exercise_id}-${s}" style="font-weight: 600; font-size: 12px; color: var(--primary);">-</div>
-                </div>
+                <form onsubmit="event.preventDefault();" style="display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; width: 100%; margin: 0;">
+                    <div style="display: flex; flex-direction: column; flex: 1;">
+                        <label style="font-size: 11px; color: #8e8e93; font-weight: 600; margin-bottom: 4px; text-align: center;">Reps</label>
+                        <input type="number" inputmode="numeric" pattern="[0-9]*" enterkeyhint="next" class="reps-in" id="reps-${ex.exercise_id}-${s}" onkeydown="window.handleRepsEnter(event, 'weight-${ex.exercise_id}-${s}')" style="width: 100%; padding: 12px 5px; font-size: 16px; text-align: center; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); margin-bottom: 0;">
+                    </div>
+                    
+                    <div style="display: flex; flex-direction: column; flex: 1;">
+                        <label style="font-size: 11px; color: #8e8e93; font-weight: 600; margin-bottom: 4px; text-align: center;">kg</label>
+                        <input type="number" inputmode="decimal" enterkeyhint="done" class="weight-in" id="weight-${ex.exercise_id}-${s}" onkeydown="window.handleWeightEnter(event, this, ${ex.exercise_id}, ${s}, '${safeExName}')" style="width: 100%; padding: 12px 5px; font-size: 16px; text-align: center; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); margin-bottom: 0;">
+                    </div>
+                    
+                    <label style="display: flex; align-items: center; justify-content: center; color: #8e8e93; font-size: 13px; font-weight: 600; cursor: pointer; user-select: none; flex: 1.5; text-align: center; height: 46px; margin-bottom: 0;">
+                        Set to failure?
+                        <input type="checkbox" id="fail-${ex.exercise_id}-${s}" style="margin-left: 8px; width: 22px; height: 22px; accent-color: var(--danger); cursor: pointer; margin-bottom: 0;">
+                    </label>
 
-                <input type="number" class="reps-in" placeholder="Reps" id="reps-${ex.exercise_id}-${s}" style="width:45px; margin:0 2px; padding:8px 4px; font-size:13px; text-align:center;">
-                <input type="number" class="weight-in" placeholder="kg" id="weight-${ex.exercise_id}-${s}" style="width:50px; margin:0 2px; padding:8px 4px; font-size:13px; text-align:center;">
-                
-                <button onclick="window.saveSet(this, ${ex.exercise_id}, ${s}, '${safeExName}')" class="btn-nav btn-login" style="width:48px; height:40px; padding:0; display:flex; align-items:center; justify-content:center; border-radius: 10px; font-size:12px;">Save</button>
+                    <button type="button" id="btn-${ex.exercise_id}-${s}" onclick="window.saveSet(this, ${ex.exercise_id}, ${s}, '${safeExName}')" style="background: rgba(0, 210, 255, 0.1); color: var(--primary); border: none; width: 70px; height: 46px; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-bottom: 0;">Save</button>
+                </form>
             `;
             document.getElementById(`ex-${ex.exercise_id}`).appendChild(row);
         }
@@ -88,8 +110,9 @@ export async function renderWorkout(planId, planName) {
 export async function saveSet(btn, exId, setNum, exName) {
     const repsVal = document.getElementById(`reps-${exId}-${setNum}`).value;
     const weightVal = document.getElementById(`weight-${exId}-${setNum}`).value;
+    const isFailure = document.getElementById(`fail-${exId}-${setNum}`).checked;
 
-    if (!repsVal || !weightVal) return alert("Fill data!");
+    if (!repsVal || !weightVal) return alert("Fill data");
 
     btn.innerHTML = "...";
     btn.disabled = true;
@@ -103,31 +126,36 @@ export async function saveSet(btn, exId, setNum, exName) {
                 exercise_id: exId,
                 set_number: setNum,
                 reps: parseInt(repsVal),
-                weight: parseFloat(weightVal)
+                weight: parseFloat(weightVal),
+                is_failure: isFailure
             })
         });
 
         if (res.ok) {
             btn.innerHTML = "✓";
-            btn.style.background = "var(--success)";
-            btn.style.borderColor = "var(--success)";
+            btn.style.background = "rgba(48, 209, 88, 0.15)";
+            btn.style.color = "var(--success)";
+            
             document.getElementById(`reps-${exId}-${setNum}`).disabled = true;
             document.getElementById(`weight-${exId}-${setNum}`).disabled = true;
+            document.getElementById(`fail-${exId}-${setNum}`).disabled = true;
             
-            document.getElementById(`today-${exId}-${setNum}`).innerText = `${weightVal}kg x ${repsVal}`;
+            const failureTag = isFailure ? '<span style="color:var(--danger); font-weight:bold;"> F</span>' : '';
+            document.getElementById(`today-${exId}-${setNum}`).innerHTML = `${weightVal}kg x ${repsVal}${failureTag}`;
             
             window.showOverloadModal(exId, setNum, parseFloat(weightVal), parseInt(repsVal), exName);
         }
     } catch (e) {
-        alert("Error!");
+        alert("Error");
         btn.innerHTML = "Save";
         btn.disabled = false;
     }
 }
 
+// Reszta modalna bez zmian...
 window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) => {
     let nextWeight = currentReps >= 10 ? currentWeight + 0.5 : currentWeight;
-    let nextReps = currentReps >= 10 ? 8 : currentReps;
+    let nextReps = currentReps;
 
     const modal = document.createElement("div");
     modal.className = "modal-overlay dialog-overlay";
@@ -136,7 +164,7 @@ window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) =>
     modal.innerHTML = `
         <div class="modal-content modal-content-small">
             <div class="modal-header" style="justify-content: center; padding-bottom: 10px;">
-                <h3 style="margin:0; font-size:20px;">Progressive Overload 📈</h3>
+                <h3 style="margin:0; font-size:20px;">Progressive Overload</h3>
             </div>
             <div class="modal-body" style="text-align: center; padding-top: 5px;">
                 <p style="color: #8e8e93; margin-top: 0; font-size: 14px; margin-bottom: 25px;">
@@ -198,6 +226,25 @@ window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) =>
     document.getElementById('confirm-overload-btn').onclick = window.saveOverloadLocal;
 };
 
-// --- REJESTRACJA GLOBALNA ---
+// NOWE FUNKCJE - Obsługa klawiatury Enter
+window.handleRepsEnter = (e, nextFieldId) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const nextField = document.getElementById(nextFieldId);
+        if (nextField) nextField.focus();
+    }
+};
+
+window.handleWeightEnter = (e, inputElement, exId, setNum, exName) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        inputElement.blur(); // Chowa klawiaturę
+        const btn = document.getElementById(`btn-${exId}-${setNum}`);
+        if (btn && !btn.disabled) {
+            window.saveSet(btn, exId, setNum, exName);
+        }
+    }
+};
+
 window.renderWorkout = renderWorkout;
 window.saveSet = saveSet;

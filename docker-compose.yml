@@ -1,6 +1,7 @@
 services:
   db:
     image: mariadb:10.11
+    container_name: gym-db
     restart: always
     env_file: .env
     environment:
@@ -10,11 +11,17 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - mariadb_data:/var/lib/mysql
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    networks:
+      - gym_network
 
   backend:
     build:
       context: .
       dockerfile: Dockerfile.backend
+    container_name: gym-backend
+    restart: always
     ports:
       - "5001:4000"
     env_file: .env
@@ -24,14 +31,109 @@ services:
       - CORS_ORIGIN=${CORS_ORIGIN}
     depends_on:
       - db
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    networks:
+      - gym_network
 
   frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+    container_name: gym-frontend
+    restart: always
     ports:
       - "5000:8081"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    networks:
+      - gym_network
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: gym-cadvisor
     restart: always
+    ports:
+      - "8081:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    privileged: true
+    networks:
+      - gym_network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: gym-prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    networks:
+      - gym_network
+
+  # NOWE: Baza danych dla logów
+  loki:
+    image: grafana/loki:latest
+    container_name: gym-loki
+    restart: always
+    ports:
+      - "3100:3100"
+    networks:
+      - gym_network
+
+  # NOWE: Zbieracz logów z kontenerów Dockera
+  alloy:
+    image: grafana/alloy:latest
+    container_name: gym-alloy
+    restart: always
+    user: root  # Wymagane, żeby czytać logi przez plik .sock
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    command: run --server.http.listen-addr=0.0.0.0:12345 /etc/alloy/config.alloy
+    depends_on:
+      - loki
+    networks:
+      - gym_network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: gym-grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    depends_on:
+      - prometheus
+      - loki
+    networks:
+      - gym_network
+
+networks:
+  gym_network:
+    driver: bridge
 
 volumes:
   mariadb_data:
+  grafana_data:
+  prometheus_data:

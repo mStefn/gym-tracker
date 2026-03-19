@@ -1,8 +1,17 @@
 import { state, logout } from './state.js';
 import { renderAuthScreen } from './auth.js';
 import { renderDashboard } from './dashboard.js';
+import { renderPlans } from './plans.js'; 
 import { renderWorkout } from './workout.js';
 import { renderStats } from './stats.js';
+import { renderSettings } from './settings.js'; // IMPORT NOWEJ ZAKŁADKI
+
+// Przechwytywanie PWA Install Prompt
+window.deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    window.deferredPrompt = e;
+});
 
 window.openAuth = (mode) => renderAuthScreen(mode);
 window.renderWorkout = renderWorkout;
@@ -20,27 +29,19 @@ window.navigate = (tab) => {
     setTimeout(() => {
         switch (tab) {
             case 'home':
-                renderHomePage();
+                renderDashboard(); 
                 break;
             case 'workout':
-                renderDashboard(); 
+                renderPlans(); 
                 break;
             case 'stats':
                 renderStats();
                 break;
-            case 'library':
-                container.innerHTML = `
-                    <div style="text-align:center; margin-top:60px; color:#8e8e93;">
-                        <div style="font-size:60px; margin-bottom:20px; text-shadow: 0 0 15px var(--primary-glow);">📚</div>
-                        <h2>Exercise Library</h2>
-                        <p>Accessing mainframe... Coming soon.</p>
-                    </div>`;
-                break;
             case 'settings':
-                if (window.renderSettings) window.renderSettings();
+                renderSettings();
                 break;
             default:
-                renderHomePage();
+                renderDashboard();
         }
     }, 100);
 };
@@ -64,20 +65,6 @@ window.onload = () => {
         window.navigate('home'); 
     }
 };
-
-function renderHomePage() {
-    const container = document.getElementById("exercises");
-    container.innerHTML = `
-        <div style="text-align: center; margin-top: 40px;">
-            <h1 style="font-size: 32px; margin-bottom: 10px; color: var(--text);">SYSTEM ONLINE</h1>
-            <p style="color: var(--primary); font-size: 16px; margin-bottom: 40px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Ready for today's session?</p>
-            
-            <div style="margin-top: 40px; display: flex; justify-content: center; gap: 15px;">
-                <button onclick="window.navigate('workout')" class="save-btn" style="width: auto; padding: 15px 40px;">INITIATE WORKOUT</button>
-            </div>
-        </div>
-    `;
-}
 
 function renderLandingPage() {
     document.getElementById("exercises").innerHTML = `
