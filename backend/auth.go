@@ -23,7 +23,7 @@ func initAuth() {
 	hmacSecret = []byte(secret)
 }
 
-// GenerateToken creates an HMAC-signed token: "userID.signature"
+// GenerateToken creates an HMAC-signed token in the form "userID.signature".
 func GenerateToken(userID int) string {
 	payload := fmt.Sprintf("%d", userID)
 	mac := hmac.New(sha256.New, hmacSecret)
@@ -32,7 +32,7 @@ func GenerateToken(userID int) string {
 	return payload + "." + sig
 }
 
-// VerifyToken validates the token and returns the user ID
+// VerifyToken validates the token and returns the user ID on success.
 func VerifyToken(token string) (int, bool) {
 	parts := strings.SplitN(token, ".", 2)
 	if len(parts) != 2 {
@@ -57,7 +57,7 @@ func VerifyToken(token string) (int, bool) {
 	return userID, true
 }
 
-// AuthRequired middleware checks for a valid token in the Authorization header
+// AuthRequired is a middleware that validates the Bearer token and sets "userID" in the context.
 func AuthRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		header := c.GetHeader("Authorization")
@@ -78,7 +78,7 @@ func AuthRequired() gin.HandlerFunc {
 	}
 }
 
-// AdminRequired middleware checks that the authenticated user is an admin
+// AdminRequired is a middleware that checks the authenticated user is an admin.
 func AdminRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := c.Get("userID")

@@ -5,24 +5,20 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/zsais/go-gin-prometheus" // Biblioteka do metryk
+	ginprometheus "github.com/zsais/go-gin-prometheus"
 )
 
 func main() {
-	// 1. Inicjalizacja baz danych i auth
 	initDB()
 	initAuth()
 
-	// 2. Utworzenie routera Gin
 	r := gin.Default()
 
-	// --- 3. KONFIGURACJA PROMETHEUSA ---
-	// Wystawia endpoint /metrics dla Twojej lokalnej instancji Prometheusa
+	// Prometheus metrics endpoint
 	p := ginprometheus.NewPrometheus("gin")
 	p.Use(r)
-	// ----------------------------------
 
-	// 4. Konfiguracja CORS (Twoje oryginalne ustawienia)
+	// CORS configuration
 	allowOrigin := os.Getenv("CORS_ORIGIN")
 	if allowOrigin == "" {
 		allowOrigin = "*"
@@ -39,12 +35,12 @@ func main() {
 	}
 	r.Use(cors.New(corsConfig))
 
-	// 5. Trasy Publiczne
+	// Public routes
 	r.GET("/health", HealthCheck)
 	r.POST("/login", Login)
 	r.POST("/signup", SignUp)
 
-	// 6. Trasy Zabezpieczone (Grupa Auth)
+	// Protected routes
 	auth := r.Group("/")
 	auth.Use(AuthRequired())
 	{
@@ -55,12 +51,12 @@ func main() {
 		auth.GET("/last/:user_id/:ex_id/:set", GetLastResult)
 		auth.GET("/exercises", GetExercises)
 
-		// Funkcje dla planów
+		// Plan management
 		auth.POST("/plans", CreatePlan)
 		auth.PUT("/plan/:id", UpdatePlanName)
 		auth.DELETE("/plan/:id", DeletePlan)
 
-		// Funkcje dla ćwiczeń w planie
+		// Plan exercise management
 		auth.POST("/plan-exercises", AddExerciseToPlan)
 		auth.DELETE("/plan-exercises/:plan_id", DeletePlanExercises)
 
@@ -73,12 +69,12 @@ func main() {
 		auth.GET("/stats/advanced/:user_id", GetAdvancedStats)
 		auth.GET("/stats/exercise/:user_id/:ex_id", GetExerciseDeepDive)
 
-		// Funkcje zarządzania kontem (Settings)
+		// Account management
 		auth.DELETE("/history/:user_id", ClearOwnLogs)
 		auth.DELETE("/account/:user_id", DeleteOwnAccount)
 	}
 
-	// 7. Administracja
+	// Admin routes
 	admin := r.Group("/admin")
 	admin.Use(AuthRequired(), AdminRequired())
 	{
@@ -86,14 +82,10 @@ func main() {
 		admin.POST("/reset-pin", AdminResetPin)
 	}
 
-	// Dodatkowa trasa admina
 	r.DELETE("/user/:id", AuthRequired(), AdminRequired(), DeleteAccount)
 
-	// 8. Start serwera na Twoim porcie 4000
 	r.Run("0.0.0.0:4000")
 }
-
-// --- Dodatkowe Typy i Handlery z Twojego pliku ---
 
 type FindOrCreateReq struct {
 	Name     string `json:"name"`
