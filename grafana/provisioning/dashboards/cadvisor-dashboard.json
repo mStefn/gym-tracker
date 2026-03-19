@@ -756,7 +756,7 @@
           },
           "direction": "backward",
           "editorMode": "code",
-          "expr": "{container=~\".+\", container=~\"$container\"} \r\n| logfmt \r\n| line_format \"{{.level}} | {{.caller}} | status: {{.status}} | {{.query}}\"",
+          "expr": "{container=~\".+\", container=~\"$container\"} != \"/metrics\"",
           "queryType": "range",
           "refId": "{container=~\"$container\"}"
         }
