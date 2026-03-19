@@ -83,6 +83,33 @@ services:
     networks:
       - gym_network
 
+  # NOWE: Baza danych dla logów
+  loki:
+    image: grafana/loki:latest
+    container_name: gym-loki
+    restart: always
+    ports:
+      - "3100:3100"
+    networks:
+      - gym_network
+
+  # NOWE: Zbieracz logów z kontenerów Dockera
+  alloy:
+    image: grafana/alloy:latest
+    container_name: gym-alloy
+    restart: always
+    user: root  # Wymagane, żeby czytać logi przez plik .sock
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    command: run --server.http.listen-addr=0.0.0.0:12345 /etc/alloy/config.alloy
+    depends_on:
+      - loki
+    networks:
+      - gym_network
+
   grafana:
     image: grafana/grafana:latest
     container_name: gym-grafana
@@ -93,11 +120,12 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning  # <--- MAGIA: Dodano podpinanie konfiguracji!
+      - ./grafana/provisioning:/etc/grafana/provisioning
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
     depends_on:
       - prometheus
+      - loki
     networks:
       - gym_network
 
