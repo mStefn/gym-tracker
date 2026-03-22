@@ -17,9 +17,8 @@ services:
       - gym_network
 
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile.backend
+    # Używamy Twojego loginu: mstefn
+    image: ghcr.io/mstefn/gym-backend:latest
     container_name: gym-backend
     restart: always
     ports:
@@ -38,9 +37,8 @@ services:
       - gym_network
 
   frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile.frontend
+    # Używamy Twojego loginu: mstefn
+    image: ghcr.io/mstefn/gym-frontend:latest
     container_name: gym-frontend
     restart: always
     ports:
@@ -83,7 +81,6 @@ services:
     networks:
       - gym_network
 
-  # NOWE: Baza danych dla logów
   loki:
     image: grafana/loki:latest
     container_name: gym-loki
@@ -93,12 +90,11 @@ services:
     networks:
       - gym_network
 
-  # NOWE: Zbieracz logów z kontenerów Dockera
   alloy:
     image: grafana/alloy:latest
     container_name: gym-alloy
     restart: always
-    user: root  # Wymagane, żeby czytać logi przez plik .sock
+    user: root
     volumes:
       - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
