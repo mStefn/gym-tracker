@@ -59,6 +59,8 @@ func main() {
 		// Plan exercise management
 		auth.POST("/plan-exercises", AddExerciseToPlan)
 		auth.DELETE("/plan-exercises/:plan_id", DeletePlanExercises)
+		// ---> TUTAJ DODANO NOWY ENDPOINT <---
+		auth.POST("/plan-exercises/sync", SyncPlanExercises)
 
 		auth.GET("/stats/:user_id", GetUserStats)
 		auth.POST("/exercises/find-or-create", FindOrCreateExerciseHandler)
