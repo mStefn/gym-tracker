@@ -17,7 +17,6 @@ services:
       - gym_network
 
   backend:
-    # Używamy Twojego loginu: mstefn
     image: ghcr.io/mstefn/gym-backend:latest
     container_name: gym-backend
     restart: always
@@ -37,7 +36,6 @@ services:
       - gym_network
 
   frontend:
-    # Używamy Twojego loginu: mstefn
     image: ghcr.io/mstefn/gym-frontend:latest
     container_name: gym-frontend
     restart: always
@@ -78,6 +76,23 @@ services:
       - prometheus_data:/prometheus
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
+    networks:
+      - gym_network
+
+  # ---> NOWE: Monitorowanie serwera hosta <---
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: gym-node-exporter
+    restart: always
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     networks:
       - gym_network
 
