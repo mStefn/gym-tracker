@@ -1,9 +1,11 @@
-name: Deploy via Tailscale
+name: Professional CI/CD Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -11,12 +13,42 @@ env:
   IMAGE_NAME_FRONTEND: ghcr.io/mstefn/gym-frontend
 
 jobs:
+  # --- ETAP 1: ANALIZA JAKOŚCI (SONARQUBE) ---
+  sonar-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Sonar potrzebuje pełnej historii do oceny, co jest "nowym" kodem
+
+      - name: Connect to Tailscale (to reach SonarQube)
+        uses: tailscale/github-action@v2
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      # BRAMKA JAKOŚCI: Pipeline "wywali się", jeśli kod nie spełni standardów
+      - name: SonarQube Quality Gate Check
+        uses: SonarSource/sonarqube-quality-gate-action@v1
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+  # --- ETAP 2: BUDOWANIE OBRAZÓW ---
   build-and-push:
+    needs: sonar-scan
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -44,6 +76,7 @@ jobs:
           push: true
           tags: ${{ env.IMAGE_NAME_FRONTEND }}:latest
 
+  # --- ETAP 3: WDROŻENIE (DEPLOY) ---
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -53,7 +86,7 @@ jobs:
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
 
-      - name: Deploy to Server via SSH over Tailscale
+      - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_IP }}
@@ -66,3 +99,45 @@ jobs:
             docker compose pull backend frontend
             docker compose up -d backend frontend
             docker image prune -af
+
+  # --- ETAP 4: SPRAWDZENIE CZY DZIAŁA (HEALTH CHECK) ---
+  health-check:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: Check Backend Health
+        run: |
+          echo "Waiting for containers to settle..."
+          sleep 15
+          STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://${{ secrets.SERVER_IP }}:5001/health)
+          if [ $STATUS -eq 200 ]; then
+            echo "Backend is Healthy!"
+          else
+            echo "Backend returned $STATUS - Failing deployment!"
+            exit 1
+          fi
+
+  # --- ETAP 5: POWIADOMIENIE DISCORD ---
+  notify:
+    needs: [sonar-scan, build-and-push, deploy, health-check]
+    if: always() 
+    runs-on: ubuntu-latest
+    steps:
+      - name: Discord Notification
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: ${{ job.status }}
+          title: "🚀 Gym Tracker Deployment Report"
+          description: |
+            **SonarQube Scan:** ${{ needs.sonar-scan.result }}
+            **Build & Push:** ${{ needs.build-and-push.result }}
+            **Server Deploy:** ${{ needs.deploy.result }}
+            **Health Check:** ${{ needs.health-check.result }}
+            
+            Check details here: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
