@@ -1,0 +1,70 @@
+name: Deploy via Tailscale
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  REGISTRY: ghcr.io 
+  IMAGE_NAME_BACKEND: ghcr.io/mstefn/gym-backend
+  IMAGE_NAME_FRONTEND: ghcr.io/mstefn/gym-frontend
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ env.IMAGE_NAME_BACKEND }}:latest
+
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ env.IMAGE_NAME_FRONTEND }}:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: Deploy to Server via SSH over Tailscale
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }} # To musi być IP 100.x.y.z
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd ${{ secrets.PROJECT_PATH }}
+            git pull origin main
+            
+            
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            
+            docker compose pull backend frontend
+            docker compose up -d backend frontend
+            docker image prune -af
