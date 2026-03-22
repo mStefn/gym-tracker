@@ -6,7 +6,7 @@ on:
       - main
 
 env:
-  REGISTRY: ghcr.io 
+  REGISTRY: ghcr.io
   IMAGE_NAME_BACKEND: ghcr.io/mstefn/gym-backend
   IMAGE_NAME_FRONTEND: ghcr.io/mstefn/gym-frontend
 
@@ -31,14 +31,16 @@ jobs:
       - name: Build and push Backend
         uses: docker/build-push-action@v5
         with:
-          context: ./backend
+          context: .
+          file: Dockerfile.backend
           push: true
           tags: ${{ env.IMAGE_NAME_BACKEND }}:latest
 
       - name: Build and push Frontend
         uses: docker/build-push-action@v5
         with:
-          context: ./frontend
+          context: .
+          file: Dockerfile.frontend
           push: true
           tags: ${{ env.IMAGE_NAME_FRONTEND }}:latest
 
@@ -54,17 +56,13 @@ jobs:
       - name: Deploy to Server via SSH over Tailscale
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.SERVER_IP }} # To musi być IP 100.x.y.z
+          host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd ${{ secrets.PROJECT_PATH }}
             git pull origin main
-            
-            
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            
-            
             docker compose pull backend frontend
             docker compose up -d backend frontend
             docker image prune -af
