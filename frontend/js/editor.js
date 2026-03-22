@@ -2,7 +2,6 @@ import { state, API_URL, authFetch } from './state.js';
 
 const EXERCISES_DB = [
   { "name": "Bench Press", "category": "Chest", "equipment": ["Barbell", "Dumbbell", "Machine"], "angles": ["Flat", "Incline", "Decline"] },
-  // DODANE KĄTY DO CHEST FLY:
   { "name": "Chest Fly", "category": "Chest", "equipment": ["Dumbbell", "Machine", "Cable"], "angles": ["Flat", "Incline", "Decline"] },
   { "name": "Push-Up", "category": "Chest", "equipment": ["Bodyweight"] },
   { "name": "Pull-Up", "category": "Back", "equipment": ["Bodyweight", "Assisted"] },
@@ -75,7 +74,7 @@ export async function renderPlanEditor(planId = null, planName = "") {
                 selectedExercisesForPlan = existing.map(e => ({
                     id: e.exercise_id || e.exercise_name.replace(/\s+/g, '-').toLowerCase(),
                     name: e.exercise_name,
-                    category: e.category,
+                    category: e.category, // Teraz backend zwraca category!
                     sets: e.target_sets
                 }));
             }
@@ -162,6 +161,7 @@ window.saveFullPlan = async () => {
     try {
         let finalPlanId = editingPlanId;
 
+        // 1. Zapisz nazwę (Create lub Update)
         if (!editingPlanId) {
             const res = await authFetch(`${API_URL}/plans`, {
                 method: "POST", headers: {"Content-Type":"application/json"},
@@ -174,18 +174,28 @@ window.saveFullPlan = async () => {
                 method: "PUT", headers: {"Content-Type":"application/json"},
                 body: JSON.stringify({ name: planName })
             });
-            await authFetch(`${API_URL}/plan-exercises/${finalPlanId}`, { method: "DELETE" });
         }
 
-        for (const ex of selectedExercisesForPlan) {
-            await authFetch(`${API_URL}/plan-exercises`, {
-                method: "POST", headers: {"Content-Type":"application/json"},
-                body: JSON.stringify({ plan_id: finalPlanId, exercise_id: ex.id, target_sets: ex.sets, exercise_name: ex.name, category: ex.category })
-            });
-        }
+        // 2. Synchronizuj wszystkie ćwiczenia w jednym strzale
+        const syncPayload = {
+            plan_id: finalPlanId,
+            exercises: selectedExercisesForPlan.map(ex => ({
+                name: ex.name,
+                category: ex.category,
+                sets: ex.sets
+            }))
+        };
+
+        const res = await authFetch(`${API_URL}/plan-exercises/sync`, {
+            method: "POST", headers: {"Content-Type":"application/json"},
+            body: JSON.stringify(syncPayload)
+        });
+
+        if (!res.ok) throw new Error("Synchronization failed");
+
         window.navigate('workout');
     } catch (e) {
-        alert("Save failed");
+        alert("Save failed: " + e.message);
         saveBtn.innerText = editingPlanId ? "Update Plan" : "Save Workout Plan";
         saveBtn.disabled = false;
     }
@@ -197,7 +207,6 @@ window.saveFullPlan = async () => {
 window.openExerciseWizard = (onComplete) => {
     let wizardModal = document.getElementById('exercise-wizard');
     
-    // BUDUJEMY SZKIELET MODALA TYLKO RAZ
     if (!wizardModal) {
         wizardModal = document.createElement('div');
         wizardModal.id = 'exercise-wizard';
@@ -213,8 +222,7 @@ window.openExerciseWizard = (onComplete) => {
                     <button onclick="window.wizardClose()" style="background:none; border:none; color:#8e8e93; font-size:24px; cursor:pointer; padding:0;">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <div id="wizard-grid" class="tile-grid">
-                        </div>
+                    <div id="wizard-grid" class="tile-grid"></div>
                 </div>
             </div>
         `;
@@ -231,7 +239,6 @@ window.openExerciseWizard = (onComplete) => {
 
     const categories = [...new Set(EXERCISES_DB.map(e => e.category))];
 
-    // FUNKCJA TYLKO ODŚWIEŻAJĄCA ŚRODEK OKNA
     const renderView = () => {
         let title = "Select Muscle Group";
         let items = [];
@@ -270,7 +277,6 @@ window.openExerciseWizard = (onComplete) => {
                 onClick = (val) => { selection.variant = val; renderView(); };
             } 
             else {
-                // Koniec ścieżki - budujemy nazwę
                 const nameParts = [selection.angle, selection.variant, selection.equipment, selection.baseExercise.name];
                 const finalName = nameParts.filter(Boolean).join(" ");
                 const finalId = finalName.replace(/\s+/g, '-').toLowerCase();
@@ -287,7 +293,6 @@ window.openExerciseWizard = (onComplete) => {
             }
         }
 
-        // Aktualizacja DOM bez niszczenia modala
         document.getElementById('wizard-title').innerText = title;
         document.getElementById('wizard-back-btn').style.display = showBack ? 'block' : 'none';
         

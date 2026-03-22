@@ -82,7 +82,6 @@ func LogSet(c *gin.Context) {
 		return
 	}
 
-	// Always use the authenticated user's ID, never the client-supplied one.
 	userID := c.GetInt("userID")
 	_, err := db.Exec("INSERT INTO logs (user_id, exercise_id, set_number, reps, weight, is_failure) VALUES (?, ?, ?, ?, ?, ?)",
 		userID, input.ExerciseID, input.SetNumber, input.Reps, input.Weight, input.IsFailure)
@@ -129,11 +128,11 @@ func GetLastResult(c *gin.Context) {
 func GetUserStats(c *gin.Context) {
 	userID := c.GetInt("userID")
 	rows, err := db.Query(`
-        SELECT l.created_at, e.name, l.weight, l.reps, e.id
-        FROM logs l
-        JOIN exercises e ON l.exercise_id = e.id
-        WHERE l.user_id = ?
-        ORDER BY l.created_at ASC`, userID)
+		SELECT l.created_at, e.name, l.weight, l.reps, e.id
+		FROM logs l
+		JOIN exercises e ON l.exercise_id = e.id
+		WHERE l.user_id = ?
+		ORDER BY l.created_at ASC`, userID)
 
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Failed to fetch stats"})
@@ -213,11 +212,11 @@ func GetDashboardData(c *gin.Context) {
 	}
 
 	if rRows, err := db.Query(`
-        SELECT e.name, e.category, TIMESTAMPDIFF(HOUR, MAX(l.created_at), NOW()) 
-        FROM logs l 
-        JOIN exercises e ON l.exercise_id = e.id 
-        WHERE l.user_id = ? 
-        GROUP BY e.id`, userID); err == nil {
+		SELECT e.name, e.category, TIMESTAMPDIFF(HOUR, MAX(l.created_at), NOW()) 
+		FROM logs l 
+		JOIN exercises e ON l.exercise_id = e.id 
+		WHERE l.user_id = ? 
+		GROUP BY e.id`, userID); err == nil {
 		for rRows.Next() {
 			var exName, cat string
 			var hours int
@@ -341,7 +340,6 @@ func AddExerciseToPlan(c *gin.Context) {
 		return
 	}
 
-	// Resolve the real integer exercise ID via name lookup / creation.
 	realExerciseID, err := GetOrCreateExerciseDB(input.ExerciseName, input.Category)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Failed to resolve exercise ID"})
@@ -378,11 +376,12 @@ func GetUserPlans(c *gin.Context) {
 
 func GetPlanExercises(c *gin.Context) {
 	planID := c.Param("plan_id")
+	// BUG FIX: Added e.category to the SELECT statement
 	rows, err := db.Query(`
-        SELECT e.id, e.name, pe.target_sets 
-        FROM plan_exercises pe 
-        JOIN exercises e ON pe.exercise_id = e.id 
-        WHERE pe.plan_id = ?`, planID)
+		SELECT e.id, e.name, e.category, pe.target_sets 
+		FROM plan_exercises pe 
+		JOIN exercises e ON pe.exercise_id = e.id 
+		WHERE pe.plan_id = ?`, planID)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Failed to fetch plan exercises"})
 		return
@@ -391,13 +390,81 @@ func GetPlanExercises(c *gin.Context) {
 	list := []map[string]interface{}{}
 	for rows.Next() {
 		var id, sets int
-		var name string
-		if err := rows.Scan(&id, &name, &sets); err != nil {
+		var name, category string
+		if err := rows.Scan(&id, &name, &category, &sets); err != nil {
 			continue
 		}
-		list = append(list, map[string]interface{}{"exercise_id": id, "exercise_name": name, "target_sets": sets})
+		list = append(list, map[string]interface{}{
+			"exercise_id":   id,
+			"exercise_name": name,
+			"category":      category,
+			"target_sets":   sets,
+		})
 	}
 	c.JSON(200, list)
+}
+
+// NOWY ENDPOINT: Bulk Sync z Transakcją
+func SyncPlanExercises(c *gin.Context) {
+	var input struct {
+		PlanID    int `json:"plan_id"`
+		Exercises []struct {
+			Name     string `json:"name"`
+			Category string `json:"category"`
+			Sets     int    `json:"sets"`
+		} `json:"exercises"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	// Rozpoczynamy transakcję
+	tx, err := db.Begin()
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Transaction failed"})
+		return
+	}
+
+	// 1. Czyścimy stare ćwiczenia z planu
+	_, err = tx.Exec("DELETE FROM plan_exercises WHERE plan_id = ?", input.PlanID)
+	if err != nil {
+		tx.Rollback()
+		c.JSON(500, gin.H{"error": "Failed to clear old exercises"})
+		return
+	}
+
+	// 2. Wstawiamy nowe/zaktualizowane ćwiczenia
+	for _, ex := range input.Exercises {
+		var exID int
+		// Szukamy ćwiczenia w bazie po nazwie
+		err := tx.QueryRow("SELECT id FROM exercises WHERE name = ?", ex.Name).Scan(&exID)
+		if err != nil {
+			// Jeśli nie istnieje, tworzymy je
+			res, errInsert := tx.Exec("INSERT INTO exercises (name, category) VALUES (?, ?)", ex.Name, ex.Category)
+			if errInsert != nil {
+				tx.Rollback()
+				c.JSON(500, gin.H{"error": "Failed to create missing exercise"})
+				return
+			}
+			id, _ := res.LastInsertId()
+			exID = int(id)
+		}
+
+		// Przypisujemy ćwiczenie do planu
+		_, err = tx.Exec("INSERT INTO plan_exercises (plan_id, exercise_id, target_sets) VALUES (?, ?, ?)",
+			input.PlanID, exID, ex.Sets)
+		if err != nil {
+			tx.Rollback()
+			c.JSON(500, gin.H{"error": "Failed to insert exercises into plan"})
+			return
+		}
+	}
+
+	// Zatwierdzamy transakcję
+	tx.Commit()
+	c.JSON(200, gin.H{"status": "synchronized"})
 }
 
 func DeletePlan(c *gin.Context) {
@@ -631,7 +698,6 @@ func UpdatePlanName(c *gin.Context) {
 		c.JSON(400, gin.H{"error": "Invalid input"})
 		return
 	}
-	// Bug fix: was querying non-existent "plans" table instead of "workout_plans".
 	_, err := db.Exec("UPDATE workout_plans SET name = ? WHERE id = ?", input.Name, planID)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Failed to update plan"})
