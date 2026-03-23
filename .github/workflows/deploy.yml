@@ -10,8 +10,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME_BACKEND: ghcr.io/mstefn/gym-backend
-  IMAGE_NAME_FRONTEND: ghcr.io/mstefn/gym-frontend
-  # Wymuszenie Node.js 24, aby ukryć ostrzeżenia o deprecacji Node 20
+  IMAGE_NAME_FRONTEND: ghcr.io/mstefn/gym-frontend  
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true 
 
 jobs:
@@ -24,12 +23,11 @@ jobs:
         with:
           fetch-depth: 0
 
+
       - name: Connect to Tailscale
         uses: tailscale/github-action@v3
         with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          tags: tag:ci
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v6
@@ -87,9 +85,7 @@ jobs:
       - name: Connect to Tailscale
         uses: tailscale/github-action@v3
         with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          tags: tag:ci
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
 
       - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@v1.2.0
@@ -113,9 +109,7 @@ jobs:
       - name: Connect to Tailscale
         uses: tailscale/github-action@v3
         with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          tags: tag:ci
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
 
       - name: Check Backend Health
         run: |
