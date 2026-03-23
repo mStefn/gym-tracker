@@ -1,4 +1,4 @@
-name: Professional CI/CD Pipeline
+name: Build & Deploy 
 
 on:
   push:
@@ -11,25 +11,28 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME_BACKEND: ghcr.io/mstefn/gym-backend
   IMAGE_NAME_FRONTEND: ghcr.io/mstefn/gym-frontend
-  # To uciszy ostrzeżenia o Node.js 20
+  # Wymuszenie Node.js 24, aby ukryć ostrzeżenia o deprecacji Node 20
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true 
 
 jobs:
+  # --- STEP 1: QUALITY ANALYSIS (SONARQUBE) ---
   sonar-scan:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4 # V4 jest OK, env powyżej wymusi Node24
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Connect to Tailscale
-        uses: tailscale/github-action@v2
+        uses: tailscale/github-action@v3
         with:
-          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
 
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v5 # Podbita wersja
+        uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -41,6 +44,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
+  # --- STEP 2: BUILDING IMAGES ---
   build-and-push:
     needs: sonar-scan
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
@@ -60,7 +64,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Backend
-        uses: docker/build-push-action@v6 # Podbite do v6
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile.backend
@@ -68,24 +72,27 @@ jobs:
           tags: ${{ env.IMAGE_NAME_BACKEND }}:latest
 
       - name: Build and push Frontend
-        uses: docker/build-push-action@v6 # Podbite do v6
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile.frontend
           push: true
           tags: ${{ env.IMAGE_NAME_FRONTEND }}:latest
 
+  # --- STEP 3: DEPLOY ---
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
       - name: Connect to Tailscale
-        uses: tailscale/github-action@v2
+        uses: tailscale/github-action@v3
         with:
-          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
 
       - name: Deploy to Server via SSH
-        uses: appleboy/ssh-action@v1.2.0 # Podbite
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
@@ -98,14 +105,17 @@ jobs:
             docker compose up -d backend frontend
             docker image prune -af
 
+  # --- STEP 4: HEALTH CHECK ---
   health-check:
     needs: deploy
     runs-on: ubuntu-latest
     steps:
       - name: Connect to Tailscale
-        uses: tailscale/github-action@v2
+        uses: tailscale/github-action@v3
         with:
-          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
 
       - name: Check Backend Health
         run: |
@@ -119,6 +129,7 @@ jobs:
             exit 1
           fi
 
+  # --- STEP 5: DISCORD NOTIFICATION ---
   notify:
     needs: [sonar-scan, build-and-push, deploy, health-check]
     if: always() 
