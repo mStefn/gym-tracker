@@ -3,43 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gym Admin Console</title>
+    <title>Gym Tracker | Admin Console</title>
+    
     <link rel="stylesheet" href="css/style.css">
+    
     <style>
-        body { background: #1c1c1e; color: white; }
-        .admin-card { background: #2c2c2e; padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #3a3a3c; }
-        input { background: #3a3a3c; color: white; border: 1px solid #48484a; margin-bottom: 10px; text-align: left; padding-left: 15px; width: 100%; box-sizing: border-box; }
-        h2 { color: #0a84ff; border-bottom: 1px solid #3a3a3c; padding-bottom: 10px; margin-top: 30px; }
-        .danger { border: 1px solid #ff453a; }
+        /* Specific overrides for the admin environment */
+        body { 
+            background: #0b101e; /* Deep dark background */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            overflow-y: auto;
+        }
+        
+        #admin-app {
+            width: 100%;
+            max-width: 550px;
+            padding: 40px 20px;
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 15px;
+        }
+
+        .admin-section-title {
+            color: var(--primary);
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 30px 0 20px 0;
+        }
+
+        /* Reusing the exercise-card style for admin modules */
+        .admin-card {
+            background: var(--card-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border);
+            padding: 25px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+        }
+
+        .btn-logout-admin {
+            background: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 8px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        .btn-logout-admin:hover {
+            background: rgba(255, 59, 48, 0.1);
+        }
     </style>
 </head>
 <body>
-    <div id="admin-app" style="max-width: 500px; margin: 0 auto; padding: 20px;">
-        <div id="login-zone">
-            <h1>System Admin</h1>
-            <input type="password" id="admin-pass" placeholder="Admin Password">
-            <button onclick="adminLogin()" class="save-btn">Access Console</button>
+    <div id="admin-app">
+        
+        <div id="login-zone" class="admin-card" style="text-align: center;">
+            <h1 style="color: var(--primary); margin-bottom: 10px;">SYSTEM ADMIN</h1>
+            <p style="color: #8e8e93; font-size: 14px; margin-bottom: 25px;">Secure infrastructure access</p>
+            
+            <input type="password" id="admin-pass" placeholder="Admin PIN" style="text-align: center;">
+            <button onclick="adminLogin()" class="save-btn" style="margin-top: 10px;">Access Console</button>
         </div>
 
         <div id="console-zone" style="display:none;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h1>Admin Console</h1>
-                <button onclick="adminLogout()" class="nav-link" style="color:#ff453a">Logout</button>
-            </div>
+            <header class="admin-header">
+                <h1 style="margin:0; font-size: 24px;">Admin Console</h1>
+                <button onclick="adminLogout()" class="btn-logout-admin">Logout</button>
+            </header>
 
-            <h2>User Management</h2>
-            <div id="user-list"></div>
+            <h2 class="admin-section-title">User Management</h2>
+            <div id="user-list">
+                </div>
 
-            <h2>Account Settings</h2>
+            <h2 class="admin-section-title">Security Settings</h2>
             <div class="admin-card">
-                <h3>Change Admin Password</h3>
-                <input type="password" id="old-pass" placeholder="Current Password">
-                <input type="password" id="new-pass" placeholder="New Password">
-                <input type="password" id="conf-pass" placeholder="Confirm New Password">
-                <button onclick="changeAdminPassword()" class="save-btn">Update Password</button>
+                <h3 style="margin-top: 0; margin-bottom: 20px;">Change Root Password</h3>
+                <div class="input-stack">
+                    <input type="password" id="old-pass" placeholder="Current Password">
+                    <input type="password" id="new-pass" placeholder="New Password">
+                    <input type="password" id="conf-pass" placeholder="Confirm New Password">
+                </div>
+                <button onclick="changeAdminPassword()" class="save-btn" style="margin-top: 10px; background: var(--success);">Update Root Password</button>
             </div>
         </div>
     </div>
+
     <script type="module" src="js/admin.js"></script>
 </body>
 </html>

@@ -1,7 +1,27 @@
+# ==========================================
+# FRONTEND RUNTIME STAGE
+# ==========================================
+# Use the official, lightweight Nginx Alpine image
 FROM nginx:alpine
 
+# SysOps Cleanup: Remove default Nginx static assets to prevent conflicts
+RUN rm -rf /usr/share/nginx/html/*
+
+# Copy the entire frontend directory to the Nginx public web root
 COPY frontend/ /usr/share/nginx/html/
 
+
+RUN rm -f /usr/share/nginx/html/nginx.conf
+
+# Overwrite the default Nginx routing configuration with our custom one
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
+# Optional: Ensure correct permissions for the Nginx user
+RUN chown -R nginx:nginx /usr/share/nginx/html && \
+    chmod -R 755 /usr/share/nginx/html
+
+# Expose the specific internal port defined in your docker-compose.yml
 EXPOSE 8081
+
+# Start Nginx in the foreground (required for Docker containers to stay alive)
+CMD ["nginx", "-g", "daemon off;"]

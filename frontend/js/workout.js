@@ -1,22 +1,27 @@
 import { state, API_URL, authFetch } from './state.js';
 
+/**
+ * Renders the active workout session based on a specific plan
+ */
 export async function renderWorkout(planId, planName) {
     const container = document.getElementById("exercises");
     container.innerHTML = `<div class="spinner" style="margin-top: 50px;"></div>`;
 
     try {
+        // Fetch exercises assigned to the selected plan
         const res = await authFetch(`${API_URL}/plan-exercises/${planId}`);
         const exercises = await res.json();
 
         container.innerHTML = `
             <div style="padding: 10px;">
-                <button onclick="window.navigate('workout')" style="background: transparent; border: none; color: var(--primary); padding: 0; margin-bottom: 20px; font-size: 16px; font-weight: 600; cursor: pointer;">← Back to Workouts</button>
-                <h2 style="margin: 0px 0 25px 0;">${planName}</h2>
+                <button onclick="window.navigate('workout')" class="back-link">← Back to Workouts</button>
+                <h2 class="workout-title">${planName}</h2>
                 <div id="workout-content"></div>
-                <button onclick="window.navigate('workout')" class="save-btn" style="margin-top: 20px; background: var(--success);">Finish Workout</button>
+                <button onclick="window.navigate('workout')" class="save-btn success-bg" style="margin-top: 20px;">Finish Workout</button>
             </div>
         `;
 
+        // Efficiently fetch last results for all sets in parallel
         const fetchTasks = [];
         for (const ex of exercises) {
             for (let s = 1; s <= ex.target_sets; s++) {
@@ -29,90 +34,102 @@ export async function renderWorkout(planId, planName) {
         }
 
         const results = await Promise.all(fetchTasks);
+        const renderedExercises = new Set();
 
-        const rendered = new Set();
         for (const { ex, s, last } of results) {
-            if (!rendered.has(ex.exercise_id)) {
+            // Create a new card for each exercise if it doesn't exist yet
+            if (!renderedExercises.has(ex.exercise_id)) {
                 const card = document.createElement("div");
                 card.className = "exercise-card";
                 card.innerHTML = `<h3>${ex.exercise_name}</h3><div id="ex-${ex.exercise_id}"></div>`;
                 document.getElementById("workout-content").appendChild(card);
-                rendered.add(ex.exercise_id);
+                renderedExercises.add(ex.exercise_id);
             }
 
-            let targetInfo = "Target: Set it!";
+            // Logic for Progressive Overload targets
+            let targetInfo = "Target: Push yourself!";
             const savedTargetStr = localStorage.getItem(`target_${state.currentUserId}_${ex.exercise_id}_${s}`);
             
             if (savedTargetStr) {
                 try {
                     const savedTarget = JSON.parse(savedTargetStr);
                     targetInfo = `Tgt: ${savedTarget.weight.toFixed(1)}kg x ${savedTarget.reps}`;
-                } catch(e){}
+                } catch(e) { console.error("Target Parsing Error", e); }
             } else if (last.weight > 0) {
+                // Auto-suggest: If previous reps >= 10, suggest adding 0.5kg
                 const nextWeight = last.reps >= 10 ? last.weight + 0.5 : last.weight;
                 targetInfo = `Tgt: ${nextWeight.toFixed(1)}kg x ${last.reps}`;
             }
 
+            // Build the set row
             const row = document.createElement("div");
-            row.className = "set-row";
-            row.style = "display: flex; flex-direction: column; gap: 15px; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 20px;";
+            row.className = "set-row-container";
             
             const safeExName = ex.exercise_name.replace(/'/g, "\\'");
-
             let prevDisplay = '-';
             if (last.weight > 0) {
-                const failureTag = last.is_failure ? '<span style="color:var(--danger); font-weight:bold;"> F</span>' : '';
+                const failureTag = last.is_failure ? '<span class="failure-indicator"> F</span>' : '';
                 prevDisplay = `${last.weight}kg x ${last.reps}${failureTag}`;
             }
 
             row.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="font-weight:bold; color:var(--primary); font-size:18px; width: 40px;">S${s}</div>
+                <div class="set-row-header">
+                    <div class="set-number-badge">S${s}</div>
                     
-                    <div style="flex: 1;">
-                        <div style="font-size: 11px; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px;">Prev</div>
-                        <div style="font-weight: 600; font-size: 15px;">${prevDisplay}</div>
-                        <div id="target-${ex.exercise_id}-${s}" style="font-size:12px; color:var(--success); font-weight:700; margin-top:2px;">${targetInfo}</div>
+                    <div class="set-stat-box">
+                        <div class="stat-label">Previous</div>
+                        <div class="stat-value">${prevDisplay}</div>
+                        <div id="target-${ex.exercise_id}-${s}" class="target-indicator">${targetInfo}</div>
                     </div>
 
-                    <div style="flex: 1; text-align: right;">
-                        <div style="font-size: 11px; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px;">Today</div>
-                        <div id="today-${ex.exercise_id}-${s}" style="font-weight: 600; font-size: 15px; color: var(--primary);">-</div>
+                    <div class="set-stat-box text-right">
+                        <div class="stat-label">Today</div>
+                        <div id="today-${ex.exercise_id}-${s}" class="current-value">-</div>
                     </div>
                 </div>
 
-                <form onsubmit="event.preventDefault();" style="display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; width: 100%; margin: 0;">
-                    <div style="display: flex; flex-direction: column; flex: 1;">
-                        <label style="font-size: 11px; color: #8e8e93; font-weight: 600; margin-bottom: 4px; text-align: center;">Reps</label>
-                        <input type="number" inputmode="numeric" pattern="[0-9]*" enterkeyhint="next" class="reps-in" id="reps-${ex.exercise_id}-${s}" onkeydown="window.handleRepsEnter(event, 'weight-${ex.exercise_id}-${s}')" style="width: 100%; padding: 12px 5px; font-size: 16px; text-align: center; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); margin-bottom: 0;">
+                <form onsubmit="event.preventDefault();" class="set-input-form">
+                    <div class="input-group">
+                        <label>Reps</label>
+                        <input type="number" inputmode="numeric" pattern="[0-9]*" class="reps-in" 
+                               id="reps-${ex.exercise_id}-${s}" 
+                               onkeydown="window.handleRepsEnter(event, 'weight-${ex.exercise_id}-${s}')">
                     </div>
                     
-                    <div style="display: flex; flex-direction: column; flex: 1;">
-                        <label style="font-size: 11px; color: #8e8e93; font-weight: 600; margin-bottom: 4px; text-align: center;">kg</label>
-                        <input type="number" inputmode="decimal" enterkeyhint="done" class="weight-in" id="weight-${ex.exercise_id}-${s}" onkeydown="window.handleWeightEnter(event, this, ${ex.exercise_id}, ${s}, '${safeExName}')" style="width: 100%; padding: 12px 5px; font-size: 16px; text-align: center; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); margin-bottom: 0;">
+                    <div class="input-group">
+                        <label>kg</label>
+                        <input type="number" inputmode="decimal" class="weight-in" 
+                               id="weight-${ex.exercise_id}-${s}" 
+                               onkeydown="window.handleWeightEnter(event, this, ${ex.exercise_id}, ${s}, '${safeExName}')">
                     </div>
                     
-                    <label style="display: flex; align-items: center; justify-content: center; color: #8e8e93; font-size: 13px; font-weight: 600; cursor: pointer; user-select: none; flex: 1.5; text-align: center; height: 46px; margin-bottom: 0;">
-                        Set to failure?
-                        <input type="checkbox" id="fail-${ex.exercise_id}-${s}" style="margin-left: 8px; width: 22px; height: 22px; accent-color: var(--danger); cursor: pointer; margin-bottom: 0;">
+                    <label class="failure-checkbox-label">
+                        Failure?
+                        <input type="checkbox" id="fail-${ex.exercise_id}-${s}" class="fail-checkbox">
                     </label>
 
-                    <button type="button" id="btn-${ex.exercise_id}-${s}" onclick="window.saveSet(this, ${ex.exercise_id}, ${s}, '${safeExName}')" style="background: rgba(0, 210, 255, 0.1); color: var(--primary); border: none; width: 70px; height: 46px; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-bottom: 0;">Save</button>
+                    <button type="button" id="btn-${ex.exercise_id}-${s}" 
+                            onclick="window.saveSet(this, ${ex.exercise_id}, ${s}, '${safeExName}')" 
+                            class="save-set-btn">Save</button>
                 </form>
             `;
             document.getElementById(`ex-${ex.exercise_id}`).appendChild(row);
         }
     } catch (err) {
-        container.innerHTML = `<p style="color:var(--danger)">Error: Backend connection failed.</p>`;
+        console.error("Workout Render Error:", err);
+        container.innerHTML = `<p class="error-text">Error: Backend connection failed.</p>`;
     }
 }
 
+/**
+ * Sends set data to the server and triggers the Overload Modal
+ */
 export async function saveSet(btn, exId, setNum, exName) {
     const repsVal = document.getElementById(`reps-${exId}-${setNum}`).value;
     const weightVal = document.getElementById(`weight-${exId}-${setNum}`).value;
     const isFailure = document.getElementById(`fail-${exId}-${setNum}`).checked;
 
-    if (!repsVal || !weightVal) return alert("Fill data");
+    if (!repsVal || !weightVal) return alert("Please enter both weight and reps.");
 
     btn.innerHTML = "...";
     btn.disabled = true;
@@ -122,7 +139,6 @@ export async function saveSet(btn, exId, setNum, exName) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                user_id: parseInt(state.currentUserId),
                 exercise_id: exId,
                 set_number: setNum,
                 reps: parseInt(repsVal),
@@ -132,27 +148,31 @@ export async function saveSet(btn, exId, setNum, exName) {
         });
 
         if (res.ok) {
+            // UI Feedback
             btn.innerHTML = "✓";
-            btn.style.background = "rgba(48, 209, 88, 0.15)";
-            btn.style.color = "var(--success)";
+            btn.className += " success-btn";
             
             document.getElementById(`reps-${exId}-${setNum}`).disabled = true;
             document.getElementById(`weight-${exId}-${setNum}`).disabled = true;
             document.getElementById(`fail-${exId}-${setNum}`).disabled = true;
             
-            const failureTag = isFailure ? '<span style="color:var(--danger); font-weight:bold;"> F</span>' : '';
+            const failureTag = isFailure ? '<span class="failure-indicator"> F</span>' : '';
             document.getElementById(`today-${exId}-${setNum}`).innerHTML = `${weightVal}kg x ${repsVal}${failureTag}`;
             
+            // Show Progressive Overload suggestion
             window.showOverloadModal(exId, setNum, parseFloat(weightVal), parseInt(repsVal), exName);
         }
     } catch (e) {
-        alert("Error");
+        console.error("Save Set Error:", e);
+        alert("Failed to save set. Check connection.");
         btn.innerHTML = "Save";
         btn.disabled = false;
     }
 }
 
-// Reszta modalna bez zmian...
+/**
+ * UI Component for Progressive Overload suggestions
+ */
 window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) => {
     let nextWeight = currentReps >= 10 ? currentWeight + 0.5 : currentWeight;
     let nextReps = currentReps;
@@ -163,13 +183,13 @@ window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) =>
 
     modal.innerHTML = `
         <div class="modal-content modal-content-small">
-            <div class="modal-header" style="justify-content: center; padding-bottom: 10px;">
+            <div class="modal-header centered">
                 <h3 style="margin:0; font-size:20px;">Progressive Overload</h3>
             </div>
-            <div class="modal-body" style="text-align: center; padding-top: 5px;">
-                <p style="color: #8e8e93; margin-top: 0; font-size: 14px; margin-bottom: 25px;">
+            <div class="modal-body centered">
+                <p class="overload-subtitle">
                     Set your target for next time on:<br>
-                    <strong style="color:var(--text);">${exName} (Set ${setNum})</strong>
+                    <strong class="highlight">${exName} (Set ${setNum})</strong>
                 </p>
                 
                 <div class="stepper-row">
@@ -190,9 +210,9 @@ window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) =>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer" style="display: flex; gap: 15px;">
-                <button onclick="window.closeOverload()" class="save-btn" style="background: var(--card-bg); color: var(--text); border: 1px solid var(--border); flex: 1;">Skip</button>
-                <button id="confirm-overload-btn" class="save-btn" style="background: var(--success); flex: 2;">Confirm Target</button>
+            <div class="modal-footer flex-gap">
+                <button onclick="window.closeOverload()" class="btn-secondary flex-1">Skip</button>
+                <button id="confirm-overload-btn" class="btn-success flex-2">Confirm Target</button>
             </div>
         </div>
     `;
@@ -226,7 +246,9 @@ window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) =>
     document.getElementById('confirm-overload-btn').onclick = window.saveOverloadLocal;
 };
 
-// NOWE FUNKCJE - Obsługa klawiatury Enter
+/**
+ * Keyboard Handling: Enter moves focus from Reps to Weight
+ */
 window.handleRepsEnter = (e, nextFieldId) => {
     if (e.key === 'Enter') {
         e.preventDefault();
@@ -235,10 +257,13 @@ window.handleRepsEnter = (e, nextFieldId) => {
     }
 };
 
+/**
+ * Keyboard Handling: Enter on Weight saves the set
+ */
 window.handleWeightEnter = (e, inputElement, exId, setNum, exName) => {
     if (e.key === 'Enter') {
         e.preventDefault();
-        inputElement.blur(); // Chowa klawiaturę
+        inputElement.blur(); // Hides mobile keyboard
         const btn = document.getElementById(`btn-${exId}-${setNum}`);
         if (btn && !btn.disabled) {
             window.saveSet(btn, exId, setNum, exName);
@@ -246,5 +271,6 @@ window.handleWeightEnter = (e, inputElement, exId, setNum, exName) => {
     }
 };
 
+// Global Exposure for event handlers
 window.renderWorkout = renderWorkout;
 window.saveSet = saveSet;

@@ -1,20 +1,49 @@
-FROM golang:1.24-bullseye AS builder
+# ==========================================
+# BUILD STAGE
+# ==========================================
+# Using Alpine as the base for the builder is faster and lighter
+FROM golang:1.24-alpine AS builder
 WORKDIR /app
 
+# Install git and CA certificates (needed for some Go modules)
+RUN apk add --no-cache git ca-certificates tzdata
+
+# Leverage Docker layer caching by copying dependency files first
 COPY backend/go.mod backend/go.sum* ./
 RUN go mod download
 
+# Copy the rest of the application source code
 COPY backend/ .
-RUN go mod tidy
-RUN CGO_ENABLED=0 go build -o /gym-tracker .
 
-FROM debian:bullseye-slim
+# Build a statically linked binary. 
+# -ldflags="-s -w" strips debugging information, significantly reducing binary size.
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /gym-tracker .
+
+# ==========================================
+# RUNTIME STAGE
+# ==========================================
+# Alpine provides a minimal attack surface for the final production image
+FROM alpine:3.19
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+# Install required system packages: certificates for HTTPS and timezone data
+RUN apk add --no-cache ca-certificates tzdata
 
-COPY --from=builder /gym-tracker .
-COPY --from=builder /app/exercises.json .
+# Security: Create an unprivileged user to run the application
+RUN adduser -D -g '' appuser
 
+# Copy the compiled binary and necessary static files from the builder
+COPY --from=builder /gym-tracker ./gym-tracker
+COPY --from=builder /app/exercises.json ./exercises.json
+
+# Enforce strict ownership permissions
+RUN chown -R appuser:appuser /app
+
+# Switch context to the non-root user before executing the application
+USER appuser
+
+# Expose the port the application listens on
 EXPOSE 4000
+
+# Define the entrypoint
 CMD ["./gym-tracker"]

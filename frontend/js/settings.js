@@ -1,49 +1,56 @@
 import { state, API_URL, authFetch, logout } from './state.js';
 
+/**
+ * Renders the main Settings view including account management and PWA install options.
+ */
 export function renderSettings() {
     const container = document.getElementById("exercises");
     
+    // Check if the app is already running in standalone mode (installed)
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
     
     let installBtnHtml = '';
     if (!isStandalone) {
         installBtnHtml = `
-            <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 20px; text-align: center;">
-                <h3 style="margin-top: 0; margin-bottom: 10px;">Install App</h3>
-                <p style="color: #8e8e93; font-size: 14px; margin-bottom: 20px;">Install Gym Tracker on your home screen for a better, full-screen experience.</p>
-                <button id="install-btn" class="save-btn" style="background: var(--primary); color: #000;">📲 Install App</button>
+            <div class="settings-section centered">
+                <h3 class="section-title">Install App</h3>
+                <p class="section-desc">Install Gym Tracker on your home screen for a full-screen, native experience.</p>
+                <button id="install-btn" class="save-btn primary-glow">📲 Install App</button>
             </div>
         `;
     }
 
     container.innerHTML = `
-        <div style="padding-bottom: 30px;">
-            <button onclick="window.navigate('home')" style="background: transparent; border: none; color: var(--primary); padding: 0; margin-bottom: 20px; font-size: 16px; font-weight: 600; cursor: pointer;">← Back</button>
-            <h2 style="margin-top: 0; margin-bottom: 20px;">Settings</h2>
+        <div class="view-container">
+            <button onclick="window.navigate('home')" class="back-link">← Back</button>
+            <h2 class="view-title">Settings</h2>
             
-            <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 20px;">
-                <h3 style="margin-top: 0; margin-bottom: 15px;">Account</h3>
-                <p style="color: #8e8e93; font-size: 14px; margin-bottom: 25px;">Logged in as: <strong style="color: var(--text);">${state.currentUserName}</strong></p>
+            <div class="settings-section">
+                <h3 class="section-title">Account</h3>
+                <p class="section-desc">Authenticated as: <strong class="highlight">${state.currentUserName}</strong></p>
                 
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <button onclick="window.openPinModal()" class="save-btn" style="background: rgba(255, 255, 255, 0.05); color: var(--text); border: 1px solid var(--border); box-shadow: none; font-size: 15px;">🔑 Change PIN</button>
-                    <button onclick="window.triggerClearHistory()" class="save-btn" style="background: rgba(255, 149, 0, 0.1); color: var(--success); border: 1px solid rgba(255, 149, 0, 0.3); box-shadow: none; font-size: 15px;">🗑️ Clear Workout History</button>
-                    <button onclick="window.triggerDeleteAccount()" class="save-btn" style="background: rgba(255, 59, 48, 0.1); color: var(--danger); border: 1px solid rgba(255, 59, 48, 0.3); box-shadow: none; font-size: 15px;">⚠️ Delete Account</button>
+                <div class="action-stack">
+                    <button onclick="window.openPinModal()" class="btn-settings-item">🔑 Change PIN</button>
+                    <button onclick="window.triggerClearHistory()" class="btn-settings-item warning">🗑️ Clear Workout History</button>
+                    <button onclick="window.triggerDeleteAccount()" class="btn-settings-item danger">⚠️ Delete Account</button>
                 </div>
             </div>
 
             ${installBtnHtml}
 
-            <div style="margin-top: 30px;">
-                <button onclick="window.appLogout()" class="save-btn" style="background: transparent; color: var(--danger); border: 1px solid var(--danger); box-shadow: none;">Logout</button>
+            <div class="logout-wrapper">
+                <button onclick="window.appLogout()" class="btn-outline-danger">Logout</button>
             </div>
         </div>
     `;
 
+    // Re-attach event listener for the PWA installation button
     const installBtn = document.getElementById('install-btn');
     if (installBtn) {
         installBtn.addEventListener('click', async () => {
             if (navigator.vibrate) navigator.vibrate(10);
+            
+            // If the browser captured the install prompt, trigger it
             if (window.deferredPrompt) {
                 window.deferredPrompt.prompt();
                 const { outcome } = await window.deferredPrompt.userChoice;
@@ -52,14 +59,14 @@ export function renderSettings() {
                     installBtn.style.display = 'none'; 
                 }
             } else {
-                // ZMIANA Z ALERTU NA CUSTOMOWY MODAL
+                // Fallback for iOS/Browsers that don't support automated prompts
                 window.openInstallModal();
             }
         });
     }
 }
 
-// LOGIKA MODALA INSTALACJI
+// --- PWA INSTALL MODAL CONTROLS ---
 window.openInstallModal = () => {
     const overlay = document.getElementById('install-guide-overlay');
     if (overlay) overlay.classList.add('show');
@@ -70,33 +77,29 @@ window.closeInstallModal = () => {
 };
 
 // ==========================================
-// KLAWIATURA PIN DO ZMIANY HASŁA
+// PIN PAD LOGIC (Security Management)
 // ==========================================
 let oldPin = "";
 let newPin = "";
 let pinMode = "old"; 
 
 window.openPinModal = () => {
-    oldPin = "";
-    newPin = "";
-    pinMode = "old";
+    oldPin = ""; newPin = ""; pinMode = "old";
 
     const modal = document.createElement("div");
     modal.className = "modal-overlay";
     modal.id = "pin-modal";
     
     modal.innerHTML = `
-        <div class="modal-content" style="height: auto; max-height: 90%; padding: 40px 30px; align-items: center; border-radius: 24px; text-align: center; max-width: 380px;">
-            <button onclick="window.closePinModal()" style="position: absolute; top: 15px; right: 20px; background: none; border: none; color: #8e8e93; font-size: 28px; cursor: pointer;">&times;</button>
+        <div class="modal-content pin-pad-modal">
+            <button onclick="window.closePinModal()" class="close-x">&times;</button>
             
-            <h2 id="pin-title" style="font-size: 22px; margin: 0 0 10px 0; color: var(--text); text-transform: uppercase; letter-spacing: 1px;">
-                ENTER OLD PIN
-            </h2>
+            <h2 id="pin-title" class="pin-modal-title">ENTER OLD PIN</h2>
             
             <div id="pin-area">
-                <div id="pin-display" style="font-size: 34px; margin: 10px 0 25px 0; letter-spacing: 12px; color: var(--primary); text-shadow: 0 0 10px var(--primary-glow);">○ ○ ○ ○</div>
+                <div id="pin-display" class="pin-dots">○ ○ ○ ○</div>
                 
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 260px; margin: 0 auto;">
+                <div class="pin-grid">
                     ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 'C', 0, 'OK'].map(k => {
                         let extraClass = '';
                         if (k === 'C') extraClass = 'action-c';
@@ -135,7 +138,7 @@ window.handleSettingsPinKey = (k) => {
                 return;
             }
         } else {
-            alert("Please enter a 4-digit PIN");
+            alert("Please enter a 4-digit PIN.");
             return;
         }
     } else {
@@ -148,67 +151,75 @@ window.handleSettingsPinKey = (k) => {
     document.getElementById("pin-display").innerText = ("● ".repeat(currentPin.length) + "○ ".repeat(4 - currentPin.length)).trim();
 };
 
+/**
+ * Backend Sync: Submits the PIN change request
+ */
 window.submitPinChange = async () => {
     try {
         const res = await authFetch(`${API_URL}/change-pin`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                user_id: parseInt(state.currentUserId),
                 old_pin: oldPin,
                 new_pin: newPin
             })
         });
         
         if (res.ok) {
-            alert("PIN changed successfully!");
+            alert("Security update: PIN changed successfully!");
             window.closePinModal();
         } else {
             const err = await res.json();
-            alert(err.error || "Failed to change PIN");
+            alert(err.error || "Failed to change PIN. Verify your old PIN.");
             window.closePinModal();
             window.openPinModal(); 
         }
     } catch (e) {
-        alert("Server connection error.");
+        alert("Infrastructure error: Server unreachable.");
         window.closePinModal();
     }
 };
 
+/**
+ * Destructive Action: Clears user logs (Database cleanup)
+ */
 window.triggerClearHistory = async () => {
     if (navigator.vibrate) navigator.vibrate([10, 30, 10]);
-    const confirmClear = confirm("Are you sure you want to delete ALL your workout history? This cannot be undone.");
+    const confirmClear = confirm("Critical Action: Are you sure you want to delete ALL your workout history? This cannot be undone.");
     if (!confirmClear) return;
 
     try {
         const res = await authFetch(`${API_URL}/history/${state.currentUserId}`, { method: 'DELETE' });
         if (res.ok) {
-            alert("Workout history cleared!");
+            alert("Database synchronized: Workout history cleared.");
         } else {
-            alert("Failed to clear history.");
+            alert("Error: Operation failed on server.");
         }
     } catch(e) {
         alert("Server error.");
     }
 };
 
+/**
+ * Critical Action: Permanent account deletion
+ */
 window.triggerDeleteAccount = async () => {
     if (navigator.vibrate) navigator.vibrate([20, 50, 20]);
     
-    const safetyCheck = prompt('DANGER! Type "DELETE" to permanently erase your account and all data:');
+    const safetyCheck = prompt('DANGER! Type "DELETE" to permanently erase your account and all telemetry data:');
     if (safetyCheck !== "DELETE") {
-        return alert("Action aborted.");
+        return alert("Security check failed. Action aborted.");
     }
 
     try {
         const res = await authFetch(`${API_URL}/account/${state.currentUserId}`, { method: 'DELETE' });
         if (res.ok) {
-            alert("Account deleted. Goodbye!");
+            alert("Account terminated. Data scrubbed.");
             logout();
         } else {
             alert("Failed to delete account.");
         }
     } catch(e) {
-        alert("Server error.");
+        alert("Server connection error.");
     }
 };

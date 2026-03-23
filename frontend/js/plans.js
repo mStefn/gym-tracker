@@ -1,54 +1,65 @@
 import { state, API_URL, authFetch } from './state.js';
 import { renderPlanEditor } from './editor.js';
 
+/**
+ * Renders the list of available workout plans for the current user.
+ */
 export async function renderPlans() {
     const container = document.getElementById("exercises");
     
+    // Initial UI layout with header and "Create New" button template
     container.innerHTML = `
-        <div style="margin-bottom: 20px;">
-            <h2 style="margin-bottom: 5px;">Your Workouts</h2>
-            <p style="color: #8e8e93; margin-top: 0;">Select a plan to start training.</p>
+        <div class="view-header">
+            <h2 class="view-title">Your Workouts</h2>
+            <p class="view-subtitle">Select a plan to start training.</p>
         </div>
         
-        <div id="plans-list"></div>
+        <div id="plans-list" class="plans-container">
+            <div class="spinner" style="margin: 40px auto;"></div>
+        </div>
         
-        <button id="add-plan-btn" style="width: 100%; background: transparent; color: var(--primary); border: 2px dashed var(--primary); padding: 15px; border-radius: 14px; margin-top: 20px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s;">
+        <button id="add-plan-btn" class="btn-outline-primary full-width">
             + Create New Training Plan
         </button>
     `;
     
     try {
+        // Fetch user-specific workout plans from the Go backend
         const res = await authFetch(`${API_URL}/plans/${state.currentUserId}`);
         const plans = await res.json();
         const list = document.getElementById("plans-list");
         
         if (plans && plans.length > 0) {
+            list.innerHTML = ""; // Clear the spinner
+            
             plans.forEach(plan => {
                 const wrapper = document.createElement("div");
-                wrapper.style = "display: flex; gap: 8px; margin-bottom: 12px;";
+                wrapper.className = "plan-row-wrapper";
 
+                // MAIN BUTTON: Starts the workout session
                 const startBtn = document.createElement("button");
-                startBtn.className = "save-btn";
-                startBtn.style = "margin: 0; flex: 1; text-align: left; padding-left: 20px; background: var(--card-bg); color: var(--text); border: 1px solid var(--border); font-weight: 600; font-size: 16px; cursor: pointer;";
+                startBtn.className = "plan-card-main";
                 startBtn.innerText = plan.name;
                 startBtn.onclick = () => window.renderWorkout(plan.id, plan.name);
 
-                // NOWY PRZYCISK EDIT
+                // EDIT BUTTON: Opens the plan editor (editor.js)
                 const editBtn = document.createElement("button");
+                editBtn.className = "btn-icon-secondary";
                 editBtn.innerText = "Edit";
-                editBtn.style = "background: rgba(0, 210, 255, 0.1); border: 1px solid var(--primary); border-radius: 12px; padding: 0 15px; cursor: pointer; color: var(--primary); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; transition: 0.2s;";
                 editBtn.onclick = () => renderPlanEditor(plan.id, plan.name);
 
+                // DELETE BUTTON: Removes the plan from the database
                 const deleteBtn = document.createElement("button");
+                deleteBtn.className = "btn-icon-danger";
                 deleteBtn.innerText = "Delete";
-                deleteBtn.style = "background: transparent; border: 1px solid var(--danger); border-radius: 12px; padding: 0 15px; cursor: pointer; color: var(--danger); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; transition: 0.2s;";
                 deleteBtn.onclick = async () => {
-                    if (confirm(`Delete plan "${plan.name}"?`)) {
+                    if (confirm(`Are you sure you want to delete the plan "${plan.name}"? This will also remove associated progress goals.`)) {
                         const delRes = await authFetch(`${API_URL}/plan/${plan.id}`, { method: "DELETE" });
                         if (delRes.ok) {
+                            // Refresh view after deletion
                             window.navigate('workout'); 
                         } else {
-                            alert("Error deleting plan");
+                            alert("Failed to delete the plan. Please check your connection.");
                         }
                     }
                 };
@@ -59,17 +70,20 @@ export async function renderPlans() {
                 list.appendChild(wrapper);
             });
         } else {
+            // Empty State UI
             list.innerHTML = `
-                <div style="text-align:center; padding: 40px 20px; background: var(--card-bg); border-radius: 18px; border: 1px dashed var(--border);">
-                    <div style="font-size: 40px; margin-bottom: 10px;">📋</div>
-                    <p style="color:#8e8e93; margin:0;">No plans yet. Create your first one!</p>
+                <div class="empty-state-card">
+                    <div class="empty-state-icon">📋</div>
+                    <p class="empty-state-text">No workout plans found. Time to create your first routine!</p>
                 </div>
             `;
         }
     } catch (e) {
-        console.error("Error loading plans:", e);
+        console.error("Critical Error: Failed to load workout plans:", e);
+        document.getElementById("plans-list").innerHTML = `<p class="error-text">Connection failed. Is the backend online?</p>`;
     }
 
+    // Set up the listener for creating a new plan
     const addBtn = document.getElementById("add-plan-btn");
     if (addBtn) addBtn.onclick = () => renderPlanEditor();
 }

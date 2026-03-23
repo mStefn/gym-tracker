@@ -15,6 +15,7 @@ import (
 
 var db *sql.DB
 
+// initDB initializes the database connection and runs migrations
 func initDB() {
 	dsn := os.Getenv("DB_DSN")
 	if dsn == "" {
@@ -22,23 +23,27 @@ func initDB() {
 	}
 
 	var err error
+	// DevOps Retry Pattern: Database might take time to start in Docker
 	for i := 0; i < 15; i++ {
 		db, err = sql.Open("mysql", dsn)
 		if err == nil && db.Ping() == nil {
 			fmt.Println("Database connection established")
 			break
 		}
-		fmt.Printf("Database connection attempt %d/15 failed, retrying...\n", i+1)
+		fmt.Printf("Database connection attempt %d/15 failed, retrying in 2s...\n", i+1)
 		time.Sleep(2 * time.Second)
 	}
+
 	if err != nil || db.Ping() != nil {
-		log.Fatal("Failed to connect to database after 15 attempts")
+		log.Fatal("Critical Error: Could not connect to database after 15 attempts")
 	}
 
+	// Performance Tuning: Connection Pool Management
 	db.SetMaxOpenConns(25)
 	db.SetMaxIdleConns(5)
 	db.SetConnMaxLifetime(5 * time.Minute)
 
+	// Schema Bootstrap (Self-migrating logic)
 	db.Exec(`CREATE TABLE IF NOT EXISTS users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(50) UNIQUE, pin VARCHAR(100), is_admin BOOLEAN DEFAULT FALSE);`)
 	db.Exec(`CREATE TABLE IF NOT EXISTS exercises (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(150) UNIQUE, category VARCHAR(50));`)
 	db.Exec(`CREATE TABLE IF NOT EXISTS workout_plans (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, name VARCHAR(50), FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE);`)
@@ -47,7 +52,7 @@ func initDB() {
 	db.Exec(`CREATE INDEX IF NOT EXISTS idx_logs_lookup ON logs (user_id, exercise_id, set_number, created_at DESC);`)
 	db.Exec(`CREATE TABLE IF NOT EXISTS user_weights (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, weight FLOAT, logged_at DATE, UNIQUE(user_id, logged_at), FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE);`)
 
-	// ADD COLUMN IF NOT EXISTS is safe to run on every startup (MariaDB 10.0.2+).
+	// Progressive Schema Updates
 	db.Exec(`ALTER TABLE logs ADD COLUMN IF NOT EXISTS is_failure BOOLEAN DEFAULT FALSE;`)
 	db.Exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS exp INT DEFAULT 0;`)
 	db.Exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS level INT DEFAULT 1;`)
@@ -56,9 +61,9 @@ func initDB() {
 	seedAdmin()
 }
 
-// GetOrCreateExerciseDB returns the ID of an exercise by name, creating it if it does not exist.
-// Using INSERT IGNORE + SELECT avoids a race condition on concurrent requests.
+// GetOrCreateExerciseDB returns an exercise ID, creating the record if it doesn't exist
 func GetOrCreateExerciseDB(name, category string) (int, error) {
+	// INSERT IGNORE avoids unique constraint violations on concurrent requests
 	db.Exec("INSERT IGNORE INTO exercises (name, category) VALUES (?, ?)", name, category)
 	var id int
 	err := db.QueryRow("SELECT id FROM exercises WHERE name = ?", name).Scan(&id)
@@ -68,16 +73,17 @@ func GetOrCreateExerciseDB(name, category string) (int, error) {
 	return id, nil
 }
 
+// seedExercises populates the database from exercises.json with various permutations
 func seedExercises() {
 	var count int
 	db.QueryRow("SELECT COUNT(*) FROM exercises").Scan(&count)
 	if count > 0 {
-		return
+		return // Data already seeded
 	}
 
 	file, err := os.ReadFile("exercises.json")
 	if err != nil {
-		fmt.Println("Error reading exercises.json:", err)
+		fmt.Println("Warning: exercises.json not found, skipping seed:", err)
 		return
 	}
 
@@ -88,11 +94,13 @@ func seedExercises() {
 		Angles    []string `json:"angles"`
 		Variants  []string `json:"variants"`
 	}
+
 	if err := json.Unmarshal(file, &exercises); err != nil {
-		fmt.Println("Error parsing exercises.json:", err)
+		fmt.Println("Error: Failed to parse exercises.json:", err)
 		return
 	}
 
+	// Generate permutations (Equipment + Angle + Name + Variant)
 	for _, ex := range exercises {
 		eqs := ex.Equipment
 		if len(eqs) == 0 {
@@ -110,7 +118,7 @@ func seedExercises() {
 		for _, eq := range eqs {
 			for _, ang := range angs {
 				for _, v := range vars {
-					parts := []string{}
+					var parts []string
 					if ang != "" && ang != "Flat" {
 						parts = append(parts, ang)
 					}
@@ -123,16 +131,17 @@ func seedExercises() {
 					}
 
 					fullName := strings.Join(parts, " ")
-					fullName = strings.Join(strings.Fields(fullName), " ")
+					fullName = strings.Join(strings.Fields(fullName), " ") // Clean extra spaces
 
 					db.Exec("INSERT IGNORE INTO exercises (name, category) VALUES (?, ?)", fullName, ex.Category)
 				}
 			}
 		}
 	}
-	fmt.Println("Exercises seeded with dynamic permutations")
+	fmt.Println("Infrastructure: Exercise database successfully seeded with permutations")
 }
 
+// seedAdmin creates the initial admin user if the user table is empty
 func seedAdmin() {
 	var count int
 	db.QueryRow("SELECT COUNT(*) FROM users WHERE name = 'admin'").Scan(&count)
@@ -140,12 +149,13 @@ func seedAdmin() {
 		return
 	}
 
+	// Default PIN: 1234 (Should be changed via UI after first login)
 	hashedPin, err := bcrypt.GenerateFromPassword([]byte("1234"), bcrypt.DefaultCost)
 	if err != nil {
-		log.Println("Failed to hash default admin PIN:", err)
+		log.Println("Error: Failed to hash seed admin PIN:", err)
 		return
 	}
 	if _, err = db.Exec("INSERT INTO users (name, pin, is_admin) VALUES (?, ?, ?)", "admin", string(hashedPin), true); err != nil {
-		log.Println("Failed to seed admin user:", err)
+		log.Println("Error: Failed to seed admin user:", err)
 	}
 }

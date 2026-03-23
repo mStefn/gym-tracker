@@ -404,7 +404,6 @@ func GetPlanExercises(c *gin.Context) {
 	c.JSON(200, list)
 }
 
-// NOWY ENDPOINT: Bulk Sync z Transakcją
 func SyncPlanExercises(c *gin.Context) {
 	var input struct {
 		PlanID    int `json:"plan_id"`
@@ -420,14 +419,12 @@ func SyncPlanExercises(c *gin.Context) {
 		return
 	}
 
-	// Rozpoczynamy transakcję
 	tx, err := db.Begin()
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Transaction failed"})
 		return
 	}
 
-	// 1. Czyścimy stare ćwiczenia z planu
 	_, err = tx.Exec("DELETE FROM plan_exercises WHERE plan_id = ?", input.PlanID)
 	if err != nil {
 		tx.Rollback()
@@ -435,13 +432,10 @@ func SyncPlanExercises(c *gin.Context) {
 		return
 	}
 
-	// 2. Wstawiamy nowe/zaktualizowane ćwiczenia
 	for _, ex := range input.Exercises {
 		var exID int
-		// Szukamy ćwiczenia w bazie po nazwie
 		err := tx.QueryRow("SELECT id FROM exercises WHERE name = ?", ex.Name).Scan(&exID)
 		if err != nil {
-			// Jeśli nie istnieje, tworzymy je
 			res, errInsert := tx.Exec("INSERT INTO exercises (name, category) VALUES (?, ?)", ex.Name, ex.Category)
 			if errInsert != nil {
 				tx.Rollback()
@@ -452,7 +446,6 @@ func SyncPlanExercises(c *gin.Context) {
 			exID = int(id)
 		}
 
-		// Przypisujemy ćwiczenie do planu
 		_, err = tx.Exec("INSERT INTO plan_exercises (plan_id, exercise_id, target_sets) VALUES (?, ?, ?)",
 			input.PlanID, exID, ex.Sets)
 		if err != nil {
@@ -462,7 +455,6 @@ func SyncPlanExercises(c *gin.Context) {
 		}
 	}
 
-	// Zatwierdzamy transakcję
 	tx.Commit()
 	c.JSON(200, gin.H{"status": "synchronized"})
 }

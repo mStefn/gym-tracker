@@ -7,25 +7,32 @@
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0b101e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="img/icon-512.png">
     
     <link rel="stylesheet" href="css/style.css">
-    <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker: Registered'))
-            .catch(err => console.log('Service Worker Error: ', err));
-        });
-      }
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('PWA: Service Worker Registered'))
+                    .catch(err => console.error('PWA: Service Worker Error', err));
+            });
+        }
 
-      const setAppHeight = () => {
-          document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
-      };
-      window.addEventListener('resize', setAppHeight);
-      window.addEventListener('orientationchange', setAppHeight);
-      setAppHeight(); 
+        /**
+         * Dynamic Viewport Height Fix
+         * Addresses the 100vh issue on mobile browsers (address bar interference)
+         */
+        const setAppHeight = () => {
+            document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+        };
+        window.addEventListener('resize', setAppHeight);
+        window.addEventListener('orientationchange', setAppHeight);
+        setAppHeight(); 
     </script>
 </head>
 <body>
@@ -34,7 +41,7 @@
     <div id="app-container">
         <main id="main-content">
             <header id="top-bar" style="display: none;">
-                <div id="user-greeting" style="font-weight: 600; font-size: 18px;"></div>
+                <div id="user-greeting"></div>
                 <button onclick="window.appLogout()" class="btn-logout">Logout</button>
             </header>
             
@@ -53,17 +60,17 @@
 
     <div id="install-guide-overlay">
         <div class="install-card">
-            <h2 style="margin-top:0; color:var(--primary); margin-bottom: 10px;">Install App</h2>
-            <p style="color:#8e8e93; font-size:14px; margin-bottom: 25px;">Follow these steps to install Gym Tracker on your home screen for a full-screen native experience.</p>
+            <h2 class="install-title">Install App</h2>
+            <p class="install-subtitle">Add Gym Tracker to your home screen for the best experience.</p>
             
             <div class="install-step">
-                <strong style="color:var(--primary);">1.</strong> Tap the <b>Share</b> icon <span style="font-size:18px; vertical-align: middle;">⍗</span> (on iOS Safari) or the <b>Menu</b> icon <span style="font-size:18px; vertical-align: middle;">⋮</span> (on Android Chrome).
+                <span class="step-num">1.</span> Tap <b>Share</b> <span class="icon">⍗</span> (iOS) or <b>Menu</b> <span class="icon">⋮</span> (Android).
             </div>
             <div class="install-step">
-                <strong style="color:var(--primary);">2.</strong> Scroll down and select <br><b style="color:var(--text);">"Add to Home Screen"</b> ➕.
+                <span class="step-num">2.</span> Select <br><b>"Add to Home Screen"</b> ➕.
             </div>
             
-            <button onclick="window.closeInstallModal()" class="save-btn" style="margin-top:15px; background:rgba(255,255,255,0.05); color:var(--text); border:1px solid var(--border); box-shadow:none;">Got it</button>
+            <button onclick="window.closeInstallModal()" class="btn-modal-close">Got it</button>
         </div>
     </div>
 

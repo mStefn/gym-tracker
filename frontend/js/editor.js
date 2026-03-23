@@ -1,93 +1,72 @@
-import { state, API_URL, authFetch } from './state.js';
+import { state, API_URL, authFetch, exerciseSchema } from './state.js';
 
-const EXERCISES_DB = [
-  { "name": "Bench Press", "category": "Chest", "equipment": ["Barbell", "Dumbbell", "Machine"], "angles": ["Flat", "Incline", "Decline"] },
-  { "name": "Chest Fly", "category": "Chest", "equipment": ["Dumbbell", "Machine", "Cable"], "angles": ["Flat", "Incline", "Decline"] },
-  { "name": "Push-Up", "category": "Chest", "equipment": ["Bodyweight"] },
-  { "name": "Pull-Up", "category": "Back", "equipment": ["Bodyweight", "Assisted"] },
-  { "name": "Row", "category": "Back", "equipment": ["Barbell", "Cable", "T-Bar", "Dumbbell", "Machine"] },
-  { "name": "Lat Pulldown", "category": "Back", "equipment": ["Cable", "Machine"] },
-  { "name": "Straight Arm Pulldown", "category": "Back", "equipment": ["Cable"] },
-  { "name": "Squat", "category": "Legs", "equipment": ["Barbell", "Dumbbell", "Machine"] },
-  { "name": "Deadlift", "category": "Legs", "equipment": ["Barbell", "Dumbbell"] },
-  { "name": "Romanian Deadlift", "category": "Legs", "equipment": ["Barbell", "Dumbbell"] },
-  { "name": "Leg Press", "category": "Legs", "equipment": ["Machine"] },
-  { "name": "Leg Extension", "category": "Legs", "equipment": ["Machine"] },
-  { "name": "Leg Curl", "category": "Legs", "equipment": ["Machine"] },
-  { "name": "Hip Thrust", "category": "Legs", "equipment": ["Barbell", "Machine"] },
-  { "name": "Lunge", "category": "Legs", "equipment": ["Dumbbell", "Barbell"], "variants": ["Walking", "Bulgarian"] },
-  { "name": "Calf Raise", "category": "Legs", "equipment": ["Machine", "Bodyweight", "Barbell"] },
-  { "name": "Hip Abduction", "category": "Legs", "equipment": ["Machine"] },
-  { "name": "Hip Adduction", "category": "Legs", "equipment": ["Machine"] },
-  { "name": "Shoulder Press", "category": "Shoulders", "equipment": ["Barbell", "Dumbbell", "Machine"] },
-  { "name": "Lateral Raise", "category": "Shoulders", "equipment": ["Dumbbell", "Cable"] },
-  { "name": "Front Raise", "category": "Shoulders", "equipment": ["Dumbbell", "Cable"] },
-  { "name": "Rear Delt Fly", "category": "Shoulders", "equipment": ["Machine", "Dumbbell"] },
-  { "name": "Face Pull", "category": "Shoulders", "equipment": ["Cable"] },
-  { "name": "Upright Row", "category": "Shoulders", "equipment": ["Barbell", "Cable"] },
-  { "name": "Biceps Curl", "category": "Biceps", "equipment": ["Barbell", "Dumbbell", "Cable", "Machine"], "variants": ["Standard", "Hammer", "Preacher"] },
-  { "name": "Triceps Extension", "category": "Triceps", "equipment": ["Cable", "Dumbbell", "Barbell"], "variants": ["Pushdown", "Overhead", "Skull Crusher"] },
-  { "name": "Dip", "category": "Triceps", "equipment": ["Bodyweight", "Machine"] },
-  { "name": "Close Grip Bench Press", "category": "Triceps", "equipment": ["Barbell"] },
-  { "name": "Plank", "category": "Abs", "equipment": ["Bodyweight"] },
-  { "name": "Leg Raise", "category": "Abs", "equipment": ["Bodyweight"], "variants": ["Hanging", "Lying"] },
-  { "name": "Crunch", "category": "Abs", "equipment": ["Machine", "Cable", "Bodyweight"] },
-  { "name": "Ab Wheel Rollout", "category": "Abs", "equipment": ["Ab Wheel"] },
-  { "name": "Russian Twist", "category": "Abs", "equipment": ["Bodyweight", "Weight"] },
-  { "name": "Sit-Up", "category": "Abs", "equipment": ["Bodyweight", "Weight"] }
-];
-
+/**
+ * Local state for the current editing session
+ */
 let selectedExercisesForPlan = [];
 let editingPlanId = null;
 
+/**
+ * Main function to render the Plan Editor view.
+ * Used for both creating new plans and updating existing ones.
+ */
 export async function renderPlanEditor(planId = null, planName = "") {
     const container = document.getElementById("exercises");
     selectedExercisesForPlan = []; 
     editingPlanId = planId;
 
     container.innerHTML = `
-        <div style="padding: 10px;">
-            <button onclick="window.navigate('workout')" style="background: transparent; border: none; color: var(--primary); padding: 0; margin-bottom: 20px; font-size: 16px; font-weight: 600; cursor: pointer;">← Cancel</button>
-            <h2 style="margin-top:0; margin-bottom: 20px;">${editingPlanId ? 'Edit Plan' : 'Create New Plan'}</h2>
+        <div class="view-container">
+            <button onclick="window.navigate('workout')" class="back-link">← Cancel</button>
+            <h2 class="view-title">${editingPlanId ? 'Edit Training Plan' : 'Create New Plan'}</h2>
             
-            <div class="exercise-card">
-                <input type="text" id="new-plan-name" value="${planName}" placeholder="Plan name (e.g. Push Day)" style="text-align:left; padding-left:15px; margin-bottom:20px; font-weight: 600;">
+            <div class="editor-card">
+                <div class="input-group">
+                    <label class="field-label">Plan Name</label>
+                    <input type="text" id="new-plan-name" value="${planName}" 
+                           placeholder="e.g. Push Day, Upper Body" class="main-input">
+                </div>
                 
+                <div class="section-divider">Exercises</div>
                 <div id="exercises-setup"></div>
                 
-                <button id="add-ex-btn" class="btn-nav btn-signup" style="width:100%; margin-top:10px; border: 2px dashed var(--primary); padding: 15px; font-size: 16px; background: transparent; color: var(--primary); font-weight: bold; cursor: pointer; border-radius: 14px;">
+                <button id="add-ex-btn" class="btn-add-exercise">
                     + Add Exercise
                 </button>
                 
-                <div style="margin-top:30px;">
-                    <button id="save-plan-btn" class="save-btn" style="background:var(--success);">${editingPlanId ? 'Update Plan' : 'Save Workout Plan'}</button>
+                <div class="editor-actions">
+                    <button id="save-plan-btn" class="save-btn success-bg">
+                        ${editingPlanId ? 'Update Plan' : 'Save Workout Plan'}
+                    </button>
                 </div>
             </div>
         </div>
     `;
 
+    // If editing, fetch current plan configuration from backend
     if (editingPlanId) {
         try {
             const res = await authFetch(`${API_URL}/plan-exercises/${editingPlanId}`);
             const existing = await res.json();
             if (existing && existing.length > 0) {
                 selectedExercisesForPlan = existing.map(e => ({
-                    id: e.exercise_id || e.exercise_name.replace(/\s+/g, '-').toLowerCase(),
+                    id: e.exercise_id,
                     name: e.exercise_name,
-                    category: e.category, // Teraz backend zwraca category!
+                    category: e.category,
                     sets: e.target_sets
                 }));
             }
         } catch (e) {
-            console.error("Failed to load existing exercises");
+            console.error("Editor Error: Failed to load plan exercises", e);
         }
     }
 
+    // Event Listener for the Exercise Wizard
     document.getElementById('add-ex-btn').addEventListener('click', () => {
         window.openExerciseWizard((newExercise) => {
-            const isDuplicate = selectedExercisesForPlan.some(ex => ex.id === newExercise.id);
+            const isDuplicate = selectedExercisesForPlan.some(ex => ex.name === newExercise.name);
             if (isDuplicate) {
-                alert("This exercise is already in your plan. You can increase the number of sets instead.");
+                alert("This specific exercise variation is already in your plan.");
                 return;
             }
 
@@ -95,43 +74,44 @@ export async function renderPlanEditor(planId = null, planName = "") {
                 id: newExercise.id,
                 name: newExercise.name,
                 category: newExercise.category,
-                sets: 3 
+                sets: 3 // Default starting sets
             });
             window.renderSelectedList();
         });
     });
 
-    document.getElementById('save-plan-btn').addEventListener('click', () => {
-        window.saveFullPlan();
-    });
+    document.getElementById('save-plan-btn').addEventListener('click', window.saveFullPlan);
     
     window.renderSelectedList();
 }
 
+/**
+ * Renders the list of exercises currently added to the plan
+ */
 window.renderSelectedList = () => {
     const list = document.getElementById("exercises-setup");
     list.innerHTML = "";
     
     if (selectedExercisesForPlan.length === 0) {
-        list.innerHTML = `<p style="text-align:center; color:#8e8e93; font-size:14px; margin-bottom:20px;">No exercises added yet.</p>`;
+        list.innerHTML = `<p class="empty-list-text">No exercises added to this plan yet.</p>`;
         return;
     }
 
     selectedExercisesForPlan.forEach((ex, index) => {
         const div = document.createElement("div");
         div.className = "selected-ex-row";
-        div.style.cssText = "display:flex; justify-content:space-between; align-items:center; padding:15px; background:rgba(0,0,0,0.3); border-radius:12px; margin-bottom:10px; border:1px solid var(--border);";
         div.innerHTML = `
-            <div style="flex:1;">
-                <div style="font-weight:600; font-size:15px; color:var(--text); line-height: 1.2;">${ex.name}</div>
-                <div style="font-size:12px; color:var(--primary); margin-top: 4px; font-weight: 600;">${ex.category}</div>
+            <div class="ex-info">
+                <div class="ex-name">${ex.name}</div>
+                <div class="ex-cat-badge">${ex.category}</div>
             </div>
-            <div style="display:flex; align-items:center; gap:15px;">
-                <div style="display:flex; flex-direction:column; align-items:center;">
-                    <label style="font-size:12px; color:#8e8e93; font-weight: 600; margin-bottom:4px;">Sets</label>
-                    <input type="number" class="ex-sets" data-index="${index}" value="${ex.sets}" min="1" max="10" onchange="window.updateSets(${index}, this.value)" style="width:50px; padding:10px 5px; margin:0; text-align:center; border-radius:10px; font-size: 16px !important; background:rgba(255,255,255,0.05);">
+            <div class="ex-controls">
+                <div class="input-stack">
+                    <label>Sets</label>
+                    <input type="number" value="${ex.sets}" min="1" max="15" 
+                           onchange="window.updateSets(${index}, this.value)" class="sets-input">
                 </div>
-                <button type="button" onclick="window.removeExercise(${index})" style="background:none; border:none; color:var(--danger); font-size:28px; padding:5px; cursor:pointer; display:flex; align-items:center;">&times;</button>
+                <button type="button" onclick="window.removeExercise(${index})" class="remove-btn">&times;</button>
             </div>
         `;
         list.appendChild(div);
@@ -147,36 +127,41 @@ window.removeExercise = (indexToRemove) => {
     window.renderSelectedList();
 };
 
+/**
+ * Persists the entire plan to the server using a Transactional Sync
+ */
 window.saveFullPlan = async () => {
     const nameInput = document.getElementById("new-plan-name");
     const planName = nameInput.value.trim();
-    if (!planName) return alert("Enter a plan name");
-
-    if (selectedExercisesForPlan.length === 0) return alert("Add at least one exercise");
+    
+    if (!planName) return alert("Please enter a name for your workout plan.");
+    if (selectedExercisesForPlan.length === 0) return alert("Add at least one exercise to save the plan.");
 
     const saveBtn = document.getElementById('save-plan-btn');
-    saveBtn.innerText = "Saving...";
+    saveBtn.innerText = "Synchronizing...";
     saveBtn.disabled = true;
 
     try {
         let finalPlanId = editingPlanId;
 
-        // 1. Zapisz nazwę (Create lub Update)
+        // Step 1: Create or Update the Plan Identity
         if (!editingPlanId) {
             const res = await authFetch(`${API_URL}/plans`, {
-                method: "POST", headers: {"Content-Type":"application/json"},
-                body: JSON.stringify({ name: planName, user_id: parseInt(state.currentUserId) })
+                method: "POST", 
+                headers: {"Content-Type":"application/json"},
+                body: JSON.stringify({ name: planName })
             });
             const planData = await res.json();
             finalPlanId = planData.id;
         } else {
             await authFetch(`${API_URL}/plan/${finalPlanId}`, {
-                method: "PUT", headers: {"Content-Type":"application/json"},
+                method: "PUT", 
+                headers: {"Content-Type":"application/json"},
                 body: JSON.stringify({ name: planName })
             });
         }
 
-        // 2. Synchronizuj wszystkie ćwiczenia w jednym strzale
+        // Step 2: Atomic Sync of all exercises within the plan
         const syncPayload = {
             plan_id: finalPlanId,
             exercises: selectedExercisesForPlan.map(ex => ({
@@ -186,24 +171,27 @@ window.saveFullPlan = async () => {
             }))
         };
 
-        const res = await authFetch(`${API_URL}/plan-exercises/sync`, {
-            method: "POST", headers: {"Content-Type":"application/json"},
+        const syncRes = await authFetch(`${API_URL}/plan-exercises/sync`, {
+            method: "POST", 
+            headers: {"Content-Type":"application/json"},
             body: JSON.stringify(syncPayload)
         });
 
-        if (!res.ok) throw new Error("Synchronization failed");
+        if (!syncRes.ok) throw new Error("Server synchronization failed.");
 
         window.navigate('workout');
     } catch (e) {
-        alert("Save failed: " + e.message);
+        console.error("Save Error:", e);
+        alert("Transaction failed: " + e.message);
         saveBtn.innerText = editingPlanId ? "Update Plan" : "Save Workout Plan";
         saveBtn.disabled = false;
     }
 };
 
-// =========================================
-// INTERACTIVE EXERCISE WIZARD LOGIC
-// =========================================
+/**
+ * INTERACTIVE TILE-BASED WIZARD
+ * Implements a step-by-step selection flow for better UX.
+ */
 window.openExerciseWizard = (onComplete) => {
     let wizardModal = document.getElementById('exercise-wizard');
     
@@ -213,13 +201,13 @@ window.openExerciseWizard = (onComplete) => {
         wizardModal.className = 'modal-overlay';
         
         wizardModal.innerHTML = `
-            <div class="modal-content" style="height: auto; max-height: 80%;">
-                <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center;">
-                    <div style="display:flex; align-items:center;">
-                        <button id="wizard-back-btn" onclick="window.wizardBack()" style="background:none; border:none; color:var(--text); font-size:24px; cursor:pointer; margin-right:15px; padding:0; display:none;">←</button>
-                        <h3 id="wizard-title" style="margin:0; font-size:18px; color:var(--primary);">Select Muscle Group</h3>
+            <div class="modal-content wizard-modal">
+                <div class="modal-header">
+                    <div class="header-left">
+                        <button id="wizard-back-btn" onclick="window.wizardBack()" class="back-arrow" style="display:none;">←</button>
+                        <h3 id="wizard-title" class="wizard-step-title">Select Muscle Group</h3>
                     </div>
-                    <button onclick="window.wizardClose()" style="background:none; border:none; color:#8e8e93; font-size:24px; cursor:pointer; padding:0;">&times;</button>
+                    <button onclick="window.wizardClose()" class="close-x">&times;</button>
                 </div>
                 <div class="modal-body">
                     <div id="wizard-grid" class="tile-grid"></div>
@@ -229,15 +217,8 @@ window.openExerciseWizard = (onComplete) => {
         document.body.appendChild(wizardModal);
     }
 
-    let selection = {
-        category: null,
-        baseExercise: null,
-        equipment: null,
-        angle: null,
-        variant: null
-    };
-
-    const categories = [...new Set(EXERCISES_DB.map(e => e.category))];
+    let selection = { category: null, baseExercise: null, equipment: null, angle: null, variant: null };
+    const categories = [...new Set(exerciseSchema.map(e => e.category))];
 
     const renderView = () => {
         let title = "Select Muscle Group";
@@ -252,15 +233,16 @@ window.openExerciseWizard = (onComplete) => {
             onClick = (val) => { selection.category = val; renderView(); };
         } 
         else if (!selection.baseExercise) {
-            title = `Select ${selection.category} Exercise`;
-            items = EXERCISES_DB.filter(e => e.category === selection.category).map(e => e.name);
+            title = selection.category;
+            items = exerciseSchema.filter(e => e.category === selection.category).map(e => e.name);
             onClick = (val) => { 
-                selection.baseExercise = EXERCISES_DB.find(e => e.name === val); 
+                selection.baseExercise = exerciseSchema.find(e => e.name === val); 
                 renderView(); 
             };
         } 
         else {
             const ex = selection.baseExercise;
+            // Check for missing options to determine the next step
             if (ex.equipment && !selection.equipment) {
                 title = "Select Equipment";
                 items = ex.equipment;
@@ -277,15 +259,13 @@ window.openExerciseWizard = (onComplete) => {
                 onClick = (val) => { selection.variant = val; renderView(); };
             } 
             else {
+                // All steps completed - build the final result
                 const nameParts = [selection.angle, selection.variant, selection.equipment, selection.baseExercise.name];
-                const finalName = nameParts.filter(Boolean).join(" ");
-                const finalId = finalName.replace(/\s+/g, '-').toLowerCase();
-
-                wizardModal.classList.remove('show');
-                setTimeout(() => wizardModal.remove(), 300);
+                const finalName = nameParts.filter(p => p && p !== "Flat" && p !== "Standard" && p !== "Bodyweight").join(" ");
                 
+                window.wizardClose();
                 onComplete({
-                    id: finalId,
+                    id: finalName.replace(/\s+/g, '-').toLowerCase(),
                     name: finalName,
                     category: selection.category
                 });
@@ -296,13 +276,12 @@ window.openExerciseWizard = (onComplete) => {
         document.getElementById('wizard-title').innerText = title;
         document.getElementById('wizard-back-btn').style.display = showBack ? 'block' : 'none';
         
-        const tilesHtml = items.map(item => `
+        document.getElementById('wizard-grid').innerHTML = items.map(item => `
             <div class="wizard-tile" onclick="window.wizardSelect('${item}')">
                 ${item}
             </div>
         `).join('');
-
-        document.getElementById('wizard-grid').innerHTML = tilesHtml;
+        
         window.wizardSelect = onClick;
     };
 
@@ -320,6 +299,6 @@ window.openExerciseWizard = (onComplete) => {
         setTimeout(() => wizardModal.remove(), 300);
     };
 
-    wizardModal.classList.add('show');
+    setTimeout(() => wizardModal.classList.add('show'), 10);
     renderView();
 };

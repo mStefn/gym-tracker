@@ -1,3 +1,7 @@
+/**
+ * Global Application State
+ * Managed via LocalStorage for persistence across sessions
+ */
 export const state = {
     currentUserId: localStorage.getItem('selectedUserId'),
     currentUserName: localStorage.getItem('selectedUserName'),
@@ -6,9 +10,16 @@ export const state = {
     mode: ""
 };
 
+/**
+ * Dynamic API URL
+ * Automatically points to the host's port 5001, perfect for Tailscale environments.
+ */
 export const API_URL = `http://${window.location.hostname}:5001`;
 
-// === SCHEMAT BAZY ĆWICZEŃ (Zaktualizowany) ===
+/**
+ * MASTER EXERCISE SCHEMA
+ * Used to populate the Exercise Wizard and provide structured metadata.
+ */
 const exerciseSchema = [
     { name: "Bench Press", category: "Chest", equipment: ["Barbell", "Dumbbell", "Machine"], angles: ["Flat", "Incline", "Decline"] },
     { name: "Chest Fly", category: "Chest", equipment: ["Dumbbell", "Machine", "Cable"] },
@@ -46,13 +57,22 @@ const exerciseSchema = [
     { name: "Sit-Up", category: "Abs", equipment: ["Bodyweight", "Weight"] }
 ];
 
+/**
+ * API Wrapper: Injects Authorization headers if a token exists
+ */
 export function authFetch(url, options = {}) {
     if (state.token) {
-        options.headers = { ...options.headers, 'Authorization': `Bearer ${state.token}` };
+        options.headers = { 
+            ...options.headers, 
+            'Authorization': `Bearer ${state.token}` 
+        };
     }
     return fetch(url, options);
 }
 
+/**
+ * Standard Logout Procedure
+ */
 export function logout() {
     localStorage.removeItem('selectedUserId');
     localStorage.removeItem('selectedUserName');
@@ -60,7 +80,10 @@ export function logout() {
     location.reload();
 }
 
-// === SMOOTH WIZARD KREATORA ĆWICZEŃ ===
+/**
+ * EXERCISE SELECTION WIZARD (UI Component)
+ * A multi-step modal for searching, filtering, and configuring exercises.
+ */
 window.openExerciseWizard = (onCompleteCallback) => {
     const modal = document.createElement("div");
     modal.className = "modal-overlay dialog-overlay";
@@ -71,14 +94,14 @@ window.openExerciseWizard = (onCompleteCallback) => {
     let currentCat = "All";
     const categories = ["All", ...new Set(exerciseSchema.map(e => e.category))];
 
-    // Budujemy bazowy szkielet raz (brak migania)
+    // Initial Modal Structure
     modal.innerHTML = `
         <div class="modal-content" style="display:flex; flex-direction:column; max-height: 90vh;">
             <div class="modal-header" id="wiz-header" style="display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
                 <h3 style="margin:0; font-size:20px; color:var(--primary);">Select Exercise</h3>
-                <button onclick="document.body.removeChild(document.getElementById('ex-wizard'))" style="background:none; border:none; color:var(--text); font-size:24px; cursor:pointer;">&times;</button>
+                <button onclick="document.body.removeChild(document.getElementById('ex-wizard'))" class="close-btn">&times;</button>
             </div>
-            <div id="wiz-filters" style="flex-shrink:0; padding: 10px 15px; border-bottom: 1px solid var(--border); overflow-x: auto; white-space: nowrap;"></div>
+            <div id="wiz-filters" class="wizard-filter-bar"></div>
             <div class="modal-body" id="wiz-body" style="overflow-y:auto; flex-grow:1; padding-top: 15px;"></div>
             <div class="modal-footer" id="wiz-footer" style="flex-shrink:0; display:none;"></div>
         </div>
@@ -91,12 +114,13 @@ window.openExerciseWizard = (onCompleteCallback) => {
     const wizBody = document.getElementById("wiz-body");
     const wizFooter = document.getElementById("wiz-footer");
 
+    // --- Step 1: Browse and Filter ---
     const renderStep1 = () => {
         wizFilters.style.display = "block";
         wizFooter.style.display = "none";
         wizHeader.innerHTML = `
             <h3 style="margin:0; font-size:20px; color:var(--primary);">Select Exercise</h3>
-            <button onclick="document.body.removeChild(document.getElementById('ex-wizard'))" style="background:none; border:none; color:var(--text); font-size:24px; cursor:pointer;">&times;</button>
+            <button onclick="document.body.removeChild(document.getElementById('ex-wizard'))" class="close-btn">&times;</button>
         `;
 
         renderFilters();
@@ -105,11 +129,7 @@ window.openExerciseWizard = (onCompleteCallback) => {
 
     const renderFilters = () => {
         wizFilters.innerHTML = categories.map(cat => `
-            <button onclick="window._wizSetCat('${cat}')" 
-                    style="background:${currentCat === cat ? 'var(--primary)' : 'rgba(0,0,0,0.2)'}; 
-                           color:${currentCat === cat ? '#000' : 'var(--text)'}; 
-                           border:1px solid ${currentCat === cat ? 'var(--primary)' : 'var(--border)'}; 
-                           padding:6px 14px; border-radius:20px; margin-right:8px; font-weight:600; cursor:pointer; font-size:13px; transition:0.2s;">
+            <button onclick="window._wizSetCat('${cat}')" class="filter-chip ${currentCat === cat ? 'active' : ''}">
                 ${cat}
             </button>
         `).join('');
@@ -149,15 +169,15 @@ window.openExerciseWizard = (onCompleteCallback) => {
         }
     };
 
+    // --- Step 2: Configure Options ---
     const drawOpts = (title, items, current, type) => {
         if (!items || items.length === 0) return "";
         return `
-            <div style="margin-bottom: 20px;">
-                <label style="font-size:12px; color:#8e8e93; font-weight:600; text-transform:uppercase;">${title}</label>
-                <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:8px;">
+            <div class="option-group">
+                <label class="option-label">${title}</label>
+                <div class="option-container">
                     ${items.map(item => `
-                        <button onclick="window._wizUpd('${type}', '${item}')" 
-                                style="padding: 10px 15px; border-radius: 12px; border: 1px solid ${item === current ? 'var(--primary)' : 'var(--border)'}; background: ${item === current ? 'rgba(0, 210, 255, 0.1)' : 'transparent'}; color: var(--text); cursor:pointer; font-weight:600; transition: all 0.2s;">
+                        <button onclick="window._wizUpd('${type}', '${item}')" class="option-btn ${item === current ? 'active' : ''}">
                             ${item}
                         </button>
                     `).join('')}
@@ -171,26 +191,25 @@ window.openExerciseWizard = (onCompleteCallback) => {
         wizFooter.style.display = "block";
         
         wizHeader.innerHTML = `
-            <button onclick="window._wizGoBack()" style="background:none; border:none; color:var(--primary); font-size:16px; font-weight:600; cursor:pointer; padding:0;">← Back</button>
+            <button onclick="window._wizGoBack()" class="back-btn">← Back</button>
             <h3 style="margin:0; font-size:18px;">Configure</h3>
             <div style="width:40px;"></div>
         `;
 
         updateStep2Body();
-        
-        wizFooter.innerHTML = `<button onclick="window._wizFinish()" id="wiz-conf-btn" class="save-btn" style="background:var(--success);">Confirm & Add</button>`;
+        wizFooter.innerHTML = `<button onclick="window._wizFinish()" id="wiz-conf-btn" class="save-btn success">Confirm & Add</button>`;
     };
 
     const updateStep2Body = () => {
         wizBody.innerHTML = `
-            <h2 style="margin-top:0; margin-bottom: 25px; color:var(--primary); text-align:center;">${selectedEx.name}</h2>
+            <h2 class="wizard-title">${selectedEx.name}</h2>
             ${drawOpts('Equipment', selectedEx.equipment, selEq, 'eq')}
             ${drawOpts('Angle', selectedEx.angles, selAng, 'ang')}
             ${drawOpts('Variant', selectedEx.variants, selVar, 'var')}
             
-            <div style="margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 12px; text-align:center; border: 1px solid var(--border);">
-                <div style="font-size:12px; color:#8e8e93; margin-bottom:5px; font-weight:600;">FINAL EXERCISE</div>
-                <div style="font-weight:bold; font-size:18px; color:var(--success);">${buildName()}</div>
+            <div class="final-name-preview">
+                <div class="preview-label">FINAL EXERCISE NAME</div>
+                <div class="preview-value">${buildName()}</div>
             </div>
         `;
     };
@@ -199,7 +218,7 @@ window.openExerciseWizard = (onCompleteCallback) => {
         if(type==='eq') selEq = val;
         if(type==='ang') selAng = val;
         if(type==='var') selVar = val;
-        updateStep2Body(); // Odświeżamy tylko body! Żadnego migania.
+        updateStep2Body();
     };
 
     window._wizGoBack = () => renderStep1();
@@ -215,28 +234,32 @@ window.openExerciseWizard = (onCompleteCallback) => {
 
     window._wizFinish = () => finishWizard();
 
+    /**
+     * Finalizes selection and syncs with the Backend
+     */
     const finishWizard = async () => {
         const finalName = buildName();
         const category = selectedEx.category;
         
         const btn = document.getElementById("wiz-conf-btn");
-        if(btn) { btn.innerText = "Loading..."; btn.disabled = true; }
+        if(btn) { btn.innerText = "Syncing..."; btn.disabled = true; }
 
         try {
-            // MAGICZNY ENDPOINT: Zlecamy serwerowi odnalezienie lub stworzenie ID!
+            // Integration with Go Backend: Find existing or create new exercise ID
             const res = await authFetch(`${API_URL}/exercises/find-or-create`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: finalName, category: category })
             });
             
-            if(!res.ok) throw new Error("DB Error");
-            const data = await res.json(); // Zwraca { id, name, category }
+            if(!res.ok) throw new Error("Backend Sync Failed");
+            const data = await res.json(); 
             
             document.body.removeChild(modal);
             if(onCompleteCallback) onCompleteCallback(data);
         } catch(e) {
-            alert("Error connecting to database.");
+            console.error("Wizard Sync Error:", e);
+            alert("Connection error. Could not sync exercise with server.");
             if(btn) { btn.innerText = "Confirm & Add"; btn.disabled = false; }
         }
     };

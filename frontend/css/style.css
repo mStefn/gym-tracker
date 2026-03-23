@@ -1,20 +1,21 @@
 /* =========================================
-   1. ZMIENNE BAZOWE (NEON / DARK MODE)
+   1. CORE VARIABLES & THEME (NEON DARK)
    ========================================= */
 :root {
     --bg-color: #0b101e;
     --primary: #00d2ff;
     --primary-glow: rgba(0, 210, 255, 0.4);
-    --success: #ff9500;
+    --success: #ff9500; /* Used for Gains/Levels/Success states */
     --danger: #ff3b30;
     --text: #e6edf3;
     --card-bg: rgba(20, 25, 40, 0.65);
     --border: rgba(0, 210, 255, 0.15);
     --glass-blur: blur(12px);
-    --app-height: 100vh; 
+    --app-height: 100vh; /* Controlled by JS for mobile browser bars */
 }
 
 * {
+    box-sizing: border-box;
     -webkit-tap-highlight-color: transparent;
 }
 
@@ -27,18 +28,19 @@ html, body {
     overscroll-behavior: none; 
     position: fixed; 
     top: 0; left: 0; right: 0; bottom: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: var(--bg-color);
     color: var(--text);
     -webkit-font-smoothing: antialiased;
 }
 
+/* Background Layer with Progressive Blur */
 #main-bg {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
     background: url('../gym-tracker.webp') center top / cover no-repeat;
     z-index: -1;
-    transition: all 0.5s ease;
+    transition: filter 0.5s ease;
 }
 
 #main-bg.dimmed {
@@ -46,7 +48,7 @@ html, body {
 }
 
 /* =========================================
-   2. GŁÓWNY UKŁAD (LAYOUT)
+   2. LAYOUT ARCHITECTURE
    ========================================= */
 #app-container {
     display: flex;
@@ -57,50 +59,61 @@ html, body {
 }
 
 #main-content {
-    flex: 1; display: flex; flex-direction: column; 
+    flex: 1; 
+    display: flex; 
+    flex-direction: column; 
     height: 100%;
     overflow: hidden; 
-    background: transparent; 
 }
 
 #top-bar {
     flex-shrink: 0; 
-    display: flex; justify-content: space-between; align-items: center;
-    padding: calc(15px + env(safe-area-inset-top)) 30px 15px 30px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    padding: calc(15px + env(safe-area-inset-top)) 25px 15px 25px; 
     background: rgba(10, 15, 25, 0.85);
-    backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
-    border-bottom: 1px solid var(--border); z-index: 1000;
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-bottom: 1px solid var(--border);
+    z-index: 1000;
 }
 
 #sidebar {
     width: 100%;
     background: rgba(10, 15, 25, 0.85);
-    backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
     border-bottom: 1px solid var(--border);
-    display: flex; justify-content: center;
+    display: flex; 
+    justify-content: center;
     z-index: 999;
-    padding-top: 0;
     padding-bottom: env(safe-area-inset-bottom);
 }
 
-.sidebar-header { display: none; }
-
 .nav-links { 
-    list-style: none; padding: 0 10px; margin: 0; 
-    display: flex; gap: 5px; overflow-x: auto; 
+    list-style: none; 
+    padding: 0 10px; 
+    margin: 0; 
+    display: flex; 
+    gap: 5px; 
+    overflow-x: auto; 
     scrollbar-width: none;
 }
 .nav-links::-webkit-scrollbar { display: none; }
 
 .nav-item {
-    padding: 6px 16px;
-    border-radius: 0; border: none; background: transparent;
-    font-size: 14px; font-weight: 600; color: #a1a1aa;
-    cursor: pointer; transition: all 0.2s ease; white-space: nowrap;
+    padding: 10px 16px;
+    border: none; 
+    background: transparent;
+    font-size: 14px; 
+    font-weight: 600; 
+    color: #a1a1aa;
+    cursor: pointer; 
+    transition: all 0.2s ease; 
+    white-space: nowrap;
     border-bottom: 3px solid transparent;
 }
-
-.nav-item:hover { color: var(--text); }
 
 .nav-item.active {
     color: var(--primary);
@@ -111,194 +124,127 @@ html, body {
 #exercises { 
     flex: 1; 
     overflow-y: auto; 
-    padding: 30px; max-width: 600px; margin: 0 auto; width: 100%; box-sizing: border-box; 
+    padding: 25px; 
+    max-width: 650px; 
+    margin: 0 auto; 
+    width: 100%;
     -webkit-overflow-scrolling: touch; 
 }
 
 /* =========================================
-   3. ANIMACJE I ELEMENTY INTERFEJSU
+   3. REUSABLE COMPONENTS
    ========================================= */
-button:active, .save-btn:active, .nav-item:active, .pin-btn:active {
-    transform: scale(0.96) !important;
-    transition: transform 0.1s;
+.exercise-card, .stats-card {
+    background: var(--card-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
 }
 
-.exercise-card {
-    background: var(--card-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--border); border-radius: 22px; padding: 25px;
-    margin-bottom: 25px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+input, select {
+    width: 100%; 
+    padding: 14px; 
+    border: 1px solid var(--border); 
+    border-radius: 12px; 
+    font-size: 16px !important; 
+    font-weight: 600;
+    background: rgba(0, 0, 0, 0.3); 
+    color: var(--text);
+    outline: none; 
+    transition: all 0.2s ease;
 }
-
-.exercise-card h3 {
-    font-size: 20px;
-    margin-top: 0; margin-bottom: 20px;
-}
-
-input, select, textarea {
-    width: 100%; padding: 16px; border: 1px solid var(--border); border-radius: 12px; 
-    font-size: 18px !important; font-weight: 600;
-    background: rgba(0, 0, 0, 0.4); color: var(--text);
-    margin-bottom: 12px; box-sizing: border-box; outline: none; transition: all 0.2s;
-    transform: translateZ(0); 
-}
-input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-glow); }
+input:focus { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-glow); }
 
 .save-btn {
-    width: 100%; padding: 18px; border-radius: 14px; border: none;
-    background: var(--primary); color: #000; font-weight: 800; cursor: pointer; 
-    font-size: 16px; transition: all 0.2s; box-shadow: 0 0 15px var(--primary-glow); 
-    text-transform: uppercase; letter-spacing: 1px;
-}
-.save-btn:hover { filter: brightness(1.2); }
-.save-btn:disabled { background: #3a3a3c; color: #8e8e93; box-shadow: none; cursor: not-allowed; }
-
-.spinner {
-    width: 40px; height: 40px; border: 4px solid rgba(0, 210, 255, 0.1);
-    border-left-color: var(--primary); border-radius: 50%;
-    animation: spin 1s linear infinite; margin: 0 auto;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* =========================================
-   4. WERSJA MOBILNA
-   ========================================= */
-@media (max-width: 768px) {
-    #exercises { padding: 20px 15px; }
-    
-    .nav-links { justify-content: flex-start; }
-    
-    .nav-item { padding: 4px 12px; font-size: 13px; }
-    
-    .modal-overlay { align-items: flex-end; }
-    
-    .modal-content:not(.modal-content-small) { 
-        width: 100%; 
-        height: var(--app-height); 
-        max-height: 90%; 
-        border-radius: 24px 24px 0 0; 
-        margin: 0; 
-        animation: slideUp 0.3s ease-out; 
-    }
+    width: 100%; 
+    padding: 16px; 
+    border-radius: 14px; 
+    border: none;
+    background: var(--primary); 
+    color: #000; 
+    font-weight: 800; 
+    font-size: 15px; 
+    text-transform: uppercase; 
+    letter-spacing: 1px;
+    box-shadow: 0 0 15px var(--primary-glow);
+    cursor: pointer;
 }
 
-/* =========================================
-   5. INNE WIDŻETY I MODALE (WIZARD!)
-   ========================================= */
-.auth-wrapper { display: flex; align-items: center; justify-content: center; flex-direction: column; min-height: 80%; width: 100%; }
-.level-up-badge { display: inline-block; background: var(--success); color: #000; padding: 2px 8px; border-radius: 4px; font-weight: 900; font-size: 11px; margin-left: 10px; transform: skewX(-10deg); box-shadow: 0 0 10px rgba(255,149,0,0.6); vertical-align: middle; }
-
-.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 3000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-.modal-content { background: var(--card-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border: 1px solid var(--border); width: 95%; max-width: 600px; height: 85%; display: flex; flex-direction: column; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-.modal-header, .modal-filters { flex-shrink: 0; background: rgba(10, 15, 25, 0.9); padding: 15px 20px; border-bottom: 1px solid var(--border); }
-.modal-body { flex: 1; overflow-y: auto; padding: 20px; -webkit-overflow-scrolling: touch; }
-.modal-footer { flex-shrink: 0; padding: 20px; background: rgba(10, 15, 25, 0.95); border-top: 1px solid var(--border); z-index: 10; }
-
-/* KAFELKI DO WIZARDA ĆWICZEŃ (NOWE) */
+/* UI Elements for Wizard & Interactive Components */
 .tile-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 15px;
-    padding: 10px 0;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
 }
+
 .wizard-tile {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--border);
     border-radius: 16px;
-    padding: 20px 10px;
+    padding: 15px;
     text-align: center;
-    color: var(--text);
     font-weight: 700;
-    font-size: 15px;
-    cursor: pointer;
     transition: all 0.2s ease;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 80px;
-    user-select: none;
+    cursor: pointer;
 }
-/* Efekt kliknięcia (działa na telefonie i na komputerze) */
-.wizard-tile:active {
+
+.wizard-tile:active, .wizard-tile.active {
     background: rgba(0, 210, 255, 0.15);
     border-color: var(--primary);
-    box-shadow: 0 0 15px var(--primary-glow);
-    transform: scale(0.95);
+    box-shadow: 0 0 12px var(--primary-glow);
 }
-
-/* Efekt najechania (TYLKO dla urządzeń z fizyczną myszką) */
-@media (hover: hover) and (pointer: fine) {
-    .wizard-tile:hover {
-        background: rgba(0, 210, 255, 0.15);
-        border-color: var(--primary);
-        box-shadow: 0 0 15px var(--primary-glow);
-        transform: scale(0.95);
-    }
-}
-
-/* Custom PWA Install Modal */
-#install-guide-overlay {
-    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.85); z-index: 4000;
-    align-items: center; justify-content: center;
-    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-    opacity: 0; transition: opacity 0.3s ease;
-}
-#install-guide-overlay.show { display: flex; opacity: 1; }
-.install-card {
-    background: var(--card-bg); border: 1px solid var(--border);
-    border-radius: 24px; padding: 30px; width: 90%; max-width: 400px;
-    text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.8);
-    transform: scale(0.95); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-#install-guide-overlay.show .install-card { transform: scale(1); }
-.install-step {
-    background: rgba(0,0,0,0.4); border: 1px solid var(--border);
-    border-radius: 12px; padding: 15px; margin-bottom: 15px; text-align: left; font-size: 15px;
-}
-
-/* PIN Pad */
-.pin-btn { background: rgba(255, 255, 255, 0.05); color: var(--text); border: 1px solid var(--border); border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer; font-size: 24px; font-weight: 600; display: flex; align-items: center; justify-content: center; aspect-ratio: 1; transition: all 0.2s; }
-.pin-btn:active { transform: scale(0.9) !important; background: rgba(0, 210, 255, 0.2); border-color: var(--primary); box-shadow: 0 0 15px var(--primary-glow); }
-.pin-btn.action-c { color: var(--danger); border-color: rgba(255, 59, 48, 0.4); }
-.pin-btn.action-ok { color: var(--success); border-color: rgba(255, 149, 0, 0.4); }
 
 /* =========================================
-   6. OVERLOAD MODAL (NAPRAWA BŁĘDU)
+   4. MODALS & OVERLAYS
    ========================================= */
-.dialog-overlay { 
+.modal-overlay {
+    position: fixed; 
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.8); 
+    z-index: 3000; 
+    display: flex; 
     align-items: center; 
+    justify-content: center;
+    backdrop-filter: blur(8px);
 }
-.modal-content-small { 
-    height: auto !important; 
-    max-height: 90%; 
-    margin: 0 20px; 
-    border-radius: 24px !important; 
-    border: 1px solid var(--success); 
-    box-shadow: 0 0 30px rgba(255, 153, 0, 0.2); 
-    display: block !important; 
+
+.modal-content {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    width: 92%; 
+    max-width: 500px;
+    border-radius: 24px;
+    overflow: hidden;
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-.stepper-row { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 16px; margin-bottom: 12px; border: 1px solid var(--border); }
-.stepper-label { font-weight: 600; font-size: 15px; color: #a1a1aa; }
-.stepper-controls { display: flex; align-items: center; gap: 15px; }
-.stepper-btn { width: 38px; height: 38px; border-radius: 50%; border: none; background: rgba(255,255,255,0.05); color: var(--success); box-shadow: 0 2px 8px rgba(0,0,0,0.1); font-size: 22px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.stepper-btn:active { transform: scale(0.9); }
-.stepper-val { font-size: 18px; font-weight: 700; min-width: 45px; text-align: center; }
 
 /* =========================================
-   7. POPRAWKI TYLKO DLA ZAINSTALOWANEJ APKI (PWA)
+   5. DASHBOARD SPECIFIC STYLES (NEW)
    ========================================= */
-@media (display-mode: standalone) {
-    #sidebar {
-        padding-bottom: max(12px, calc(env(safe-area-inset-bottom) - 15px)) !important;
-        background: rgba(10, 15, 25, 0.95); 
-    }
-    
-    .nav-item {
-        padding-top: 4px !important;
-        padding-bottom: 4px !important;
-    }
+.muscle-part { 
+    transition: filter 0.3s ease, stroke 0.3s ease; 
+    cursor: pointer; 
 }
+.muscle-part:hover, .muscle-part.active { 
+    filter: drop-shadow(0 0 6px #fff) brightness(1.2); 
+    stroke: #fff;
+}
+.heatmap-sq {
+    width: 12px; height: 12px; border-radius: 2px;
+    background: rgba(255,255,255,0.05);
+}
+.heatmap-sq.active { background: var(--primary); box-shadow: 0 0 5px var(--primary-glow); }
 
-@keyframes popIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+/* Animations */
+@keyframes popIn { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Desktop-specific hover effects */
+@media (hover: hover) {
+    .nav-item:hover { color: var(--text); }
+    .save-btn:hover { filter: brightness(1.15); }
+}

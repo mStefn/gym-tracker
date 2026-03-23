@@ -9,25 +9,33 @@ import (
 )
 
 func main() {
+	// Initialize core services
 	initDB()
 	initAuth()
 
+	// Set Gin mode based on environment (default to release for security)
+	if os.Getenv("GIN_MODE") == "release" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	r := gin.Default()
 
-	// Prometheus metrics endpoint
+	// Prometheus metrics setup
+	// This enables the /metrics endpoint for Prometheus scraping
 	p := ginprometheus.NewPrometheus("gin")
 	p.Use(r)
 
-	// CORS configuration
+	// CORS (Cross-Origin Resource Sharing) Configuration
 	allowOrigin := os.Getenv("CORS_ORIGIN")
 	if allowOrigin == "" {
-		allowOrigin = "*"
+		allowOrigin = "*" // Fallback for development
 	}
 
 	corsConfig := cors.Config{
 		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders: []string{"Origin", "Content-Type", "Authorization"},
 	}
+
 	if allowOrigin == "*" {
 		corsConfig.AllowAllOrigins = true
 	} else {
@@ -35,12 +43,12 @@ func main() {
 	}
 	r.Use(cors.New(corsConfig))
 
-	// Public routes
+	// --- PUBLIC ROUTES ---
 	r.GET("/health", HealthCheck)
 	r.POST("/login", Login)
 	r.POST("/signup", SignUp)
 
-	// Protected routes
+	// --- PROTECTED ROUTES (User Access) ---
 	auth := r.Group("/")
 	auth.Use(AuthRequired())
 	{
@@ -59,15 +67,13 @@ func main() {
 		// Plan exercise management
 		auth.POST("/plan-exercises", AddExerciseToPlan)
 		auth.DELETE("/plan-exercises/:plan_id", DeletePlanExercises)
-		// ---> TUTAJ DODANO NOWY ENDPOINT <---
 		auth.POST("/plan-exercises/sync", SyncPlanExercises)
 
+		// Statistics and Dashboard
 		auth.GET("/stats/:user_id", GetUserStats)
 		auth.POST("/exercises/find-or-create", FindOrCreateExerciseHandler)
-
 		auth.POST("/weight", LogBodyWeight)
 		auth.GET("/dashboard/:user_id", GetDashboardData)
-
 		auth.GET("/stats/advanced/:user_id", GetAdvancedStats)
 		auth.GET("/stats/exercise/:user_id/:ex_id", GetExerciseDeepDive)
 
@@ -76,7 +82,7 @@ func main() {
 		auth.DELETE("/account/:user_id", DeleteOwnAccount)
 	}
 
-	// Admin routes
+	// --- ADMIN ROUTES ---
 	admin := r.Group("/admin")
 	admin.Use(AuthRequired(), AdminRequired())
 	{
@@ -84,16 +90,20 @@ func main() {
 		admin.POST("/reset-pin", AdminResetPin)
 	}
 
+	// High-level admin actions
 	r.DELETE("/user/:id", AuthRequired(), AdminRequired(), DeleteAccount)
 
+	// Start server on the internal container port
 	r.Run("0.0.0.0:4000")
 }
 
+// FindOrCreateReq defines the payload for finding/creating exercises
 type FindOrCreateReq struct {
 	Name     string `json:"name"`
 	Category string `json:"category"`
 }
 
+// FindOrCreateExerciseHandler handles the logic for exercise lookup or creation
 func FindOrCreateExerciseHandler(c *gin.Context) {
 	var req FindOrCreateReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -103,7 +113,7 @@ func FindOrCreateExerciseHandler(c *gin.Context) {
 
 	id, err := GetOrCreateExerciseDB(req.Name, req.Category)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Database error while creating exercise"})
+		c.JSON(500, gin.H{"error": "Database error while processing exercise"})
 		return
 	}
 
