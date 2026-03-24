@@ -26,6 +26,7 @@ export const API = {
             });
             return handleResponse(res);
         } catch (err) {
+            console.error("API Network Error:", err);
             return { ok: false, error: "Network error" };
         }
     },
@@ -39,6 +40,7 @@ export const API = {
             });
             return handleResponse(res);
         } catch (err) {
+            console.error("API Network Error:", err);
             return { ok: false, error: "Network error" };
         }
     },

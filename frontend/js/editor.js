@@ -1,4 +1,4 @@
-import { state, API_URL, authFetch, exerciseSchema } from './state.js';
+import { API_URL, authFetch, exerciseSchema } from './state.js';
 
 /**
  * Local state for the current editing session
@@ -80,7 +80,7 @@ export async function renderPlanEditor(planId = null, planName = "") {
         });
     });
 
-    document.getElementById('save-plan-btn').addEventListener('click', window.saveFullPlan);
+    document.getElementById('save-plan-btn').addEventListener('click', globalThis.saveFullPlan);
     
     window.renderSelectedList();
 }
@@ -263,9 +263,9 @@ window.openExerciseWizard = (onComplete) => {
                 const nameParts = [selection.angle, selection.variant, selection.equipment, selection.baseExercise.name];
                 const finalName = nameParts.filter(p => p && p !== "Flat" && p !== "Standard" && p !== "Bodyweight").join(" ");
                 
-                window.wizardClose();
+                globalThis.wizardClose();
                 onComplete({
-                    id: finalName.replace(/\s+/g, '-').toLowerCase(),
+                    id: finalName.replaceAll(/\s+/g, '-').toLowerCase(),
                     name: finalName,
                     category: selection.category
                 });

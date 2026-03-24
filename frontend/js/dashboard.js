@@ -45,7 +45,7 @@ export async function renderDashboard() {
       });
 
       const fillPoints = `0,${height} ${points.join(" ")} ${width},${height}`;
-      const lastY = height - ((data[data.length - 1] - paddedMin) / paddedRange) * height;
+      const lastY = height - ((data.at(-1) - paddedMin) / paddedRange) * height;
 
       return `
         <svg viewBox="0 0 100 40" preserveAspectRatio="none" class="sparkline-svg">
@@ -261,12 +261,12 @@ function setupMuscleInteractivity() {
       muscleParts.forEach(p => p.classList.remove('active', 'locked'));
 
       if (!isAlreadyLocked) {
+        muscleLabel.innerText = "SELECT A MUSCLE";
+        muscleLabel.classList.remove("highlight");        
+      } else {
         part.classList.add('active', 'locked');
         muscleLabel.innerText = e.target.getAttribute("data-name");
         muscleLabel.classList.add("highlight");
-      } else {
-        muscleLabel.innerText = "SELECT A MUSCLE";
-        muscleLabel.classList.remove("highlight");
       }
     });
   });
@@ -277,7 +277,7 @@ function setupMuscleInteractivity() {
  */
 window.logWeight = async () => {
   const weightInput = document.getElementById("weight-input");
-  const weight = parseFloat(weightInput.value);
+  const weight = Number.parseFloat(weightInput.value);
 
   if (!weight || weight <= 0) return alert("Please enter a valid weight value.");
 
