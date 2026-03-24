@@ -133,8 +133,9 @@ jobs:
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          status: ${{ job.status }}
-          title: "🚀 Gym Tracker Deployment Report"
+          # Sprawdza wszystkie poprzednie kroki. Jeśli jakikolwiek ma status 'failure', cała wiadomość będzie czerwona.
+          status: ${{ contains(needs.*.result, 'failure') && 'failure' || contains(needs.*.result, 'cancelled') && 'cancelled' || 'success' }}
+          title: "Gym Tracker Deployment Report"
           description: |
             **SonarQube Scan:** ${{ needs.sonar-scan.result }}
             **Build & Push:** ${{ needs.build-and-push.result }}
