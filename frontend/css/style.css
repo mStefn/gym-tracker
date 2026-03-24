@@ -225,6 +225,142 @@ input:focus { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-g
 /* =========================================
    5. DASHBOARD SPECIFIC STYLES (NEW)
    ========================================= */
+.dashboard-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding-bottom: 40px;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.view-title {
+    font-size: 28px;
+    margin: 0;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.level-badge {
+    background: rgba(0, 210, 255, 0.15);
+    color: var(--primary);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 800;
+    font-size: 14px;
+    border: 1px solid var(--primary);
+    box-shadow: 0 0 10px var(--primary-glow);
+}
+
+.stats-card.centered {
+    text-align: center;
+}
+
+.card-label {
+    margin: 0 0 15px 0;
+    color: #a1a1aa;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+}
+
+.main-stat {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 15px;
+    text-shadow: 0 0 15px rgba(255,255,255,0.2);
+}
+
+.sub-stat {
+    font-size: 18px;
+    color: #a1a1aa;
+    font-weight: 600;
+}
+
+/* Progress Bar */
+.progress-bar-bg {
+    width: 100%;
+    height: 12px;
+    background: rgba(0,0,0,0.5);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), #00ffcc);
+    border-radius: 10px;
+    box-shadow: 0 0 10px var(--primary-glow);
+    transition: width 0.5s ease-out;
+}
+
+/* Weight Input Area */
+.weight-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.weight-input-group {
+    display: flex;
+    gap: 10px;
+}
+
+.mini-input {
+    width: 80px;
+    padding: 10px;
+    font-size: 16px !important;
+    text-align: center;
+}
+
+.btn-mini {
+    background: var(--primary);
+    color: #000;
+    border: none;
+    padding: 0 15px;
+    border-radius: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+
+/* Visual Readiness (Muscle Map) */
+.readiness-label {
+    text-align: center;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    margin-bottom: 15px;
+    color: #a1a1aa;
+    transition: color 0.3s;
+}
+.readiness-label.highlight {
+    color: var(--primary);
+    text-shadow: 0 0 10px var(--primary-glow);
+}
+
+.body-view-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px 0;
+}
+
+.body-svg {
+    width: 100%;
+    max-width: 280px;
+    height: auto;
+}
+
 .muscle-part { 
     transition: filter 0.3s ease, stroke 0.3s ease; 
     cursor: pointer; 
@@ -233,13 +369,82 @@ input:focus { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-g
     filter: drop-shadow(0 0 6px #fff) brightness(1.2); 
     stroke: #fff;
 }
+
+/* Sparkline Chart */
+.sparkline-placeholder {
+    padding: 20px;
+    text-align: center;
+    color: #a1a1aa;
+    font-style: italic;
+    background: rgba(0,0,0,0.2);
+    border-radius: 12px;
+}
+
+.sparkline-svg {
+    width: 100%;
+    height: 60px;
+    margin-top: 10px;
+}
+
+/* Heatmap */
+.heatmap-grid {
+    display: grid;
+    grid-template-columns: repeat(15, 1fr);
+    gap: 4px;
+    justify-content: center;
+}
+
 .heatmap-sq {
     width: 12px; height: 12px; border-radius: 2px;
     background: rgba(255,255,255,0.05);
 }
 .heatmap-sq.active { background: var(--primary); box-shadow: 0 0 5px var(--primary-glow); }
 
-/* Animations */
+/* Volume Bar Chart */
+.volume-chart {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    height: 120px;
+    padding-top: 20px;
+}
+
+.volume-bar-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 22%;
+    height: 100%;
+}
+
+.volume-bar-container {
+    flex: 1;
+    width: 100%;
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px 8px 0 0;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+}
+
+.volume-bar {
+    width: 100%;
+    background: var(--primary);
+    border-radius: 4px 4px 0 0;
+    transition: height 0.5s ease;
+}
+
+.volume-label {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #a1a1aa;
+    font-weight: 600;
+}
+
+/* =========================================
+   6. ANIMATIONS & MEDIA QUERIES
+   ========================================= */
 @keyframes popIn { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes spin { to { transform: rotate(360deg); } }
 
