@@ -29,15 +29,15 @@ jobs:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
 
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v3 # Zaktualizowano do v3
+        uses: SonarSource/sonarqube-scan-action@v3
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
       - name: SonarQube Quality Gate Check
-        # Używamy v2, ale z flagą continue-on-error, aby błąd API Sonara nie blokował deployu
-        uses: SonarSource/sonarqube-quality-gate-action@v2 
-        continue-on-error: true
+        # Używamy v1.1.0 - jedyna stabilna wersja tej akcji
+        uses: SonarSource/sonarqube-quality-gate-action@v1.1.0 
+        continue-on-error: true # KLUCZOWE: Ignoruje błąd API Sonara "Unknown url"
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -45,8 +45,7 @@ jobs:
 
   # --- STEP 2: BUILDING IMAGES ---
   build-and-push:
-    needs: sonar-scan
-    # Upewniamy się, że build ruszy nawet jeśli Quality Gate "nie przeszedł" przez błąd API
+    needs: sonar-scan    
     if: always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && needs.sonar-scan.result != 'failure'
     runs-on: ubuntu-latest
     permissions:
@@ -125,7 +124,7 @@ jobs:
             exit 1
           fi
 
-  # --- STEP 5: DISCORD NOTIFICATION ---
+  # --- STEP 5: NOTIFICATIONS ---
   notify:
     needs: [sonar-scan, build-and-push, deploy, health-check]
     if: always() 
@@ -134,9 +133,7 @@ jobs:
       - name: Discord Notification
         uses: sarisia/actions-status-discord@v1
         with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          # Status jest sukcesem tylko jeśli deploy i health-check przeszły pomyślnie.
-          # Ignorujemy potencjalne ostrzeżenie z sonar-scan spowodowane błędem API.
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}          
           status: ${{ (needs.deploy.result == 'success' && needs.health-check.result == 'success') && 'success' || 'failure' }}
           title: "Gym Tracker Deployment Report"
           description: |
