@@ -25,7 +25,7 @@ const ASSETS = [
  */
 self.addEventListener('install', (event) => {
   // Forces the waiting Service Worker to become the active Service Worker
-  self.skipWaiting();
+  globalThis.skipWaiting();
   
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -54,7 +54,7 @@ self.addEventListener('activate', (event) => {
     })
   );
   // Ensures that updates to the Service Worker take effect immediately
-  return self.clients.claim();
+  return globalThis.clients.claim();
 });
 
 /**

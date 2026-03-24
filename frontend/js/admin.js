@@ -84,17 +84,18 @@ async function loadUsers() {
         const list = document.getElementById("user-list");
         if (!list) return;
 
+        // SONARQUBE FIX: Positive conditions in ternary operators
         list.innerHTML = users.map(u => `
             <div class="admin-card">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <strong>${u.name} ${u.is_admin ? '<span class="badge">Admin</span>' : ''}</strong>
-                    ${!u.is_admin ? `<button onclick="deleteUser(${u.id})" class="btn-danger">Delete</button>` : ''}
+                    ${u.is_admin ? '' : `<button onclick="deleteUser(${u.id})" class="btn-danger">Delete</button>`}
                 </div>
-                ${!u.is_admin ? `
+                ${u.is_admin ? '' : `
                 <div style="margin-top:10px; display:flex; gap:10px;">
                     <input type="text" id="res-${u.id}" placeholder="New PIN" style="margin:0; flex:1;">
                     <button onclick="resetPin(${u.id})" class="btn-primary">Reset PIN</button>
-                </div>` : ''}
+                </div>`}
             </div>
         `).join('');
     } catch (err) {

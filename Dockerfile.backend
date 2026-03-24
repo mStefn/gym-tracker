@@ -26,11 +26,10 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /gym-tracker .
 FROM alpine:3.19
 WORKDIR /app
 
-# Install required system packages: certificates for HTTPS and timezone data
-RUN apk add --no-cache ca-certificates tzdata
-
-# Security: Create an unprivileged user to run the application
-RUN adduser -D -g '' appuser
+# MERGED RUN INSTRUCTION (SonarQube Fix)
+# Install required system packages AND create an unprivileged user in a single layer
+RUN apk add --no-cache ca-certificates tzdata && \
+    adduser -D -g '' appuser
 
 # Copy the compiled binary and necessary static files from the builder
 COPY --from=builder /gym-tracker ./gym-tracker
