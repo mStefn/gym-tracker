@@ -1,4 +1,4 @@
-import { API_URL, authFetch, exerciseSchema } from './state.js';
+import { API_URL, authFetch } from './state.js';
 
 /**
  * Local state for the current editing session
