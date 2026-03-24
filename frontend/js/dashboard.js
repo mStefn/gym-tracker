@@ -132,10 +132,10 @@ export async function renderDashboard() {
       const safeR = readinessObj || {};
       const getColor = (cat) => {
         const val = safeR[cat] !== undefined ? safeR[cat] : 100;
-        if (val <= 15) return "#ff3b30"; // Needs rest
-        if (val <= 50) return "#ff9500"; // Recovering
-        if (val <= 85) return "#ffcc00"; // Almost ready
-        return "#32d74b"; // Fresh
+        if (val <= 15) return "#ff3b30"; 
+        if (val <= 50) return "#ff9500"; 
+        if (val <= 85) return "#ffcc00"; 
+        return "#32d74b"; 
       };
 
       const createPoly = (points, name) => {
@@ -257,10 +257,11 @@ function setupMuscleInteractivity() {
     });
 
     part.addEventListener("click", (e) => {
-      const isAlreadyLocked = part.classList.contains('locked');
+      const wasAlreadyLocked = part.classList.contains('locked');
+      
       muscleParts.forEach(p => p.classList.remove('active', 'locked'));
 
-      if (!isAlreadyLocked) {
+      if (wasAlreadyLocked) {
         muscleLabel.innerText = "SELECT A MUSCLE";
         muscleLabel.classList.remove("highlight");        
       } else {
