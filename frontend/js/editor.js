@@ -1,4 +1,4 @@
-import { API_URL, authFetch } from './state.js';
+import { API_URL, authFetch, exerciseSchema } from './state.js';
 
 /**
  * Local state for the current editing session
@@ -8,7 +8,6 @@ let editingPlanId = null;
 
 /**
  * Main function to render the Plan Editor view.
- * Used for both creating new plans and updating existing ones.
  */
 export async function renderPlanEditor(planId = null, planName = "") {
     const container = document.getElementById("exercises");
@@ -43,7 +42,7 @@ export async function renderPlanEditor(planId = null, planName = "") {
         </div>
     `;
 
-    // If editing, fetch current plan configuration from backend
+    // Fetch existing exercises if in edit mode
     if (editingPlanId) {
         try {
             const res = await authFetch(`${API_URL}/plan-exercises/${editingPlanId}`);
@@ -61,8 +60,8 @@ export async function renderPlanEditor(planId = null, planName = "") {
         }
     }
 
-    // Event Listener for the Exercise Wizard
-    document.getElementById('add-ex-btn').addEventListener('click', () => {
+    // Event Listener: Now uses the fixed global wizard from state.js
+    document.getElementById('add-ex-btn').onclick = () => {
         window.openExerciseWizard((newExercise) => {
             const isDuplicate = selectedExercisesForPlan.some(ex => ex.name === newExercise.name);
             if (isDuplicate) {
@@ -74,13 +73,13 @@ export async function renderPlanEditor(planId = null, planName = "") {
                 id: newExercise.id,
                 name: newExercise.name,
                 category: newExercise.category,
-                sets: 3 // Default starting sets
+                sets: 3 
             });
             window.renderSelectedList();
         });
-    });
+    };
 
-    document.getElementById('save-plan-btn').addEventListener('click', globalThis.saveFullPlan);
+    document.getElementById('save-plan-btn').onclick = () => window.saveFullPlan();
     
     window.renderSelectedList();
 }
@@ -128,7 +127,7 @@ window.removeExercise = (indexToRemove) => {
 };
 
 /**
- * Persists the entire plan to the server using a Transactional Sync
+ * Persists the entire plan to the server
  */
 window.saveFullPlan = async () => {
     const nameInput = document.getElementById("new-plan-name");
@@ -138,6 +137,7 @@ window.saveFullPlan = async () => {
     if (selectedExercisesForPlan.length === 0) return alert("Add at least one exercise to save the plan.");
 
     const saveBtn = document.getElementById('save-plan-btn');
+    const originalText = saveBtn.innerText;
     saveBtn.innerText = "Synchronizing...";
     saveBtn.disabled = true;
 
@@ -183,122 +183,7 @@ window.saveFullPlan = async () => {
     } catch (e) {
         console.error("Save Error:", e);
         alert("Transaction failed: " + e.message);
-        saveBtn.innerText = editingPlanId ? "Update Plan" : "Save Workout Plan";
+        saveBtn.innerText = originalText;
         saveBtn.disabled = false;
     }
-};
-
-/**
- * INTERACTIVE TILE-BASED WIZARD
- * Implements a step-by-step selection flow for better UX.
- */
-window.openExerciseWizard = (onComplete) => {
-    let wizardModal = document.getElementById('exercise-wizard');
-    
-    if (!wizardModal) {
-        wizardModal = document.createElement('div');
-        wizardModal.id = 'exercise-wizard';
-        wizardModal.className = 'modal-overlay';
-        
-        wizardModal.innerHTML = `
-            <div class="modal-content wizard-modal">
-                <div class="modal-header">
-                    <div class="header-left">
-                        <button id="wizard-back-btn" onclick="window.wizardBack()" class="back-arrow" style="display:none;">←</button>
-                        <h3 id="wizard-title" class="wizard-step-title">Select Muscle Group</h3>
-                    </div>
-                    <button onclick="window.wizardClose()" class="close-x">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div id="wizard-grid" class="tile-grid"></div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(wizardModal);
-    }
-
-    let selection = { category: null, baseExercise: null, equipment: null, angle: null, variant: null };
-    const categories = [...new Set(exerciseSchema.map(e => e.category))];
-
-    const renderView = () => {
-        let title = "Select Muscle Group";
-        let items = [];
-        let onClick = null;
-        let showBack = true;
-
-        if (!selection.category) {
-            title = "Select Muscle Group";
-            items = categories;
-            showBack = false;
-            onClick = (val) => { selection.category = val; renderView(); };
-        } 
-        else if (!selection.baseExercise) {
-            title = selection.category;
-            items = exerciseSchema.filter(e => e.category === selection.category).map(e => e.name);
-            onClick = (val) => { 
-                selection.baseExercise = exerciseSchema.find(e => e.name === val); 
-                renderView(); 
-            };
-        } 
-        else {
-            const ex = selection.baseExercise;
-            // Check for missing options to determine the next step
-            if (ex.equipment && !selection.equipment) {
-                title = "Select Equipment";
-                items = ex.equipment;
-                onClick = (val) => { selection.equipment = val; renderView(); };
-            } 
-            else if (ex.angles && !selection.angle) {
-                title = "Select Angle";
-                items = ex.angles;
-                onClick = (val) => { selection.angle = val; renderView(); };
-            } 
-            else if (ex.variants && !selection.variant) {
-                title = "Select Variant";
-                items = ex.variants;
-                onClick = (val) => { selection.variant = val; renderView(); };
-            } 
-            else {
-                // All steps completed - build the final result
-                const nameParts = [selection.angle, selection.variant, selection.equipment, selection.baseExercise.name];
-                const finalName = nameParts.filter(p => p && p !== "Flat" && p !== "Standard" && p !== "Bodyweight").join(" ");
-                
-                globalThis.wizardClose();
-                onComplete({
-                    id: finalName.replaceAll(/\s+/g, '-').toLowerCase(),
-                    name: finalName,
-                    category: selection.category
-                });
-                return;
-            }
-        }
-
-        document.getElementById('wizard-title').innerText = title;
-        document.getElementById('wizard-back-btn').style.display = showBack ? 'block' : 'none';
-        
-        document.getElementById('wizard-grid').innerHTML = items.map(item => `
-            <div class="wizard-tile" onclick="window.wizardSelect('${item}')">
-                ${item}
-            </div>
-        `).join('');
-        
-        window.wizardSelect = onClick;
-    };
-
-    window.wizardBack = () => {
-        if (selection.variant) selection.variant = null;
-        else if (selection.angle) selection.angle = null;
-        else if (selection.equipment) selection.equipment = null;
-        else if (selection.baseExercise) selection.baseExercise = null;
-        else if (selection.category) selection.category = null;
-        renderView();
-    };
-
-    window.wizardClose = () => {
-        wizardModal.classList.remove('show');
-        setTimeout(() => wizardModal.remove(), 300);
-    };
-
-    setTimeout(() => wizardModal.classList.add('show'), 10);
-    renderView();
 };

@@ -19,8 +19,9 @@ export const API_URL = `http://${window.location.hostname}:5001`;
 /**
  * MASTER EXERCISE SCHEMA
  * Used to populate the Exercise Wizard and provide structured metadata.
+ * DODANO 'export' - aby editor.js mógł korzystać z tej bazy.
  */
-const exerciseSchema = [
+export const exerciseSchema = [
     { name: "Bench Press", category: "Chest", equipment: ["Barbell", "Dumbbell", "Machine"], angles: ["Flat", "Incline", "Decline"] },
     { name: "Chest Fly", category: "Chest", equipment: ["Dumbbell", "Machine", "Cable"] },
     { name: "Push-Up", category: "Chest", equipment: ["Bodyweight"] },
@@ -81,12 +82,22 @@ export function logout() {
 }
 
 /**
+ * Global helper to close the wizard (Fixes: wizardClose is not a function)
+ */
+window.wizardClose = () => {
+    const modal = document.getElementById('ex-wizard');
+    if (modal) {
+        modal.classList.remove('show'); // Jeśli używamy animacji CSS
+        setTimeout(() => { if (modal.parentNode) modal.parentNode.removeChild(modal); }, 200);
+    }
+};
+
+/**
  * EXERCISE SELECTION WIZARD (UI Component)
- * A multi-step modal for searching, filtering, and configuring exercises.
  */
 window.openExerciseWizard = (onCompleteCallback) => {
     const modal = document.createElement("div");
-    modal.className = "modal-overlay dialog-overlay";
+    modal.className = "modal-overlay dialog-overlay show"; // Dodano 'show' dla widoczności
     modal.id = "ex-wizard";
 
     let selectedEx = null;
@@ -94,12 +105,11 @@ window.openExerciseWizard = (onCompleteCallback) => {
     let currentCat = "All";
     const categories = ["All", ...new Set(exerciseSchema.map(e => e.category))];
 
-    // Initial Modal Structure
     modal.innerHTML = `
         <div class="modal-content" style="display:flex; flex-direction:column; max-height: 90vh;">
             <div class="modal-header" id="wiz-header" style="display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
                 <h3 style="margin:0; font-size:20px; color:var(--primary);">Select Exercise</h3>
-                <button onclick="document.body.removeChild(document.getElementById('ex-wizard'))" class="close-btn">&times;</button>
+                <button onclick="window.wizardClose()" class="close-x">&times;</button>
             </div>
             <div id="wiz-filters" class="wizard-filter-bar"></div>
             <div class="modal-body" id="wiz-body" style="overflow-y:auto; flex-grow:1; padding-top: 15px;"></div>
@@ -114,15 +124,13 @@ window.openExerciseWizard = (onCompleteCallback) => {
     const wizBody = document.getElementById("wiz-body");
     const wizFooter = document.getElementById("wiz-footer");
 
-    // --- Step 1: Browse and Filter ---
     const renderStep1 = () => {
-        wizFilters.style.display = "block";
+        wizFilters.style.display = "flex";
         wizFooter.style.display = "none";
         wizHeader.innerHTML = `
             <h3 style="margin:0; font-size:20px; color:var(--primary);">Select Exercise</h3>
-            <button onclick="document.body.removeChild(document.getElementById('ex-wizard'))" class="close-btn">&times;</button>
+            <button onclick="window.wizardClose()" class="close-x">&times;</button>
         `;
-
         renderFilters();
         renderGrid();
     };
@@ -138,11 +146,11 @@ window.openExerciseWizard = (onCompleteCallback) => {
     const renderGrid = () => {
         const list = currentCat === "All" ? exerciseSchema : exerciseSchema.filter(e => e.category === currentCat);
         wizBody.innerHTML = `
-            <div class="exercise-grid">
+            <div class="tile-grid">
                 ${list.map(ex => `
-                    <div class="ex-card" onclick="window._wizSelBase('${ex.name}')">
-                        <div class="ex-card-title">${ex.name}</div>
-                        <div class="ex-card-cat">${ex.category}</div>
+                    <div class="wizard-tile" onclick="window._wizSelBase('${ex.name}')">
+                        <div class="ex-name">${ex.name}</div>
+                        <div class="ex-cat-badge">${ex.category}</div>
                     </div>
                 `).join('')}
             </div>
@@ -169,15 +177,14 @@ window.openExerciseWizard = (onCompleteCallback) => {
         }
     };
 
-    // --- Step 2: Configure Options ---
     const drawOpts = (title, items, current, type) => {
         if (!items || items.length === 0) return "";
         return `
-            <div class="option-group">
-                <label class="option-label">${title}</label>
-                <div class="option-container">
+            <div class="input-group">
+                <label class="field-label">${title}</label>
+                <div class="tile-grid">
                     ${items.map(item => `
-                        <button onclick="window._wizUpd('${type}', '${item}')" class="option-btn ${item === current ? 'active' : ''}">
+                        <button onclick="window._wizUpd('${type}', '${item}')" class="wizard-tile ${item === current ? 'active' : ''}">
                             ${item}
                         </button>
                     `).join('')}
@@ -191,25 +198,25 @@ window.openExerciseWizard = (onCompleteCallback) => {
         wizFooter.style.display = "block";
         
         wizHeader.innerHTML = `
-            <button onclick="window._wizGoBack()" class="back-btn">← Back</button>
-            <h3 style="margin:0; font-size:18px;">Configure</h3>
-            <div style="width:40px;"></div>
+            <button onclick="window._wizGoBack()" class="back-arrow">←</button>
+            <h3 class="wizard-step-title">Configure</h3>
+            <div style="width:28px;"></div>
         `;
 
         updateStep2Body();
-        wizFooter.innerHTML = `<button onclick="window._wizFinish()" id="wiz-conf-btn" class="save-btn success">Confirm & Add</button>`;
+        wizFooter.innerHTML = `<button onclick="window._wizFinish()" id="wiz-conf-btn" class="save-btn success-bg">Confirm & Add</button>`;
     };
 
     const updateStep2Body = () => {
         wizBody.innerHTML = `
-            <h2 class="wizard-title">${selectedEx.name}</h2>
+            <h2 class="view-title centered" style="margin-bottom:20px;">${selectedEx.name}</h2>
             ${drawOpts('Equipment', selectedEx.equipment, selEq, 'eq')}
             ${drawOpts('Angle', selectedEx.angles, selAng, 'ang')}
             ${drawOpts('Variant', selectedEx.variants, selVar, 'var')}
             
-            <div class="final-name-preview">
-                <div class="preview-label">FINAL EXERCISE NAME</div>
-                <div class="preview-value">${buildName()}</div>
+            <div class="editor-card centered" style="margin-top:20px; border-style:dashed;">
+                <div class="field-label">FINAL NAME</div>
+                <div class="view-title" style="font-size:18px; color:var(--primary);">${buildName()}</div>
             </div>
         `;
     };
@@ -234,9 +241,6 @@ window.openExerciseWizard = (onCompleteCallback) => {
 
     window._wizFinish = () => finishWizard();
 
-    /**
-     * Finalizes selection and syncs with the Backend
-     */
     const finishWizard = async () => {
         const finalName = buildName();
         const category = selectedEx.category;
@@ -245,7 +249,6 @@ window.openExerciseWizard = (onCompleteCallback) => {
         if(btn) { btn.innerText = "Syncing..."; btn.disabled = true; }
 
         try {
-            // Integration with Go Backend: Find existing or create new exercise ID
             const res = await authFetch(`${API_URL}/exercises/find-or-create`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -255,7 +258,7 @@ window.openExerciseWizard = (onCompleteCallback) => {
             if(!res.ok) throw new Error("Backend Sync Failed");
             const data = await res.json(); 
             
-            document.body.removeChild(modal);
+            window.wizardClose();
             if(onCompleteCallback) onCompleteCallback(data);
         } catch(e) {
             console.error("Wizard Sync Error:", e);
