@@ -19,7 +19,6 @@ export const API_URL = `http://${window.location.hostname}:5001`;
 /**
  * MASTER EXERCISE SCHEMA
  * Used to populate the Exercise Wizard and provide structured metadata.
- * DODANO 'export' - aby editor.js mógł korzystać z tej bazy.
  */
 export const exerciseSchema = [
     { name: "Bench Press", category: "Chest", equipment: ["Barbell", "Dumbbell", "Machine"], angles: ["Flat", "Incline", "Decline"] },
@@ -58,9 +57,6 @@ export const exerciseSchema = [
     { name: "Sit-Up", category: "Abs", equipment: ["Bodyweight", "Weight"] }
 ];
 
-/**
- * API Wrapper: Injects Authorization headers if a token exists
- */
 export function authFetch(url, options = {}) {
     if (state.token) {
         options.headers = { 
@@ -71,9 +67,6 @@ export function authFetch(url, options = {}) {
     return fetch(url, options);
 }
 
-/**
- * Standard Logout Procedure
- */
 export function logout() {
     localStorage.removeItem('selectedUserId');
     localStorage.removeItem('selectedUserName');
@@ -81,37 +74,33 @@ export function logout() {
     location.reload();
 }
 
-/**
- * Global helper to close the wizard (Fixes: wizardClose is not a function)
- */
 window.wizardClose = () => {
     const modal = document.getElementById('ex-wizard');
     if (modal) {
-        modal.classList.remove('show'); // Jeśli używamy animacji CSS
+        modal.classList.remove('show'); 
         setTimeout(() => { if (modal.parentNode) modal.parentNode.removeChild(modal); }, 200);
     }
 };
 
 /**
- * EXERCISE SELECTION WIZARD (UI Component)
+ * EXERCISE SELECTION WIZARD (3-Step Funnel)
  */
 window.openExerciseWizard = (onCompleteCallback) => {
     const modal = document.createElement("div");
-    modal.className = "modal-overlay dialog-overlay show"; // Dodano 'show' dla widoczności
+    modal.className = "modal-overlay dialog-overlay show"; 
     modal.id = "ex-wizard";
 
+    let currentCat = null;
     let selectedEx = null;
     let selEq = "", selAng = "", selVar = "";
-    let currentCat = "All";
-    const categories = ["All", ...new Set(exerciseSchema.map(e => e.category))];
+    
+    // Unikalne kategorie
+    const categories = [...new Set(exerciseSchema.map(e => e.category))];
 
     modal.innerHTML = `
         <div class="modal-content" style="display:flex; flex-direction:column; max-height: 90vh;">
             <div class="modal-header" id="wiz-header" style="display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
-                <h3 style="margin:0; font-size:20px; color:var(--primary);">Select Exercise</h3>
-                <button onclick="window.wizardClose()" class="close-x">&times;</button>
-            </div>
-            <div id="wiz-filters" class="wizard-filter-bar"></div>
+                </div>
             <div class="modal-body" id="wiz-body" style="overflow-y:auto; flex-grow:1; padding-top: 15px;"></div>
             <div class="modal-footer" id="wiz-footer" style="flex-shrink:0; display:none;"></div>
         </div>
@@ -120,47 +109,57 @@ window.openExerciseWizard = (onCompleteCallback) => {
     document.body.appendChild(modal);
 
     const wizHeader = document.getElementById("wiz-header");
-    const wizFilters = document.getElementById("wiz-filters");
     const wizBody = document.getElementById("wiz-body");
     const wizFooter = document.getElementById("wiz-footer");
 
-    const renderStep1 = () => {
-        wizFilters.style.display = "flex";
+    // --- KROK 1: Wybór partii mięśniowej ---
+    const renderStep1_Categories = () => {
         wizFooter.style.display = "none";
         wizHeader.innerHTML = `
-            <h3 style="margin:0; font-size:20px; color:var(--primary);">Select Exercise</h3>
+            <div style="width:28px;"></div> <h3 style="margin:0; font-size:20px; color:var(--primary); text-align:center;">Select Muscle Group</h3>
             <button onclick="window.wizardClose()" class="close-x">&times;</button>
         `;
-        renderFilters();
-        renderGrid();
-    };
 
-    const renderFilters = () => {
-        wizFilters.innerHTML = categories.map(cat => `
-            <button onclick="window._wizSetCat('${cat}')" class="filter-chip ${currentCat === cat ? 'active' : ''}">
-                ${cat}
-            </button>
-        `).join('');
-    };
-
-    const renderGrid = () => {
-        const list = currentCat === "All" ? exerciseSchema : exerciseSchema.filter(e => e.category === currentCat);
         wizBody.innerHTML = `
             <div class="tile-grid">
-                ${list.map(ex => `
-                    <div class="wizard-tile" onclick="window._wizSelBase('${ex.name}')">
-                        <div class="ex-name">${ex.name}</div>
-                        <div class="ex-cat-badge">${ex.category}</div>
+                ${categories.map(cat => `
+                    <div class="wizard-tile" onclick="window._wizGoToStep2('${cat}')">
+                        <div class="ex-name" style="font-size: 16px;">${cat}</div>
                     </div>
                 `).join('')}
             </div>
         `;
     };
 
-    window._wizSetCat = (cat) => {
+    window._wizGoToStep2 = (cat) => {
         currentCat = cat;
-        renderFilters();
-        renderGrid();
+        renderStep2_Exercises();
+    };
+
+    // --- KROK 2: Wybór bazy ćwiczenia z danej partii ---
+    const renderStep2_Exercises = () => {
+        wizFooter.style.display = "none";
+        wizHeader.innerHTML = `
+            <button onclick="window._wizGoBackToStep1()" class="back-arrow">←</button>
+            <h3 style="margin:0; font-size:20px; color:var(--primary); text-align:center;">${currentCat}</h3>
+            <div style="width:28px;"></div>
+        `;
+
+        const list = exerciseSchema.filter(e => e.category === currentCat);
+        wizBody.innerHTML = `
+            <div class="tile-grid">
+                ${list.map(ex => `
+                    <div class="wizard-tile" onclick="window._wizSelBase('${ex.name}')">
+                        <div class="ex-name">${ex.name}</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    };
+
+    window._wizGoBackToStep1 = () => {
+        currentCat = null;
+        renderStep1_Categories();
     };
 
     window._wizSelBase = (name) => {
@@ -173,10 +172,11 @@ window.openExerciseWizard = (onCompleteCallback) => {
             selEq = selectedEx.equipment?.[0] || "";
             selAng = selectedEx.angles?.[0] || "";
             selVar = selectedEx.variants?.[0] || "";
-            renderStep2();
+            renderStep3_Config();
         }
     };
 
+    // --- KROK 3: Konfiguracja opcji (sprzęt, wariant, kąt) ---
     const drawOpts = (title, items, current, type) => {
         if (!items || items.length === 0) return "";
         return `
@@ -193,21 +193,20 @@ window.openExerciseWizard = (onCompleteCallback) => {
         `;
     };
 
-    const renderStep2 = () => {
-        wizFilters.style.display = "none";
+    const renderStep3_Config = () => {
         wizFooter.style.display = "block";
         
         wizHeader.innerHTML = `
-            <button onclick="window._wizGoBack()" class="back-arrow">←</button>
-            <h3 class="wizard-step-title">Configure</h3>
+            <button onclick="window._wizGoBackToStep2()" class="back-arrow">←</button>
+            <h3 class="wizard-step-title" style="text-align:center;">Configure</h3>
             <div style="width:28px;"></div>
         `;
 
-        updateStep2Body();
+        updateStep3Body();
         wizFooter.innerHTML = `<button onclick="window._wizFinish()" id="wiz-conf-btn" class="save-btn success-bg">Confirm & Add</button>`;
     };
 
-    const updateStep2Body = () => {
+    const updateStep3Body = () => {
         wizBody.innerHTML = `
             <h2 class="view-title centered" style="margin-bottom:20px;">${selectedEx.name}</h2>
             ${drawOpts('Equipment', selectedEx.equipment, selEq, 'eq')}
@@ -225,10 +224,13 @@ window.openExerciseWizard = (onCompleteCallback) => {
         if(type==='eq') selEq = val;
         if(type==='ang') selAng = val;
         if(type==='var') selVar = val;
-        updateStep2Body();
+        updateStep3Body();
     };
 
-    window._wizGoBack = () => renderStep1();
+    window._wizGoBackToStep2 = () => {
+        selectedEx = null;
+        renderStep2_Exercises();
+    };
 
     const buildName = () => {
         let parts = [];
@@ -267,5 +269,6 @@ window.openExerciseWizard = (onCompleteCallback) => {
         }
     };
 
-    renderStep1();
+    // Odpalamy Krok 1
+    renderStep1_Categories();
 };
