@@ -1,12 +1,12 @@
-const CACHE_NAME = 'gym-tracker-v1';
+const CACHE_NAME = 'gym-tracker-v2.0'; 
 
 // Assets to be pre-cached during the "install" phase
 const ASSETS = [
   './',
   './index.html',
   './admin.html',
-  './css/style.css',
-  './js/app.js',
+  './css/style.css?v=2.0',
+  './js/app.js?v=2.0',
   './js/state.js',
   './js/auth.js',
   './js/workout.js',
@@ -20,16 +20,13 @@ const ASSETS = [
 
 /**
  * INSTALL EVENT
- * Triggered when the Service Worker is first registered.
- * It downloads and stores all static assets in the cache.
  */
 self.addEventListener('install', (event) => {
-  // Forces the waiting Service Worker to become the active Service Worker
-  globalThis.skipWaiting();
+  self.skipWaiting(); 
   
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('PWA: Pre-caching static assets');
+      console.log('PWA: Pre-caching static assets (v2.0)');
       return cache.addAll(ASSETS);
     })
   );
@@ -37,8 +34,6 @@ self.addEventListener('install', (event) => {
 
 /**
  * ACTIVATE EVENT
- * Triggered after the Service Worker takes control.
- * Used for cleaning up old caches from previous versions.
  */
 self.addEventListener('activate', (event) => {
   event.waitUntil(
@@ -53,32 +48,32 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
-  // Ensures that updates to the Service Worker take effect immediately
-  return globalThis.clients.claim();
+  return self.clients.claim(); 
 });
 
 /**
- * FETCH EVENT
- * Intercepts network requests.
- * Strategy: Cache-First for static assets, Network-First for API calls.
+ * FETCH EVENT - ZMIENIONA STRATEGIA NA NETWORK-FIRST 
  */
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Skip caching for API calls (Backend interaction)
-  // We want real-time data from the Go backend, not cached logs.
-  if (url.port === '5001' || url.pathname.startsWith('/api')) {
+  
+  if (url.port === '5001' || url.pathname.startsWith('/api') || url.pathname.startsWith('/last') || url.pathname.startsWith('/log')) {
     event.respondWith(fetch(event.request));
     return;
   }
 
-  // Strategy for static files: Serve from cache, fallback to network
+  // Network-First Strategy dla HTML/CSS/JS
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request);
-    })
+    fetch(event.request)
+      .then((networkResponse) => {        
+        return caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, networkResponse.clone());
+          return networkResponse;
+        });
+      })
+      .catch(() => {        
+        return caches.match(event.request);
+      })
   );
 });

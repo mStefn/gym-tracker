@@ -1,7 +1,8 @@
 import { state, API_URL, authFetch } from './state.js';
 
 /**
- * Renders the active workout session based on a specific plan
+ * Renders the active workout session based on a specific plan.
+ * Optimized for mobile touch targets (Big Inputs).
  */
 export async function renderWorkout(planId, planName) {
     const container = document.getElementById("exercises");
@@ -13,15 +14,15 @@ export async function renderWorkout(planId, planName) {
         const exercises = await res.json();
 
         container.innerHTML = `
-            <div style="padding: 10px;">
+            <div class="workout-view-wrapper">
                 <button onclick="window.navigate('workout')" class="back-link">← Back to Workouts</button>
                 <h2 class="workout-title">${planName}</h2>
                 <div id="workout-content"></div>
-                <button onclick="window.navigate('workout')" class="save-btn success-bg" style="margin-top: 20px;">Finish Workout</button>
+                <button onclick="window.navigate('workout')" class="save-btn success-bg finish-workout-btn">Finish Workout</button>
             </div>
         `;
 
-        // Efficiently fetch last results for all sets in parallel
+        // Fetch last results for all sets in parallel for suggestions
         const fetchTasks = [];
         for (const ex of exercises) {
             for (let s = 1; s <= ex.target_sets; s++) {
@@ -37,16 +38,16 @@ export async function renderWorkout(planId, planName) {
         const renderedExercises = new Set();
 
         for (const { ex, s, last } of results) {
-            // Create a new card for each exercise if it doesn't exist yet
+            // Create exercise card if first set
             if (!renderedExercises.has(ex.exercise_id)) {
                 const card = document.createElement("div");
                 card.className = "exercise-card";
-                card.innerHTML = `<h3>${ex.exercise_name}</h3><div id="ex-${ex.exercise_id}"></div>`;
+                card.innerHTML = `<h3 class="ex-card-title-main">${ex.exercise_name}</h3><div id="ex-${ex.exercise_id}"></div>`;
                 document.getElementById("workout-content").appendChild(card);
                 renderedExercises.add(ex.exercise_id);
             }
 
-            // Logic for Progressive Overload targets
+            // Progressive Overload Suggestion Logic
             let targetInfo = "Target: Push yourself!";
             const savedTargetStr = localStorage.getItem(`target_${state.currentUserId}_${ex.exercise_id}_${s}`);
             
@@ -56,12 +57,10 @@ export async function renderWorkout(planId, planName) {
                     targetInfo = `Tgt: ${savedTarget.weight.toFixed(1)}kg x ${savedTarget.reps}`;
                 } catch(e) { console.error("Target Parsing Error", e); }
             } else if (last.weight > 0) {
-                // Auto-suggest: If previous reps >= 10, suggest adding 0.5kg
                 const nextWeight = last.reps >= 10 ? last.weight + 0.5 : last.weight;
                 targetInfo = `Tgt: ${nextWeight.toFixed(1)}kg x ${last.reps}`;
             }
 
-            // Build the set row
             const row = document.createElement("div");
             row.className = "set-row-container";
             
@@ -72,6 +71,7 @@ export async function renderWorkout(planId, planName) {
                 prevDisplay = `${last.weight}kg x ${last.reps}${failureTag}`;
             }
 
+            // HTML Structure: Optimized for the new 2x2 Grid CSS
             row.innerHTML = `
                 <div class="set-row-header">
                     <div class="set-number-badge">S${s}</div>
@@ -93,24 +93,28 @@ export async function renderWorkout(planId, planName) {
                         <label>Reps</label>
                         <input type="number" inputmode="numeric" pattern="[0-9]*" class="reps-in" 
                                id="reps-${ex.exercise_id}-${s}" 
-                               onkeydown="window.handleRepsEnter(event, 'weight-${ex.exercise_id}-${s}')">
+                               onkeydown="window.handleRepsEnter(event, 'weight-${ex.exercise_id}-${s}')"
+                               placeholder="0">
                     </div>
                     
                     <div class="input-group">
                         <label>kg</label>
                         <input type="number" inputmode="decimal" class="weight-in" 
                                id="weight-${ex.exercise_id}-${s}" 
-                               onkeydown="window.handleWeightEnter(event, this, ${ex.exercise_id}, ${s}, '${safeExName}')">
+                               onkeydown="window.handleWeightEnter(event, this, ${ex.exercise_id}, ${s}, '${safeExName}')"
+                               placeholder="0.0">
                     </div>
                     
-                    <label class="failure-checkbox-label">
-                        Failure?
-                        <input type="checkbox" id="fail-${ex.exercise_id}-${s}" class="fail-checkbox">
-                    </label>
+                    <div class="action-group">
+                        <label class="failure-checkbox-label">
+                            <input type="checkbox" id="fail-${ex.exercise_id}-${s}" class="fail-checkbox">
+                            <span>FAIL</span>
+                        </label>
 
-                    <button type="button" id="btn-${ex.exercise_id}-${s}" 
-                            onclick="window.saveSet(this, ${ex.exercise_id}, ${s}, '${safeExName}')" 
-                            class="save-set-btn">Save</button>
+                        <button type="button" id="btn-${ex.exercise_id}-${s}" 
+                                onclick="window.saveSet(this, ${ex.exercise_id}, ${s}, '${safeExName}')" 
+                                class="save-set-btn">SAVE SET</button>
+                    </div>
                 </form>
             `;
             document.getElementById(`ex-${ex.exercise_id}`).appendChild(row);
@@ -122,7 +126,7 @@ export async function renderWorkout(planId, planName) {
 }
 
 /**
- * Sends set data to the server and triggers the Overload Modal
+ * Sends set data to the server and triggers UI feedback.
  */
 export async function saveSet(btn, exId, setNum, exName) {
     const repsVal = document.getElementById(`reps-${exId}-${setNum}`).value;
@@ -142,14 +146,13 @@ export async function saveSet(btn, exId, setNum, exName) {
                 exercise_id: exId,
                 set_number: setNum,
                 reps: parseInt(repsVal),
-                weight: parseFloat(weightVal),
+                weight: parseFloat(weightVal.replace(',', '.')),
                 is_failure: isFailure
             })
         });
 
         if (res.ok) {
-            // UI Feedback
-            btn.innerHTML = "✓";
+            btn.innerHTML = "✓ DONE";
             btn.className += " success-btn";
             
             document.getElementById(`reps-${exId}-${setNum}`).disabled = true;
@@ -159,32 +162,32 @@ export async function saveSet(btn, exId, setNum, exName) {
             const failureTag = isFailure ? '<span class="failure-indicator"> F</span>' : '';
             document.getElementById(`today-${exId}-${setNum}`).innerHTML = `${weightVal}kg x ${repsVal}${failureTag}`;
             
-            // Show Progressive Overload suggestion
-            window.showOverloadModal(exId, setNum, parseFloat(weightVal), parseInt(repsVal), exName);
+            // Trigger Progressive Overload recommendation modal
+            window.showOverloadModal(exId, setNum, parseFloat(weightVal.replace(',', '.')), parseInt(repsVal), exName);
         }
     } catch (e) {
         console.error("Save Set Error:", e);
-        alert("Failed to save set. Check connection.");
-        btn.innerHTML = "Save";
+        alert("Failed to save set.");
+        btn.innerHTML = "SAVE SET";
         btn.disabled = false;
     }
 }
 
 /**
- * UI Component for Progressive Overload suggestions
+ * UI Component for Progressive Overload suggestions.
  */
 window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) => {
     let nextWeight = currentReps >= 10 ? currentWeight + 0.5 : currentWeight;
     let nextReps = currentReps;
 
     const modal = document.createElement("div");
-    modal.className = "modal-overlay dialog-overlay";
+    modal.className = "modal-overlay dialog-overlay show";
     modal.id = "overload-modal";
 
     modal.innerHTML = `
         <div class="modal-content modal-content-small">
             <div class="modal-header centered">
-                <h3 style="margin:0; font-size:20px;">Progressive Overload</h3>
+                <h3 style="margin:0; font-size:20px; color:var(--primary);">Next Target</h3>
             </div>
             <div class="modal-body centered">
                 <p class="overload-subtitle">
@@ -247,7 +250,7 @@ window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) =>
 };
 
 /**
- * Keyboard Handling: Enter moves focus from Reps to Weight
+ * Moves focus from Reps input to Weight input on 'Enter'.
  */
 window.handleRepsEnter = (e, nextFieldId) => {
     if (e.key === 'Enter') {
@@ -258,12 +261,12 @@ window.handleRepsEnter = (e, nextFieldId) => {
 };
 
 /**
- * Keyboard Handling: Enter on Weight saves the set
+ * Saves the set when 'Enter' is pressed in the Weight input.
  */
 window.handleWeightEnter = (e, inputElement, exId, setNum, exName) => {
     if (e.key === 'Enter') {
         e.preventDefault();
-        inputElement.blur(); // Hides mobile keyboard
+        inputElement.blur(); 
         const btn = document.getElementById(`btn-${exId}-${setNum}`);
         if (btn && !btn.disabled) {
             window.saveSet(btn, exId, setNum, exName);
@@ -271,6 +274,6 @@ window.handleWeightEnter = (e, inputElement, exId, setNum, exName) => {
     }
 };
 
-// Global Exposure for event handlers
+// Expose functions globally for dynamic HTML calls
 window.renderWorkout = renderWorkout;
 window.saveSet = saveSet;

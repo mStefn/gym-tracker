@@ -11,21 +11,33 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="img/icon-512.png">
     
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=2.0">
 
-    <script>
-        // Service Worker Registration
+    <script>        
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('PWA: Service Worker Registered'))
+                    .then(reg => {
+                        console.log('PWA: Service Worker Registered');
+                        
+                        
+                        reg.addEventListener('updatefound', () => {
+                            const newWorker = reg.installing;
+                            newWorker.addEventListener('statechange', () => {                                
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    console.log('PWA: New version available! Reloading...');                                    
+                                    window.location.reload();
+                                }
+                            });
+                        });
+                    })
                     .catch(err => console.error('PWA: Service Worker Error', err));
             });
         }
 
         /**
          * Dynamic Viewport Height Fix
-         * Addresses the 100vh issue on mobile browsers (address bar interference)
+         * Addresses the 100vh issue on mobile browsers
          */
         const setAppHeight = () => {
             document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
@@ -74,6 +86,6 @@
         </div>
     </div>
 
-    <script type="module" src="js/app.js"></script>
+    <script type="module" src="js/app.js?v=2.0"></script>
 </body>
 </html>
