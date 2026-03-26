@@ -11,27 +11,38 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="img/icon-512.png">
     
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=2.0">
 
-    <script>
-        // Service Worker Registration
+    <script>        
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
+            globalThis.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('PWA: Service Worker Registered'))
+                    .then(reg => {
+                        console.log('PWA: Service Worker Registered');
+                        
+                        reg.addEventListener('updatefound', () => {
+                            const newWorker = reg.installing;
+                            newWorker.addEventListener('statechange', () => {                                
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    console.log('PWA: New version available! Reloading...');                                    
+                                    globalThis.location.reload();
+                                }
+                            });
+                        });
+                    })
                     .catch(err => console.error('PWA: Service Worker Error', err));
             });
         }
 
         /**
          * Dynamic Viewport Height Fix
-         * Addresses the 100vh issue on mobile browsers (address bar interference)
+         * Addresses the 100vh issue on mobile browsers
          */
         const setAppHeight = () => {
-            document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+            document.documentElement.style.setProperty('--app-height', `${globalThis.innerHeight}px`);
         };
-        window.addEventListener('resize', setAppHeight);
-        window.addEventListener('orientationchange', setAppHeight);
+        globalThis.addEventListener('resize', setAppHeight);
+        globalThis.addEventListener('orientationchange', setAppHeight);
         setAppHeight(); 
     </script>
 </head>
@@ -42,15 +53,15 @@
         <main id="main-content">
             <header id="top-bar" style="display: none;">
                 <div id="user-greeting"></div>
-                <button onclick="window.appLogout()" class="btn-logout">Logout</button>
+                <button onclick="globalThis.appLogout()" class="btn-logout">Logout</button>
             </header>
             
             <nav id="sidebar" style="display: none;">
                 <ul class="nav-links">
-                    <li><button onclick="window.navigate('home')" class="nav-item active" id="nav-home">Home</button></li>
-                    <li><button onclick="window.navigate('workout')" class="nav-item" id="nav-workout">Workouts</button></li>
-                    <li><button onclick="window.navigate('stats')" class="nav-item" id="nav-stats">Statistics</button></li>
-                    <li><button onclick="window.navigate('settings')" class="nav-item" id="nav-settings">Settings</button></li>
+                    <li><button onclick="globalThis.navigate('home')" class="nav-item active" id="nav-home">Home</button></li>
+                    <li><button onclick="globalThis.navigate('workout')" class="nav-item" id="nav-workout">Workouts</button></li>
+                    <li><button onclick="globalThis.navigate('stats')" class="nav-item" id="nav-stats">Statistics</button></li>
+                    <li><button onclick="globalThis.navigate('settings')" class="nav-item" id="nav-settings">Settings</button></li>
                 </ul>
             </nav>
             
@@ -70,10 +81,10 @@
                 <span class="step-num">2.</span> Select <br><b>"Add to Home Screen"</b> ➕.
             </div>
             
-            <button onclick="window.closeInstallModal()" class="btn-modal-close">Got it</button>
+            <button onclick="globalThis.closeInstallModal()" class="btn-modal-close">Got it</button>
         </div>
     </div>
 
-    <script type="module" src="js/app.js"></script>
+    <script type="module" src="js/app.js?v=2.0"></script>
 </body>
 </html>

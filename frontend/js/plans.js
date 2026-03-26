@@ -36,7 +36,7 @@ export async function renderPlans() {
                 const startBtn = document.createElement("button");
                 startBtn.className = "plan-card-main";
                 startBtn.innerText = plan.name;
-                startBtn.onclick = () => window.renderWorkout(plan.id, plan.name);
+                startBtn.onclick = () => globalThis.renderWorkout(plan.id, plan.name);
 
                 const editBtn = document.createElement("button");
                 editBtn.className = "btn-icon-secondary";
@@ -47,12 +47,12 @@ export async function renderPlans() {
                 deleteBtn.className = "btn-icon-danger";
                 deleteBtn.innerText = "Delete";
                 deleteBtn.onclick = async () => {
-                    if (confirm(`Are you sure you want to delete "${plan.name}"?`)) {
+                    if (globalThis.confirm(`Are you sure you want to delete "${plan.name}"?`)) {
                         const delRes = await authFetch(`${API_URL}/plan/${plan.id}`, { method: "DELETE" });
                         if (delRes.ok) {
-                            window.navigate('workout'); 
+                            globalThis.navigate('workout'); 
                         } else {
-                            alert("Failed to delete the plan.");
+                            globalThis.alert("Failed to delete the plan.");
                         }
                     }
                 };
@@ -71,6 +71,8 @@ export async function renderPlans() {
             `;
         }
     } catch (e) {
+        // SonarQube fix: Handle the exception by logging it before updating UI
+        console.error("Error fetching plans:", e);
         document.getElementById("plans-list").innerHTML = `<p class="error-text" style="text-align:center;">Connection failed. Is the backend online?</p>`;
     }
 
