@@ -1,4 +1,4 @@
-import { API_URL, authFetch, exerciseSchema } from './state.js';
+import { API_URL, authFetch } from './state.js';
 
 /**
  * Local state for the current editing session
@@ -16,7 +16,7 @@ export async function renderPlanEditor(planId = null, planName = "") {
 
     container.innerHTML = `
         <div class="view-container">
-            <button onclick="window.navigate('workout')" class="back-link">← Cancel</button>
+            <button onclick="globalThis.navigate('workout')" class="back-link">← Cancel</button>
             <h2 class="view-title">${editingPlanId ? 'Edit Training Plan' : 'Create New Plan'}</h2>
             
             <div class="editor-card">
@@ -62,7 +62,7 @@ export async function renderPlanEditor(planId = null, planName = "") {
 
     // Event Listener: Now uses the fixed global wizard from state.js
     document.getElementById('add-ex-btn').onclick = () => {
-        window.openExerciseWizard((newExercise) => {
+        globalThis.openExerciseWizard((newExercise) => {
             const isDuplicate = selectedExercisesForPlan.some(ex => ex.name === newExercise.name);
             if (isDuplicate) {
                 alert("This specific exercise variation is already in your plan.");
@@ -75,19 +75,19 @@ export async function renderPlanEditor(planId = null, planName = "") {
                 category: newExercise.category,
                 sets: 3 
             });
-            window.renderSelectedList();
+            globalThis.renderSelectedList();
         });
     };
 
-    document.getElementById('save-plan-btn').onclick = () => window.saveFullPlan();
+    document.getElementById('save-plan-btn').onclick = () => globalThis.saveFullPlan();
     
-    window.renderSelectedList();
+    globalThis.renderSelectedList();
 }
 
 /**
  * Renders the list of exercises currently added to the plan
  */
-window.renderSelectedList = () => {
+globalThis.renderSelectedList = () => {
     const list = document.getElementById("exercises-setup");
     list.innerHTML = "";
     
@@ -108,28 +108,28 @@ window.renderSelectedList = () => {
                 <div class="input-stack">
                     <label>Sets</label>
                     <input type="number" value="${ex.sets}" min="1" max="15" 
-                           onchange="window.updateSets(${index}, this.value)" class="sets-input">
+                           onchange="globalThis.updateSets(${index}, this.value)" class="sets-input">
                 </div>
-                <button type="button" onclick="window.removeExercise(${index})" class="remove-btn">&times;</button>
+                <button type="button" onclick="globalThis.removeExercise(${index})" class="remove-btn">&times;</button>
             </div>
         `;
         list.appendChild(div);
     });
 };
 
-window.updateSets = (index, val) => {
-    selectedExercisesForPlan[index].sets = parseInt(val) || 3;
+globalThis.updateSets = (index, val) => {
+    selectedExercisesForPlan[index].sets = Number.parseInt(val, 10) || 3;
 };
 
-window.removeExercise = (indexToRemove) => {
+globalThis.removeExercise = (indexToRemove) => {
     selectedExercisesForPlan.splice(indexToRemove, 1);
-    window.renderSelectedList();
+    globalThis.renderSelectedList();
 };
 
 /**
  * Persists the entire plan to the server
  */
-window.saveFullPlan = async () => {
+globalThis.saveFullPlan = async () => {
     const nameInput = document.getElementById("new-plan-name");
     const planName = nameInput.value.trim();
     
@@ -179,7 +179,7 @@ window.saveFullPlan = async () => {
 
         if (!syncRes.ok) throw new Error("Server synchronization failed.");
 
-        window.navigate('workout');
+        globalThis.navigate('workout');
     } catch (e) {
         console.error("Save Error:", e);
         alert("Transaction failed: " + e.message);

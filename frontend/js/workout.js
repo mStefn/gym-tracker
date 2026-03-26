@@ -15,10 +15,10 @@ export async function renderWorkout(planId, planName) {
 
         container.innerHTML = `
             <div class="workout-view-wrapper">
-                <button onclick="window.navigate('workout')" class="back-link">← Back to Workouts</button>
+                <button onclick="globalThis.navigate('workout')" class="back-link">← Back to Workouts</button>
                 <h2 class="workout-title">${planName}</h2>
                 <div id="workout-content"></div>
-                <button onclick="window.navigate('workout')" class="save-btn success-bg finish-workout-btn">Finish Workout</button>
+                <button onclick="globalThis.navigate('workout')" class="save-btn success-bg finish-workout-btn">Finish Workout</button>
             </div>
         `;
 
@@ -93,7 +93,7 @@ export async function renderWorkout(planId, planName) {
                         <label>Reps</label>
                         <input type="number" inputmode="numeric" pattern="[0-9]*" class="reps-in" 
                                id="reps-${ex.exercise_id}-${s}" 
-                               onkeydown="window.handleRepsEnter(event, 'weight-${ex.exercise_id}-${s}')"
+                               onkeydown="globalThis.handleRepsEnter(event, 'weight-${ex.exercise_id}-${s}')"
                                placeholder="0">
                     </div>
                     
@@ -101,7 +101,7 @@ export async function renderWorkout(planId, planName) {
                         <label>kg</label>
                         <input type="number" inputmode="decimal" class="weight-in" 
                                id="weight-${ex.exercise_id}-${s}" 
-                               onkeydown="window.handleWeightEnter(event, this, ${ex.exercise_id}, ${s}, '${safeExName}')"
+                               onkeydown="globalThis.handleWeightEnter(event, this, ${ex.exercise_id}, ${s}, '${safeExName}')"
                                placeholder="0.0">
                     </div>
                     
@@ -112,7 +112,7 @@ export async function renderWorkout(planId, planName) {
                         </label>
 
                         <button type="button" id="btn-${ex.exercise_id}-${s}" 
-                                onclick="window.saveSet(this, ${ex.exercise_id}, ${s}, '${safeExName}')" 
+                                onclick="globalThis.saveSet(this, ${ex.exercise_id}, ${s}, '${safeExName}')" 
                                 class="save-set-btn">SAVE SET</button>
                     </div>
                 </form>
@@ -145,8 +145,8 @@ export async function saveSet(btn, exId, setNum, exName) {
             body: JSON.stringify({
                 exercise_id: exId,
                 set_number: setNum,
-                reps: parseInt(repsVal),
-                weight: parseFloat(weightVal.replace(',', '.')),
+                reps: Number.parseInt(repsVal, 10),
+                weight: Number.parseFloat(weightVal.replace(',', '.')),
                 is_failure: isFailure
             })
         });
@@ -163,7 +163,7 @@ export async function saveSet(btn, exId, setNum, exName) {
             document.getElementById(`today-${exId}-${setNum}`).innerHTML = `${weightVal}kg x ${repsVal}${failureTag}`;
             
             // Trigger Progressive Overload recommendation modal
-            window.showOverloadModal(exId, setNum, parseFloat(weightVal.replace(',', '.')), parseInt(repsVal), exName);
+            globalThis.showOverloadModal(exId, setNum, Number.parseFloat(weightVal.replace(',', '.')), Number.parseInt(repsVal, 10), exName);
         }
     } catch (e) {
         console.error("Save Set Error:", e);
@@ -176,7 +176,7 @@ export async function saveSet(btn, exId, setNum, exName) {
 /**
  * UI Component for Progressive Overload suggestions.
  */
-window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) => {
+globalThis.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) => {
     let nextWeight = currentReps >= 10 ? currentWeight + 0.5 : currentWeight;
     let nextReps = currentReps;
 
@@ -198,23 +198,23 @@ window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) =>
                 <div class="stepper-row">
                     <span class="stepper-label">Weight (kg)</span>
                     <div class="stepper-controls">
-                        <button class="stepper-btn" onclick="window.changeVal('weight', -0.5)">-</button>
+                        <button class="stepper-btn" onclick="globalThis.changeVal('weight', -0.5)">-</button>
                         <div class="stepper-val" id="val-weight">${nextWeight.toFixed(1)}</div>
-                        <button class="stepper-btn" onclick="window.changeVal('weight', 0.5)">+</button>
+                        <button class="stepper-btn" onclick="globalThis.changeVal('weight', 0.5)">+</button>
                     </div>
                 </div>
 
                 <div class="stepper-row">
                     <span class="stepper-label">Reps Target</span>
                     <div class="stepper-controls">
-                        <button class="stepper-btn" onclick="window.changeVal('reps', -1)">-</button>
+                        <button class="stepper-btn" onclick="globalThis.changeVal('reps', -1)">-</button>
                         <div class="stepper-val" id="val-reps">${nextReps}</div>
-                        <button class="stepper-btn" onclick="window.changeVal('reps', 1)">+</button>
+                        <button class="stepper-btn" onclick="globalThis.changeVal('reps', 1)">+</button>
                     </div>
                 </div>
             </div>
             <div class="modal-footer flex-gap">
-                <button onclick="window.closeOverload()" class="btn-secondary flex-1">Skip</button>
+                <button onclick="globalThis.closeOverload()" class="btn-secondary flex-1">Skip</button>
                 <button id="confirm-overload-btn" class="btn-success flex-2">Confirm Target</button>
             </div>
         </div>
@@ -222,9 +222,9 @@ window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) =>
 
     document.body.appendChild(modal);
 
-    window.changeVal = (type, amount) => {
+    globalThis.changeVal = (type, amount) => {
         if (type === 'weight') {
-            nextWeight = Math.max(0, parseFloat((nextWeight + amount).toFixed(1)));
+            nextWeight = Math.max(0, Number.parseFloat((nextWeight + amount).toFixed(1)));
             document.getElementById('val-weight').innerText = nextWeight.toFixed(1);
         } else {
             nextReps = Math.max(1, nextReps + amount);
@@ -232,27 +232,27 @@ window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) =>
         }
     };
 
-    window.saveOverloadLocal = () => {
+    globalThis.saveOverloadLocal = () => {
         const targetObj = { weight: nextWeight, reps: nextReps };
         localStorage.setItem(`target_${state.currentUserId}_${exId}_${setNum}`, JSON.stringify(targetObj));
         
         const targetDiv = document.getElementById(`target-${exId}-${setNum}`);
         if (targetDiv) targetDiv.innerText = `Tgt: ${nextWeight.toFixed(1)}kg x ${nextReps}`;
         
-        window.closeOverload();
+        globalThis.closeOverload();
     };
 
-    window.closeOverload = () => {
+    globalThis.closeOverload = () => {
         if(document.body.contains(modal)) document.body.removeChild(modal);
     };
 
-    document.getElementById('confirm-overload-btn').onclick = window.saveOverloadLocal;
+    document.getElementById('confirm-overload-btn').onclick = globalThis.saveOverloadLocal;
 };
 
 /**
  * Moves focus from Reps input to Weight input on 'Enter'.
  */
-window.handleRepsEnter = (e, nextFieldId) => {
+globalThis.handleRepsEnter = (e, nextFieldId) => {
     if (e.key === 'Enter') {
         e.preventDefault();
         const nextField = document.getElementById(nextFieldId);
@@ -263,17 +263,17 @@ window.handleRepsEnter = (e, nextFieldId) => {
 /**
  * Saves the set when 'Enter' is pressed in the Weight input.
  */
-window.handleWeightEnter = (e, inputElement, exId, setNum, exName) => {
+globalThis.handleWeightEnter = (e, inputElement, exId, setNum, exName) => {
     if (e.key === 'Enter') {
         e.preventDefault();
         inputElement.blur(); 
         const btn = document.getElementById(`btn-${exId}-${setNum}`);
         if (btn && !btn.disabled) {
-            window.saveSet(btn, exId, setNum, exName);
+            globalThis.saveSet(btn, exId, setNum, exName);
         }
     }
 };
 
 // Expose functions globally for dynamic HTML calls
-window.renderWorkout = renderWorkout;
-window.saveSet = saveSet;
+globalThis.renderWorkout = renderWorkout;
+globalThis.saveSet = saveSet;

@@ -21,8 +21,8 @@ const ASSETS = [
 /**
  * INSTALL EVENT
  */
-self.addEventListener('install', (event) => {
-  self.skipWaiting(); 
+globalThis.addEventListener('install', (event) => {
+  globalThis.skipWaiting(); 
   
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -35,7 +35,7 @@ self.addEventListener('install', (event) => {
 /**
  * ACTIVATE EVENT
  */
-self.addEventListener('activate', (event) => {
+globalThis.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -48,16 +48,15 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
-  return self.clients.claim(); 
+  return globalThis.clients.claim(); 
 });
 
 /**
  * FETCH EVENT - ZMIENIONA STRATEGIA NA NETWORK-FIRST 
  */
-self.addEventListener('fetch', (event) => {
+globalThis.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  
   if (url.port === '5001' || url.pathname.startsWith('/api') || url.pathname.startsWith('/last') || url.pathname.startsWith('/log')) {
     event.respondWith(fetch(event.request));
     return;

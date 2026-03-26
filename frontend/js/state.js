@@ -14,7 +14,7 @@ export const state = {
  * Dynamic API URL
  * Automatically points to the host's port 5001, perfect for Tailscale environments.
  */
-export const API_URL = `http://${window.location.hostname}:5001`;
+export const API_URL = `http://${globalThis.location.hostname}:5001`;
 
 /**
  * MASTER EXERCISE SCHEMA
@@ -71,21 +71,21 @@ export function logout() {
     localStorage.removeItem('selectedUserId');
     localStorage.removeItem('selectedUserName');
     localStorage.removeItem('authToken');
-    location.reload();
+    globalThis.location.reload();
 }
 
-window.wizardClose = () => {
+globalThis.wizardClose = () => {
     const modal = document.getElementById('ex-wizard');
     if (modal) {
         modal.classList.remove('show'); 
-        setTimeout(() => { if (modal.parentNode) modal.parentNode.removeChild(modal); }, 200);
+        setTimeout(() => { if (modal) modal.remove(); }, 200);
     }
 };
 
 /**
  * EXERCISE SELECTION WIZARD (3-Step Funnel)
  */
-window.openExerciseWizard = (onCompleteCallback) => {
+globalThis.openExerciseWizard = (onCompleteCallback) => {
     const modal = document.createElement("div");
     modal.className = "modal-overlay dialog-overlay show"; 
     modal.id = "ex-wizard";
@@ -94,7 +94,6 @@ window.openExerciseWizard = (onCompleteCallback) => {
     let selectedEx = null;
     let selEq = "", selAng = "", selVar = "";
     
-    // Unikalne kategorie
     const categories = [...new Set(exerciseSchema.map(e => e.category))];
 
     modal.innerHTML = `
@@ -112,18 +111,17 @@ window.openExerciseWizard = (onCompleteCallback) => {
     const wizBody = document.getElementById("wiz-body");
     const wizFooter = document.getElementById("wiz-footer");
 
-    // --- KROK 1: Wybór partii mięśniowej ---
     const renderStep1_Categories = () => {
         wizFooter.style.display = "none";
         wizHeader.innerHTML = `
             <div style="width:28px;"></div> <h3 style="margin:0; font-size:20px; color:var(--primary); text-align:center;">Select Muscle Group</h3>
-            <button onclick="window.wizardClose()" class="close-x">&times;</button>
+            <button onclick="globalThis.wizardClose()" class="close-x">&times;</button>
         `;
 
         wizBody.innerHTML = `
             <div class="tile-grid">
                 ${categories.map(cat => `
-                    <div class="wizard-tile" onclick="window._wizGoToStep2('${cat}')">
+                    <div class="wizard-tile" onclick="globalThis._wizGoToStep2('${cat}')">
                         <div class="ex-name" style="font-size: 16px;">${cat}</div>
                     </div>
                 `).join('')}
@@ -131,16 +129,15 @@ window.openExerciseWizard = (onCompleteCallback) => {
         `;
     };
 
-    window._wizGoToStep2 = (cat) => {
+    globalThis._wizGoToStep2 = (cat) => {
         currentCat = cat;
         renderStep2_Exercises();
     };
 
-    // --- KROK 2: Wybór bazy ćwiczenia z danej partii ---
     const renderStep2_Exercises = () => {
         wizFooter.style.display = "none";
         wizHeader.innerHTML = `
-            <button onclick="window._wizGoBackToStep1()" class="back-arrow">←</button>
+            <button onclick="globalThis._wizGoBackToStep1()" class="back-arrow">←</button>
             <h3 style="margin:0; font-size:20px; color:var(--primary); text-align:center;">${currentCat}</h3>
             <div style="width:28px;"></div>
         `;
@@ -149,7 +146,7 @@ window.openExerciseWizard = (onCompleteCallback) => {
         wizBody.innerHTML = `
             <div class="tile-grid">
                 ${list.map(ex => `
-                    <div class="wizard-tile" onclick="window._wizSelBase('${ex.name}')">
+                    <div class="wizard-tile" onclick="globalThis._wizSelBase('${ex.name}')">
                         <div class="ex-name">${ex.name}</div>
                     </div>
                 `).join('')}
@@ -157,12 +154,12 @@ window.openExerciseWizard = (onCompleteCallback) => {
         `;
     };
 
-    window._wizGoBackToStep1 = () => {
+    globalThis._wizGoBackToStep1 = () => {
         currentCat = null;
         renderStep1_Categories();
     };
 
-    window._wizSelBase = (name) => {
+    globalThis._wizSelBase = (name) => {
         selectedEx = exerciseSchema.find(e => e.name === name);
         const hasOptions = (selectedEx.equipment?.length > 0) || (selectedEx.angles?.length > 0) || (selectedEx.variants?.length > 0);
         
@@ -176,7 +173,6 @@ window.openExerciseWizard = (onCompleteCallback) => {
         }
     };
 
-    // --- KROK 3: Konfiguracja opcji (sprzęt, wariant, kąt) ---
     const drawOpts = (title, items, current, type) => {
         if (!items || items.length === 0) return "";
         return `
@@ -184,7 +180,7 @@ window.openExerciseWizard = (onCompleteCallback) => {
                 <label class="field-label">${title}</label>
                 <div class="tile-grid">
                     ${items.map(item => `
-                        <button onclick="window._wizUpd('${type}', '${item}')" class="wizard-tile ${item === current ? 'active' : ''}">
+                        <button onclick="globalThis._wizUpd('${type}', '${item}')" class="wizard-tile ${item === current ? 'active' : ''}">
                             ${item}
                         </button>
                     `).join('')}
@@ -197,13 +193,13 @@ window.openExerciseWizard = (onCompleteCallback) => {
         wizFooter.style.display = "block";
         
         wizHeader.innerHTML = `
-            <button onclick="window._wizGoBackToStep2()" class="back-arrow">←</button>
+            <button onclick="globalThis._wizGoBackToStep2()" class="back-arrow">←</button>
             <h3 class="wizard-step-title" style="text-align:center;">Configure</h3>
             <div style="width:28px;"></div>
         `;
 
         updateStep3Body();
-        wizFooter.innerHTML = `<button onclick="window._wizFinish()" id="wiz-conf-btn" class="save-btn success-bg">Confirm & Add</button>`;
+        wizFooter.innerHTML = `<button onclick="globalThis._wizFinish()" id="wiz-conf-btn" class="save-btn success-bg">Confirm & Add</button>`;
     };
 
     const updateStep3Body = () => {
@@ -220,14 +216,14 @@ window.openExerciseWizard = (onCompleteCallback) => {
         `;
     };
 
-    window._wizUpd = (type, val) => {
+    globalThis._wizUpd = (type, val) => {
         if(type==='eq') selEq = val;
         if(type==='ang') selAng = val;
         if(type==='var') selVar = val;
         updateStep3Body();
     };
 
-    window._wizGoBackToStep2 = () => {
+    globalThis._wizGoBackToStep2 = () => {
         selectedEx = null;
         renderStep2_Exercises();
     };
@@ -241,7 +237,7 @@ window.openExerciseWizard = (onCompleteCallback) => {
         return parts.join(" ").replace(/\s+/g, " ").trim();
     };
 
-    window._wizFinish = () => finishWizard();
+    globalThis._wizFinish = () => finishWizard();
 
     const finishWizard = async () => {
         const finalName = buildName();
@@ -260,7 +256,7 @@ window.openExerciseWizard = (onCompleteCallback) => {
             if(!res.ok) throw new Error("Backend Sync Failed");
             const data = await res.json(); 
             
-            window.wizardClose();
+            globalThis.wizardClose();
             if(onCompleteCallback) onCompleteCallback(data);
         } catch(e) {
             console.error("Wizard Sync Error:", e);
@@ -269,6 +265,5 @@ window.openExerciseWizard = (onCompleteCallback) => {
         }
     };
 
-    // Odpalamy Krok 1
     renderStep1_Categories();
 };
