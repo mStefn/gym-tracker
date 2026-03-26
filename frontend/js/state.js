@@ -14,7 +14,7 @@ export const state = {
  * Dynamic API URL
  * Automatically points to the host's port 5001, perfect for Tailscale environments.
  */
-export const API_URL = `http://${globalThis.location.hostname}:5001`;
+export const API_URL = "/api";
 
 /**
  * MASTER EXERCISE SCHEMA
