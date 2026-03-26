@@ -162,7 +162,7 @@ export async function saveSet(btn, exId, setNum, exName) {
             const failureTag = isFailure ? '<span class="failure-indicator"> F</span>' : '';
             document.getElementById(`today-${exId}-${setNum}`).innerHTML = `${weightVal}kg x ${repsVal}${failureTag}`;
             
-            // Trigger Progressive Overload recommendation modal
+            // Trigger THE UPGRADED NEON MODAL
             globalThis.showOverloadModal(exId, setNum, Number.parseFloat(weightVal.replace(',', '.')), Number.parseInt(repsVal, 10), exName);
         }
     } catch (e) {
@@ -174,7 +174,7 @@ export async function saveSet(btn, exId, setNum, exName) {
 }
 
 /**
- * UI Component for Progressive Overload suggestions.
+ * UI Component for Progressive Overload suggestions (NEON UPGRADE).
  */
 globalThis.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) => {
     let nextWeight = currentReps >= 10 ? currentWeight + 0.5 : currentWeight;
@@ -185,37 +185,48 @@ globalThis.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName
     modal.id = "overload-modal";
 
     modal.innerHTML = `
-        <div class="modal-content modal-content-small">
-            <div class="modal-header centered">
-                <h3 style="margin:0; font-size:20px; color:var(--primary);">Next Target</h3>
+        <div class="modal-content overload-card-upgrade">
+            <div class="overload-header">
+                <div class="overload-icon-badge">⚡</div>
+                <h3 class="overload-title">Level Up Your Gains</h3>
             </div>
+            
             <div class="modal-body centered">
                 <p class="overload-subtitle">
-                    Set your target for next time on:<br>
-                    <strong class="highlight">${exName} (Set ${setNum})</strong>
+                    Set your targets for the next session on:<br>
+                    <span class="ex-highlight">${exName}</span> <span class="set-badge">Set ${setNum}</span>
                 </p>
                 
-                <div class="stepper-row">
-                    <span class="stepper-label">Weight (kg)</span>
-                    <div class="stepper-controls">
-                        <button class="stepper-btn" onclick="globalThis.changeVal('weight', -0.5)">-</button>
-                        <div class="stepper-val" id="val-weight">${nextWeight.toFixed(1)}</div>
-                        <button class="stepper-btn" onclick="globalThis.changeVal('weight', 0.5)">+</button>
+                <div class="stepper-container-modern">
+                    <div class="modern-stepper">
+                        <span class="stepper-label">Target Weight</span>
+                        <div class="stepper-controls-v2">
+                            <button class="step-btn-v2" onclick="globalThis.changeVal('weight', -0.5)">−</button>
+                            <div class="step-display">
+                                <span class="step-num-big" id="val-weight">${nextWeight.toFixed(1)}</span>
+                                <span class="step-unit">kg</span>
+                            </div>
+                            <button class="step-btn-v2" onclick="globalThis.changeVal('weight', 0.5)">+</button>
+                        </div>
                     </div>
-                </div>
 
-                <div class="stepper-row">
-                    <span class="stepper-label">Reps Target</span>
-                    <div class="stepper-controls">
-                        <button class="stepper-btn" onclick="globalThis.changeVal('reps', -1)">-</button>
-                        <div class="stepper-val" id="val-reps">${nextReps}</div>
-                        <button class="stepper-btn" onclick="globalThis.changeVal('reps', 1)">+</button>
+                    <div class="modern-stepper">
+                        <span class="stepper-label">Target Reps</span>
+                        <div class="stepper-controls-v2">
+                            <button class="step-btn-v2" onclick="globalThis.changeVal('reps', -1)">−</button>
+                            <div class="step-display">
+                                <span class="step-num-big" id="val-reps">${nextReps}</span>
+                                <span class="step-unit">reps</span>
+                            </div>
+                            <button class="step-btn-v2" onclick="globalThis.changeVal('reps', 1)">+</button>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer flex-gap">
-                <button onclick="globalThis.closeOverload()" class="btn-secondary flex-1">Skip</button>
-                <button id="confirm-overload-btn" class="btn-success flex-2">Confirm Target</button>
+
+            <div class="modal-footer overload-footer-v2">
+                <button onclick="globalThis.closeOverload()" class="btn-skip-v2">Maybe Later</button>
+                <button id="confirm-overload-btn" class="btn-confirm-v2">SET TARGET</button>
             </div>
         </div>
     `;
@@ -225,10 +236,12 @@ globalThis.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName
     globalThis.changeVal = (type, amount) => {
         if (type === 'weight') {
             nextWeight = Math.max(0, Number.parseFloat((nextWeight + amount).toFixed(1)));
-            document.getElementById('val-weight').innerText = nextWeight.toFixed(1);
+            const el = document.getElementById('val-weight');
+            if (el) el.innerText = nextWeight.toFixed(1);
         } else {
             nextReps = Math.max(1, nextReps + amount);
-            document.getElementById('val-reps').innerText = nextReps;
+            const el = document.getElementById('val-reps');
+            if (el) el.innerText = nextReps;
         }
     };
 
@@ -243,10 +256,15 @@ globalThis.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName
     };
 
     globalThis.closeOverload = () => {
-        if(document.body.contains(modal)) document.body.removeChild(modal);
+        const modalEl = document.getElementById('overload-modal');
+        if(modalEl) {
+            modalEl.classList.remove('show');
+            setTimeout(() => modalEl.remove(), 200);
+        }
     };
 
-    document.getElementById('confirm-overload-btn').onclick = globalThis.saveOverloadLocal;
+    const confirmBtn = document.getElementById('confirm-overload-btn');
+    if (confirmBtn) confirmBtn.onclick = globalThis.saveOverloadLocal;
 };
 
 /**
