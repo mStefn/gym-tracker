@@ -4,7 +4,7 @@ services:
     container_name: gym-frontend
     restart: always
     ports:
-      - "80:80" # JEDYNY otwarty port - Reverse Proxy
+      - "80:80" 
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
@@ -18,7 +18,7 @@ services:
     container_name: gym-backend
     restart: always
     expose:
-      - "4000" # Dostęp tylko z sieci wewnętrznej dla Nginxa
+      - "4000" 
     env_file: .env
     environment:
       - DB_DSN=${DB_DSN}
@@ -31,7 +31,7 @@ services:
       - /etc/timezone:/etc/timezone:ro
     networks:
       - gym_app_net
-      - gym_monitor_net # Połączenie z monitoringiem
+      - gym_monitor_net 
 
   db:
     image: mariadb:10.11
@@ -54,7 +54,7 @@ networks:
   gym_app_net:
     driver: bridge
   gym_monitor_net:
-    external: true # Korzysta z sieci stworzonej w infra-compose.yml
+    external: true 
 
 volumes:
   mariadb_data:
