@@ -1,8 +1,13 @@
-name: Build and Deploy 
+name: Build and Deploy App
 
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'infra-compose.yml'
+      - 'prometheus.yml'
+      - 'grafana/**'
+      - 'alloy/**'
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -14,7 +19,6 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true 
 
 jobs:
-  # --- STEP 1: QUALITY ANALYSIS (SONARQUBE) ---
   sonar-scan:
     runs-on: ubuntu-latest
     steps:
@@ -22,28 +26,23 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Connect to Tailscale
         uses: tailscale/github-action@v3
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
-
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v3
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-
       - name: SonarQube Quality Gate Check
-        # Używamy v1.1.0 - jedyna stabilna wersja tej akcji
         uses: SonarSource/sonarqube-quality-gate-action@v1.1.0 
-        continue-on-error: true # KLUCZOWE: Ignoruje błąd API Sonara "Unknown url"
+        continue-on-error: true 
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
-  # --- STEP 2: BUILDING IMAGES ---
   build-and-push:
     needs: sonar-scan    
     if: always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && needs.sonar-scan.result != 'failure'
@@ -54,14 +53,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build and push Backend
         uses: docker/build-push-action@v6
         with:
@@ -69,7 +66,6 @@ jobs:
           file: Dockerfile.backend
           push: true
           tags: ${{ env.IMAGE_NAME_BACKEND }}:latest
-
       - name: Build and push Frontend
         uses: docker/build-push-action@v6
         with:
@@ -78,7 +74,7 @@ jobs:
           push: true
           tags: ${{ env.IMAGE_NAME_FRONTEND }}:latest
 
-  # --- STEP 3: DEPLOY ---
+  # --- ZMIENIONY STEP 3: DEPLOY ---
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -98,11 +94,12 @@ jobs:
             cd ${{ secrets.PROJECT_PATH }}
             git pull origin main
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker compose pull backend frontend
-            docker compose up -d backend frontend
+            # Zmiana: wymuszenie app-compose.yml
+            docker compose -f app-compose.yml pull
+            docker compose -f app-compose.yml up -d --remove-orphans
             docker image prune -af
 
-  # --- STEP 4: HEALTH CHECK ---
+  # --- ZMIENIONY STEP 4: HEALTH CHECK ---
   health-check:
     needs: deploy
     runs-on: ubuntu-latest
@@ -116,7 +113,8 @@ jobs:
         run: |
           echo "Waiting for containers to settle..."
           sleep 20
-          STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://${{ secrets.SERVER_IP }}:5001/health)
+          # Zmiana: Odpytujemy przez bramę Nginx (port 80) na trasie /api/health
+          STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://${{ secrets.SERVER_IP }}/api/health)
           if [ $STATUS -eq 200 ]; then
             echo "Backend is Healthy!"
           else
@@ -124,7 +122,6 @@ jobs:
             exit 1
           fi
 
-  # --- STEP 5: NOTIFICATIONS ---
   notify:
     needs: [sonar-scan, build-and-push, deploy, health-check]
     if: always() 
@@ -135,7 +132,7 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}          
           status: ${{ (needs.deploy.result == 'success' && needs.health-check.result == 'success') && 'success' || 'failure' }}
-          title: "Gym Tracker Deployment Report"
+          title: "Gym Tracker APP Deployment Report"
           description: |
             **SonarQube Scan:** ${{ needs.sonar-scan.result }}
             **Build & Push:** ${{ needs.build-and-push.result }}
