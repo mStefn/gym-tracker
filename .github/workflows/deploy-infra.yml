@@ -28,7 +28,7 @@ jobs:
           script: |
             cd ${{ secrets.PROJECT_PATH }}
             git pull origin main
-            docker compose -f infra-compose.yml up -d --remove-orphans
+            docker compose -f infra-compose.yml -p gym-infra up -d --remove-orphans
 
       - name: Discord Notification
         if: always()
