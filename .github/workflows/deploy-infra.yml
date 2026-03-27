@@ -1,0 +1,43 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'infra-compose.yml'
+      - 'prometheus.yml'
+      - 'grafana/**'
+      - 'alloy/**'
+  workflow_dispatch:
+
+jobs:
+  deploy-infra:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: Deploy Infrastructure via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd ${{ secrets.PROJECT_PATH }}
+            git pull origin main
+            docker compose -f infra-compose.yml up -d --remove-orphans
+
+      - name: Discord Notification
+        if: always()
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}          
+          status: ${{ job.status }}
+          title: "Infrastructure Update Report"
+          description: |
+            **Status:** ${{ job.status }}
+            Deployed: SonarQube, Grafana, Prometheus, Loki stack.
+            Check details here: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
