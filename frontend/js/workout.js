@@ -1,7 +1,8 @@
 import { state, API_URL, authFetch } from './state.js';
 
 /**
- * Renders the active workout session based on a specific plan
+ * Renders the active workout session based on a specific plan.
+ * Optimized for mobile touch targets (Big Inputs).
  */
 export async function renderWorkout(planId, planName) {
     const container = document.getElementById("exercises");
@@ -13,15 +14,15 @@ export async function renderWorkout(planId, planName) {
         const exercises = await res.json();
 
         container.innerHTML = `
-            <div style="padding: 10px;">
-                <button onclick="window.navigate('workout')" class="back-link">← Back to Workouts</button>
+            <div class="workout-view-wrapper">
+                <button onclick="globalThis.navigate('workout')" class="back-link">← Back to Workouts</button>
                 <h2 class="workout-title">${planName}</h2>
                 <div id="workout-content"></div>
-                <button onclick="window.navigate('workout')" class="save-btn success-bg" style="margin-top: 20px;">Finish Workout</button>
+                <button onclick="globalThis.navigate('workout')" class="save-btn success-bg finish-workout-btn">Finish Workout</button>
             </div>
         `;
 
-        // Efficiently fetch last results for all sets in parallel
+        // Fetch last results for all sets in parallel for suggestions
         const fetchTasks = [];
         for (const ex of exercises) {
             for (let s = 1; s <= ex.target_sets; s++) {
@@ -37,16 +38,16 @@ export async function renderWorkout(planId, planName) {
         const renderedExercises = new Set();
 
         for (const { ex, s, last } of results) {
-            // Create a new card for each exercise if it doesn't exist yet
+            // Create exercise card if first set
             if (!renderedExercises.has(ex.exercise_id)) {
                 const card = document.createElement("div");
                 card.className = "exercise-card";
-                card.innerHTML = `<h3>${ex.exercise_name}</h3><div id="ex-${ex.exercise_id}"></div>`;
+                card.innerHTML = `<h3 class="ex-card-title-main">${ex.exercise_name}</h3><div id="ex-${ex.exercise_id}"></div>`;
                 document.getElementById("workout-content").appendChild(card);
                 renderedExercises.add(ex.exercise_id);
             }
 
-            // Logic for Progressive Overload targets
+            // Progressive Overload Suggestion Logic
             let targetInfo = "Target: Push yourself!";
             const savedTargetStr = localStorage.getItem(`target_${state.currentUserId}_${ex.exercise_id}_${s}`);
             
@@ -56,12 +57,10 @@ export async function renderWorkout(planId, planName) {
                     targetInfo = `Tgt: ${savedTarget.weight.toFixed(1)}kg x ${savedTarget.reps}`;
                 } catch(e) { console.error("Target Parsing Error", e); }
             } else if (last.weight > 0) {
-                // Auto-suggest: If previous reps >= 10, suggest adding 0.5kg
                 const nextWeight = last.reps >= 10 ? last.weight + 0.5 : last.weight;
                 targetInfo = `Tgt: ${nextWeight.toFixed(1)}kg x ${last.reps}`;
             }
 
-            // Build the set row
             const row = document.createElement("div");
             row.className = "set-row-container";
             
@@ -72,6 +71,7 @@ export async function renderWorkout(planId, planName) {
                 prevDisplay = `${last.weight}kg x ${last.reps}${failureTag}`;
             }
 
+            // HTML Structure: Optimized for the new 2x2 Grid CSS
             row.innerHTML = `
                 <div class="set-row-header">
                     <div class="set-number-badge">S${s}</div>
@@ -93,24 +93,28 @@ export async function renderWorkout(planId, planName) {
                         <label>Reps</label>
                         <input type="number" inputmode="numeric" pattern="[0-9]*" class="reps-in" 
                                id="reps-${ex.exercise_id}-${s}" 
-                               onkeydown="window.handleRepsEnter(event, 'weight-${ex.exercise_id}-${s}')">
+                               onkeydown="globalThis.handleRepsEnter(event, 'weight-${ex.exercise_id}-${s}')"
+                               placeholder="0">
                     </div>
                     
                     <div class="input-group">
                         <label>kg</label>
                         <input type="number" inputmode="decimal" class="weight-in" 
                                id="weight-${ex.exercise_id}-${s}" 
-                               onkeydown="window.handleWeightEnter(event, this, ${ex.exercise_id}, ${s}, '${safeExName}')">
+                               onkeydown="globalThis.handleWeightEnter(event, this, ${ex.exercise_id}, ${s}, '${safeExName}')"
+                               placeholder="0.0">
                     </div>
                     
-                    <label class="failure-checkbox-label">
-                        Failure?
-                        <input type="checkbox" id="fail-${ex.exercise_id}-${s}" class="fail-checkbox">
-                    </label>
+                    <div class="action-group">
+                        <label class="failure-checkbox-label">
+                            <input type="checkbox" id="fail-${ex.exercise_id}-${s}" class="fail-checkbox">
+                            <span>FAIL</span>
+                        </label>
 
-                    <button type="button" id="btn-${ex.exercise_id}-${s}" 
-                            onclick="window.saveSet(this, ${ex.exercise_id}, ${s}, '${safeExName}')" 
-                            class="save-set-btn">Save</button>
+                        <button type="button" id="btn-${ex.exercise_id}-${s}" 
+                                onclick="globalThis.saveSet(this, ${ex.exercise_id}, ${s}, '${safeExName}')" 
+                                class="save-set-btn">SAVE SET</button>
+                    </div>
                 </form>
             `;
             document.getElementById(`ex-${ex.exercise_id}`).appendChild(row);
@@ -122,7 +126,7 @@ export async function renderWorkout(planId, planName) {
 }
 
 /**
- * Sends set data to the server and triggers the Overload Modal
+ * Sends set data to the server and triggers UI feedback.
  */
 export async function saveSet(btn, exId, setNum, exName) {
     const repsVal = document.getElementById(`reps-${exId}-${setNum}`).value;
@@ -141,15 +145,14 @@ export async function saveSet(btn, exId, setNum, exName) {
             body: JSON.stringify({
                 exercise_id: exId,
                 set_number: setNum,
-                reps: parseInt(repsVal),
-                weight: parseFloat(weightVal),
+                reps: Number.parseInt(repsVal, 10),
+                weight: Number.parseFloat(weightVal.replace(',', '.')),
                 is_failure: isFailure
             })
         });
 
         if (res.ok) {
-            // UI Feedback
-            btn.innerHTML = "✓";
+            btn.innerHTML = "✓ DONE";
             btn.className += " success-btn";
             
             document.getElementById(`reps-${exId}-${setNum}`).disabled = true;
@@ -159,97 +162,115 @@ export async function saveSet(btn, exId, setNum, exName) {
             const failureTag = isFailure ? '<span class="failure-indicator"> F</span>' : '';
             document.getElementById(`today-${exId}-${setNum}`).innerHTML = `${weightVal}kg x ${repsVal}${failureTag}`;
             
-            // Show Progressive Overload suggestion
-            window.showOverloadModal(exId, setNum, parseFloat(weightVal), parseInt(repsVal), exName);
+            // Trigger THE UPGRADED NEON MODAL
+            globalThis.showOverloadModal(exId, setNum, Number.parseFloat(weightVal.replace(',', '.')), Number.parseInt(repsVal, 10), exName);
         }
     } catch (e) {
         console.error("Save Set Error:", e);
-        alert("Failed to save set. Check connection.");
-        btn.innerHTML = "Save";
+        alert("Failed to save set.");
+        btn.innerHTML = "SAVE SET";
         btn.disabled = false;
     }
 }
 
 /**
- * UI Component for Progressive Overload suggestions
+ * UI Component for Progressive Overload suggestions (NEON UPGRADE).
  */
-window.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) => {
+globalThis.showOverloadModal = (exId, setNum, currentWeight, currentReps, exName) => {
     let nextWeight = currentReps >= 10 ? currentWeight + 0.5 : currentWeight;
     let nextReps = currentReps;
 
     const modal = document.createElement("div");
-    modal.className = "modal-overlay dialog-overlay";
+    modal.className = "modal-overlay dialog-overlay show";
     modal.id = "overload-modal";
 
     modal.innerHTML = `
-        <div class="modal-content modal-content-small">
-            <div class="modal-header centered">
-                <h3 style="margin:0; font-size:20px;">Progressive Overload</h3>
+        <div class="modal-content overload-card-upgrade">
+            <div class="overload-header">
+                <div class="overload-icon-badge">⚡</div>
+                <h3 class="overload-title">Level Up Your Gains</h3>
             </div>
+            
             <div class="modal-body centered">
                 <p class="overload-subtitle">
-                    Set your target for next time on:<br>
-                    <strong class="highlight">${exName} (Set ${setNum})</strong>
+                    Set your targets for the next session on:<br>
+                    <span class="ex-highlight">${exName}</span> <span class="set-badge">Set ${setNum}</span>
                 </p>
                 
-                <div class="stepper-row">
-                    <span class="stepper-label">Weight (kg)</span>
-                    <div class="stepper-controls">
-                        <button class="stepper-btn" onclick="window.changeVal('weight', -0.5)">-</button>
-                        <div class="stepper-val" id="val-weight">${nextWeight.toFixed(1)}</div>
-                        <button class="stepper-btn" onclick="window.changeVal('weight', 0.5)">+</button>
+                <div class="stepper-container-modern">
+                    <div class="modern-stepper">
+                        <span class="stepper-label">Target Weight</span>
+                        <div class="stepper-controls-v2">
+                            <button class="step-btn-v2" onclick="globalThis.changeVal('weight', -0.5)">−</button>
+                            <div class="step-display">
+                                <span class="step-num-big" id="val-weight">${nextWeight.toFixed(1)}</span>
+                                <span class="step-unit">kg</span>
+                            </div>
+                            <button class="step-btn-v2" onclick="globalThis.changeVal('weight', 0.5)">+</button>
+                        </div>
                     </div>
-                </div>
 
-                <div class="stepper-row">
-                    <span class="stepper-label">Reps Target</span>
-                    <div class="stepper-controls">
-                        <button class="stepper-btn" onclick="window.changeVal('reps', -1)">-</button>
-                        <div class="stepper-val" id="val-reps">${nextReps}</div>
-                        <button class="stepper-btn" onclick="window.changeVal('reps', 1)">+</button>
+                    <div class="modern-stepper">
+                        <span class="stepper-label">Target Reps</span>
+                        <div class="stepper-controls-v2">
+                            <button class="step-btn-v2" onclick="globalThis.changeVal('reps', -1)">−</button>
+                            <div class="step-display">
+                                <span class="step-num-big" id="val-reps">${nextReps}</span>
+                                <span class="step-unit">reps</span>
+                            </div>
+                            <button class="step-btn-v2" onclick="globalThis.changeVal('reps', 1)">+</button>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer flex-gap">
-                <button onclick="window.closeOverload()" class="btn-secondary flex-1">Skip</button>
-                <button id="confirm-overload-btn" class="btn-success flex-2">Confirm Target</button>
+
+            <div class="modal-footer overload-footer-v2">
+                <button onclick="globalThis.closeOverload()" class="btn-skip-v2">Maybe Later</button>
+                <button id="confirm-overload-btn" class="btn-confirm-v2">SET TARGET</button>
             </div>
         </div>
     `;
 
     document.body.appendChild(modal);
 
-    window.changeVal = (type, amount) => {
+    globalThis.changeVal = (type, amount) => {
         if (type === 'weight') {
-            nextWeight = Math.max(0, parseFloat((nextWeight + amount).toFixed(1)));
-            document.getElementById('val-weight').innerText = nextWeight.toFixed(1);
+            nextWeight = Math.max(0, Number.parseFloat((nextWeight + amount).toFixed(1)));
+            const el = document.getElementById('val-weight');
+            if (el) el.innerText = nextWeight.toFixed(1);
         } else {
             nextReps = Math.max(1, nextReps + amount);
-            document.getElementById('val-reps').innerText = nextReps;
+            const el = document.getElementById('val-reps');
+            if (el) el.innerText = nextReps;
         }
     };
 
-    window.saveOverloadLocal = () => {
+    globalThis.saveOverloadLocal = () => {
         const targetObj = { weight: nextWeight, reps: nextReps };
         localStorage.setItem(`target_${state.currentUserId}_${exId}_${setNum}`, JSON.stringify(targetObj));
         
         const targetDiv = document.getElementById(`target-${exId}-${setNum}`);
         if (targetDiv) targetDiv.innerText = `Tgt: ${nextWeight.toFixed(1)}kg x ${nextReps}`;
         
-        window.closeOverload();
+        globalThis.closeOverload();
     };
 
-    window.closeOverload = () => {
-        if(document.body.contains(modal)) document.body.removeChild(modal);
+    globalThis.closeOverload = () => {
+        const modalEl = document.getElementById('overload-modal');
+        if(modalEl) {
+            modalEl.classList.remove('show');
+            setTimeout(() => modalEl.remove(), 200);
+        }
     };
 
-    document.getElementById('confirm-overload-btn').onclick = window.saveOverloadLocal;
+    const confirmBtn = document.getElementById('confirm-overload-btn');
+    if (confirmBtn) confirmBtn.onclick = globalThis.saveOverloadLocal;
 };
 
 /**
- * Keyboard Handling: Enter moves focus from Reps to Weight
+ * Moves focus from Reps input to Weight input on 'Enter'.
  */
-window.handleRepsEnter = (e, nextFieldId) => {
+globalThis.handleRepsEnter = (e, nextFieldId) => {
     if (e.key === 'Enter') {
         e.preventDefault();
         const nextField = document.getElementById(nextFieldId);
@@ -258,19 +279,19 @@ window.handleRepsEnter = (e, nextFieldId) => {
 };
 
 /**
- * Keyboard Handling: Enter on Weight saves the set
+ * Saves the set when 'Enter' is pressed in the Weight input.
  */
-window.handleWeightEnter = (e, inputElement, exId, setNum, exName) => {
+globalThis.handleWeightEnter = (e, inputElement, exId, setNum, exName) => {
     if (e.key === 'Enter') {
         e.preventDefault();
-        inputElement.blur(); // Hides mobile keyboard
+        inputElement.blur(); 
         const btn = document.getElementById(`btn-${exId}-${setNum}`);
         if (btn && !btn.disabled) {
-            window.saveSet(btn, exId, setNum, exName);
+            globalThis.saveSet(btn, exId, setNum, exName);
         }
     }
 };
 
-// Global Exposure for event handlers
-window.renderWorkout = renderWorkout;
-window.saveSet = saveSet;
+// Expose functions globally for dynamic HTML calls
+globalThis.renderWorkout = renderWorkout;
+globalThis.saveSet = saveSet;

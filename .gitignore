@@ -23,3 +23,6 @@ vendor/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Local Docker Overrides
+docker-compose.override.yml

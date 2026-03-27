@@ -123,7 +123,7 @@ services:
 
 networks:
   gym_monitor_net:
-    name: gym_monitor_net # Jawna nazwa dla zewnętrznego dostępu z innej sieci
+    name: gym_monitor_net
     driver: bridge
 
 volumes:
