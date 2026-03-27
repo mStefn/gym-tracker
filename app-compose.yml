@@ -1,0 +1,60 @@
+services:
+  frontend:
+    image: ghcr.io/mstefn/gym-frontend:latest
+    container_name: gym-frontend
+    restart: always
+    ports:
+      - "80:80" # JEDYNY otwarty port - Reverse Proxy
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    networks:
+      - gym_app_net
+    depends_on:
+      - backend
+
+  backend:
+    image: ghcr.io/mstefn/gym-backend:latest
+    container_name: gym-backend
+    restart: always
+    expose:
+      - "4000" # Dostęp tylko z sieci wewnętrznej dla Nginxa
+    env_file: .env
+    environment:
+      - DB_DSN=${DB_DSN}
+      - AUTH_SECRET=${AUTH_SECRET}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+    depends_on:
+      - db
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    networks:
+      - gym_app_net
+      - gym_monitor_net # Połączenie z monitoringiem
+
+  db:
+    image: mariadb:10.11
+    container_name: gym-db
+    restart: always
+    env_file: .env
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    networks:
+      - gym_app_net
+
+networks:
+  gym_app_net:
+    driver: bridge
+  gym_monitor_net:
+    external: true # Korzysta z sieci stworzonej w infra-compose.yml
+
+volumes:
+  mariadb_data:
