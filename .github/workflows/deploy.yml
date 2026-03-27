@@ -74,7 +74,7 @@ jobs:
           push: true
           tags: ${{ env.IMAGE_NAME_FRONTEND }}:latest
 
-  # --- ZMIENIONY STEP 3: DEPLOY ---
+  # --- STEP 3: DEPLOY ---
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -93,13 +93,12 @@ jobs:
           script: |
             cd ${{ secrets.PROJECT_PATH }}
             git pull origin main
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            # Zmiana: wymuszenie app-compose.yml
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin           
             docker compose -f app-compose.yml pull
-            docker compose -f app-compose.yml up -d --remove-orphans
+            docker compose -f app-compose.yml -p gym-app up -d --remove-orphans
             docker image prune -af
 
-  # --- ZMIENIONY STEP 4: HEALTH CHECK ---
+  # --- STEP 4: HEALTH CHECK ---
   health-check:
     needs: deploy
     runs-on: ubuntu-latest
@@ -112,8 +111,7 @@ jobs:
       - name: Check Backend Health
         run: |
           echo "Waiting for containers to settle..."
-          sleep 20
-          # Zmiana: Odpytujemy przez bramę Nginx (port 80) na trasie /api/health
+          sleep 20          
           STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://${{ secrets.SERVER_IP }}/api/health)
           if [ $STATUS -eq 200 ]; then
             echo "Backend is Healthy!"
