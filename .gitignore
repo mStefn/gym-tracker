@@ -26,3 +26,5 @@ desktop.ini
 
 # Local Docker Overrides
 docker-compose.override.yml
+
+data/
