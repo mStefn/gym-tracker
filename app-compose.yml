@@ -44,7 +44,7 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
-      - mariadb_data:/var/lib/mysql
+      - ./data/mariadb:/var/lib/mysql  # MAPOWANIE NA DYSK
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
     networks:
@@ -54,7 +54,4 @@ networks:
   gym_app_net:
     driver: bridge
   gym_monitor_net:
-    external: true 
-
-volumes:
-  mariadb_data:
+    external: true

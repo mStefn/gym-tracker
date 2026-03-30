@@ -13,9 +13,9 @@ services:
       - SONAR_JDBC_USERNAME=${SONAR_DB_USER:-sonar}
       - SONAR_JDBC_PASSWORD=${SONAR_DB_PASSWORD:-sonar}
     volumes:
-      - sonarqube_data:/opt/sonarqube/data
-      - sonarqube_logs:/opt/sonarqube/logs
-      - sonarqube_extensions:/opt/sonarqube/extensions
+      - ./data/sonar/data:/opt/sonarqube/data         # MAPOWANIE NA DYSK
+      - ./data/sonar/logs:/opt/sonarqube/logs         # MAPOWANIE NA DYSK
+      - ./data/sonar/extensions:/opt/sonarqube/extensions # MAPOWANIE NA DYSK
     depends_on:
       - db-sonar
     networks:
@@ -29,7 +29,7 @@ services:
       - POSTGRES_USER=${SONAR_DB_USER:-sonar}
       - POSTGRES_PASSWORD=${SONAR_DB_PASSWORD:-sonar}
     volumes:
-      - sonar_db_data:/var/lib/postgresql/data
+      - ./data/sonar_db:/var/lib/postgresql/data      # MAPOWANIE NA DYSK
     networks:
       - gym_monitor_net
 
@@ -45,7 +45,7 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
     volumes:
-      - grafana_data:/var/lib/grafana
+      - ./data/grafana:/var/lib/grafana               # MAPOWANIE NA DYSK
       - ./grafana/provisioning:/etc/grafana/provisioning
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
@@ -61,7 +61,7 @@ services:
     restart: always
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
+      - ./data/prometheus:/prometheus                 # MAPOWANIE NA DYSK
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
     networks:
@@ -125,11 +125,3 @@ networks:
   gym_monitor_net:
     name: gym_monitor_net
     driver: bridge
-
-volumes:
-  grafana_data:
-  prometheus_data:
-  sonar_db_data:
-  sonarqube_data:
-  sonarqube_logs:
-  sonarqube_extensions:
