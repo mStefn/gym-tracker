@@ -22,17 +22,17 @@ Built with Go, Vanilla JavaScript, and Docker, this project focuses on deliverin
 
 The project is split into two independent environments:
 
-Application Layer:
+**Application Layer:**
 - Backend API (Go)
 - Frontend (Nginx + Vanilla JS)
 - Database (MariaDB)
 
-Infrastructure Layer:
+**Infrastructure Layer:**
 - Monitoring (Prometheus, Grafana)
-- Logging (Loki)
-- Code Quality (SonarQube)
+- Logging (Grafana Alloy, Loki)
+- Code Quality (SonarQube, PostgreSQL)
 
-This separation improves scalability, maintainability, and reflects real-world production system design.
+This separation improves scalability, maintainability, and reflects real-world production system design. Additionally, **stateful data is secured using Host Bind Mounts**, ensuring persistence and easy backups across all databases and monitoring states.
 
 ---
 
@@ -49,10 +49,10 @@ This separation improves scalability, maintainability, and reflects real-world p
 ## Observability
 
 - Metrics collected with Prometheus  
-- Logs aggregated using Loki  
-- Dashboards managed in Grafana  
+- Logs dynamically aggregated via Docker Socket using Grafana Alloy and Loki  
+- Dashboards managed as code in Grafana  
 
-This setup provides visibility across application, container, and host levels.
+This setup provides comprehensive visibility across application, container, and host levels.
 
 ---
 
@@ -69,4 +69,4 @@ This project was created to demonstrate:
 
 - Infrastructure as Code using Terraform  
 - Automated server provisioning with Ansible  
-- Frontend refactoring and design improvements  
+- Frontend refactoring and design improvements
