@@ -1,0 +1,184 @@
+name: Manual Full Stack Deploy
+
+on:
+  workflow_dispatch: 
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_BACKEND: ghcr.io/mstefn/gym-backend
+  IMAGE_NAME_FRONTEND: ghcr.io/mstefn/gym-frontend  
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true 
+
+jobs:
+  # ==========================================
+  # STEP 1: INFRASTRUCTURE & WAITING
+  # ==========================================
+  deploy-infra:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: Deploy Infrastructure via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd ${{ secrets.PROJECT_PATH }}
+            git pull origin main
+            docker compose -f infra-compose.yml -p gym-infra up -d --remove-orphans
+
+      - name: Wait for SonarQube & Infra to settle
+        run: |
+          echo "Waiting for database and SonarQube to fully start..."
+          echo "This may take about 1-2 minutes."
+          for i in {1..30}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://${{ secrets.SERVER_IP }}:9000 || echo "000")
+            if [ "$STATUS" -eq 200 ]; then
+              echo "✅ SonarQube is up and ready for scanning!"
+              exit 0
+            fi
+            echo "Attempt $i/30: SonarQube returned HTTP $STATUS. Waiting 10 seconds..."
+            sleep 10
+          done
+          echo "❌ Error: SonarQube did not start within the expected time."
+          exit 1
+
+  # ==========================================
+  # STEP 2: QUALITY ASSURANCE (SONAR)
+  # ==========================================
+  sonar-scan:
+    needs: deploy-infra
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v3
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      - name: SonarQube Quality Gate Check
+        uses: SonarSource/sonarqube-quality-gate-action@v1.1.0 
+        continue-on-error: true 
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+  # ==========================================
+  # STEP 3: BUILD & PUSH APP
+  # ==========================================
+  build-and-push:
+    needs: sonar-scan    
+    if: always() && needs.sonar-scan.result != 'failure'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push Backend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.backend
+          push: true
+          tags: ${{ env.IMAGE_NAME_BACKEND }}:latest
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.frontend
+          push: true
+          tags: ${{ env.IMAGE_NAME_FRONTEND }}:latest
+
+  # ==========================================
+  # STEP 4: DEPLOY APP
+  # ==========================================
+  deploy-app:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd ${{ secrets.PROJECT_PATH }}
+            git pull origin main
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin            
+            docker compose -f app-compose.yml pull
+            docker compose -f app-compose.yml -p gym-app up -d --remove-orphans
+            docker image prune -af
+
+  # ==========================================
+  # STEP 5: APP HEALTH CHECK
+  # ==========================================
+  health-check-app:
+    needs: deploy-app
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: Check Backend Health
+        run: |
+          echo "Waiting for app containers to settle..."
+          sleep 20          
+          STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://${{ secrets.SERVER_IP }}/api/health)
+          if [ $STATUS -eq 200 ]; then
+            echo "✅ Backend is Healthy!"
+          else
+            echo "❌ Backend returned $STATUS - Failing deployment!"
+            exit 1
+          fi
+
+  # ==========================================
+  # STEP 6: DISCORD NOTIFICATION
+  # ==========================================
+  notify:
+    needs: [deploy-infra, sonar-scan, build-and-push, deploy-app, health-check-app]
+    if: always() 
+    runs-on: ubuntu-latest
+    steps:
+      - name: Discord Notification
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}          
+          status: ${{ (needs.deploy-infra.result == 'success' && needs.health-check-app.result == 'success') && 'success' || 'failure' }}
+          title: "🚀 Manual Full Stack Deployment Report"
+          description: |
+            **1. Infrastructure:** ${{ needs.deploy-infra.result }}
+            **2. SonarQube Scan:** ${{ needs.sonar-scan.result }}
+            **3. Build & Push:** ${{ needs.build-and-push.result }}
+            **4. Server Deploy:** ${{ needs.deploy-app.result }}
+            **5. App Health Check:** ${{ needs.health-check-app.result }}
+            
+            Check details here: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
