@@ -1,0 +1,72 @@
+name: Manual Full Stack Teardown
+
+on:
+  workflow_dispatch: # Manual trigger - "Run workflow" button on GitHub
+
+jobs:
+  # ==========================================
+  # STEP 1: TEARDOWN APP
+  # ==========================================
+  teardown-app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: Stop Application Stack via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd ${{ secrets.PROJECT_PATH }}
+            echo "Stopping Application containers..."
+            docker compose -f app-compose.yml -p gym-app down
+
+  # ==========================================
+  # STEP 2: TEARDOWN INFRASTRUCTURE
+  # ==========================================
+  teardown-infra:
+    needs: teardown-app
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: Stop Infrastructure Stack via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd ${{ secrets.PROJECT_PATH }}
+            echo "Stopping Infrastructure containers..."
+            docker compose -f infra-compose.yml -p gym-infra down
+
+  # ==========================================
+  # STEP 3: DISCORD NOTIFICATION
+  # ==========================================
+  notify:
+    needs: [teardown-app, teardown-infra]
+    if: always() 
+    runs-on: ubuntu-latest
+    steps:
+      - name: Discord Notification
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}          
+          status: ${{ (needs.teardown-app.result == 'success' && needs.teardown-infra.result == 'success') && 'success' || 'failure' }}
+          title: "🛑 Manual Full Stack Teardown Report"
+          description: |
+            **1. App Teardown:** ${{ needs.teardown-app.result }}
+            **2. Infrastructure Teardown:** ${{ needs.teardown-infra.result }}
+            
+            All containers and networks have been successfully stopped and removed. Data in `./data/` is preserved.
+            
+            Check details here: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
