@@ -1,52 +1,13 @@
-name: Manual App Deploy (No Infra)
+name: Manual App Teardown (No Infra)
 
 on:
-  workflow_dispatch: # Wyzwalacz ręczny - przycisk na GitHubie
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME_BACKEND: ghcr.io/mstefn/gym-backend
-  IMAGE_NAME_FRONTEND: ghcr.io/mstefn/gym-frontend  
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true 
+  workflow_dispatch: 
 
 jobs:
   # ==========================================
-  # STEP 1: BUILD & PUSH APP
+  # STEP 1: TEARDOWN APP
   # ==========================================
-  build-and-push:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push Backend
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile.backend
-          push: true
-          tags: ${{ env.IMAGE_NAME_BACKEND }}:latest
-      - name: Build and push Frontend
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile.frontend
-          push: true
-          tags: ${{ env.IMAGE_NAME_FRONTEND }}:latest
-
-  # ==========================================
-  # STEP 2: DEPLOY APP
-  # ==========================================
-  deploy-app:
-    needs: build-and-push
+  teardown-app:
     runs-on: ubuntu-latest
     steps:
       - name: Connect to Tailscale
@@ -54,7 +15,7 @@ jobs:
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
 
-      - name: Deploy to Server via SSH
+      - name: Stop Application Stack via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SERVER_IP }}
@@ -62,41 +23,14 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd ${{ secrets.PROJECT_PATH }}
-            git pull origin main
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin            
-            docker compose -f app-compose.yml pull
-            docker compose -f app-compose.yml -p gym-app up -d --remove-orphans
-            docker image prune -af
+            echo "Stopping Application containers..."
+            docker compose -f app-compose.yml -p gym-app down
 
   # ==========================================
-  # STEP 3: APP HEALTH CHECK
-  # ==========================================
-  health-check-app:
-    needs: deploy-app
-    runs-on: ubuntu-latest
-    steps:
-      - name: Connect to Tailscale
-        uses: tailscale/github-action@v3
-        with:
-          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
-
-      - name: Check Backend Health
-        run: |
-          echo "Waiting for app containers to settle..."
-          sleep 20          
-          STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://${{ secrets.SERVER_IP }}/api/health)
-          if [ $STATUS -eq 200 ]; then
-            echo "✅ Backend is Healthy!"
-          else
-            echo "❌ Backend returned $STATUS - Failing deployment!"
-            exit 1
-          fi
-
-  # ==========================================
-  # STEP 4: DISCORD NOTIFICATION
+  # STEP 2: DISCORD NOTIFICATION
   # ==========================================
   notify:
-    needs: [build-and-push, deploy-app, health-check-app]
+    needs: [teardown-app]
     if: always() 
     runs-on: ubuntu-latest
     steps:
@@ -104,11 +38,12 @@ jobs:
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}          
-          status: ${{ (needs.deploy-app.result == 'success' && needs.health-check-app.result == 'success') && 'success' || 'failure' }}
-          title: "🚀 Manual App Deployment Report (No Infra)"
+          status: ${{ needs.teardown-app.result }}
+          title: "🛑 Manual App Teardown Report (No Infra)"
           description: |
-            **1. Build & Push:** ${{ needs.build-and-push.result }}
-            **2. Server Deploy:** ${{ needs.deploy-app.result }}
-            **3. App Health Check:** ${{ needs.health-check-app.result }}
+            **1. App Teardown:** ${{ needs.teardown-app.result }}
+            
+            Aplikacja (Frontend, Backend, DB) została zatrzymana. 
+            Infrastruktura (Monitoring, SonarQube) nadal działa w tle.
             
             Check details here: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
