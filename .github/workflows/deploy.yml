@@ -3,20 +3,20 @@ name: Deploy App (Auto CI/CD)
 on:
   push:
     branches: [ main ]
-    # Opcjonalnie: Ignorujemy zmiany w plikach infrastruktury, żeby nie budować 
-    # aplikacji na nowo, jeśli zmieniłeś tylko coś w Grafanie.
+    # Ignorujemy zmiany w plikach infrastruktury, żeby nie budować 
+    # aplikacji na nowo, jeśli zmienisz tylko coś w Grafanie.
     paths-ignore:
       - 'infra-compose.yml'
       - 'prometheus.yml'
       - 'grafana/**'
       - 'alloy/**'
       - 'README.md'
-  workflow_dispatch: # Zostawiamy też przycisk do ręcznego odpalenia w razie "W"
+  workflow_dispatch: # Przycisk do ręcznego odpalenia
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME_BACKEND: ghcr.io/${{ github.repository_owner }}/gym-backend
-  IMAGE_NAME_FRONTEND: ghcr.io/${{ github.repository_owner }}/gym-frontend  
+  IMAGE_NAME_BACKEND: ghcr.io/mstefn/gym-backend
+  IMAGE_NAME_FRONTEND: ghcr.io/mstefn/gym-frontend  
 
 jobs:
   # ==========================================
