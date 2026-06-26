@@ -1,20 +1,27 @@
+version: "3.8"
+
 services:
   frontend:
-    image: ghcr.io/mstefn/gym-frontend:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
     container_name: gym-frontend
     restart: always
-    ports:
-      - "80:80" 
+    expose:
+      - "80" 
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
     networks:
       - gym_app_net
+      - cloudflare_net
     depends_on:
       - backend
 
   backend:
-    image: ghcr.io/mstefn/gym-backend:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
     container_name: gym-backend
     restart: always
     expose:
@@ -44,7 +51,7 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
-      - ./data/mariadb:/var/lib/mysql  # MAPOWANIE NA DYSK
+      - ./data/mariadb:/var/lib/mysql
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
     networks:
@@ -54,4 +61,6 @@ networks:
   gym_app_net:
     driver: bridge
   gym_monitor_net:
+    external: true
+  cloudflare_net:
     external: true
