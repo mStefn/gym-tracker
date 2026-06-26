@@ -1,10 +1,64 @@
-name: Deploy Infrastructure
+name: Deploy App (Auto CI/CD)
 
 on:
-  workflow_dispatch: # Allows manual execution from the GitHub UI ONLY
+  push:
+    branches: [ main ]
+    # Opcjonalnie: Ignorujemy zmiany w plikach infrastruktury, żeby nie budować 
+    # aplikacji na nowo, jeśli zmieniłeś tylko coś w Grafanie.
+    paths-ignore:
+      - 'infra-compose.yml'
+      - 'prometheus.yml'
+      - 'grafana/**'
+      - 'alloy/**'
+      - 'README.md'
+  workflow_dispatch: # Zostawiamy też przycisk do ręcznego odpalenia w razie "W"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_BACKEND: ghcr.io/${{ github.repository_owner }}/gym-backend
+  IMAGE_NAME_FRONTEND: ghcr.io/${{ github.repository_owner }}/gym-frontend  
 
 jobs:
-  deploy-infra:
+  # ==========================================
+  # STEP 1: BUILD & PUSH APP (BEZ INFRA)
+  # ==========================================
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Build and push Backend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.backend
+          push: true
+          tags: ${{ env.IMAGE_NAME_BACKEND }}:latest
+          
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.frontend
+          push: true
+          tags: ${{ env.IMAGE_NAME_FRONTEND }}:latest
+
+  # ==========================================
+  # STEP 2: DEPLOY APP ON SERVER
+  # ==========================================
+  deploy-app:
+    needs: build-and-push
     runs-on: ubuntu-latest
     steps:
       - name: Connect to Tailscale
@@ -12,31 +66,74 @@ jobs:
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
 
-      - name: Deploy Infrastructure via SSH
+      - name: Deploy App to Server via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |            
+          script: |
             cd ${{ secrets.PROJECT_PATH }} || { echo "❌ Error: Project directory not found!"; exit 1; }
             
-            # Fetch the latest infrastructure configurations
+            # Pobieramy najnowszy plik app-compose.yml
             git pull origin main
             
-            # Start/Update the monitoring stack without affecting the main app
-            echo "Deploying Infrastructure updates (Monitoring)..."
-            docker compose -f infra-compose.yml -p gym-infra up -d --remove-orphans
+            # Logowanie do rejestru i pobranie nowych obrazów (wymagane, by użyć świeżo zbudowanego kodu)
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin            
+            docker compose -f app-compose.yml pull
+            
+            # Uruchamiamy tylko aplikację
+            echo "Deploying Main Application..."
+            docker compose -f app-compose.yml -p gym-app up -d --remove-orphans
+            
+            # Sprzątamy stare, nieużywane obrazy z dysku, żeby nie zapchać serwera
+            docker image prune -af
 
+  # ==========================================
+  # STEP 3: APP HEALTH CHECK
+  # ==========================================
+  health-check-app:
+    needs: deploy-app
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: Check Backend Health
+        run: |
+          echo "Waiting for app to start (up to 60 seconds)..."
+          for i in {1..12}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://${{ secrets.SERVER_IP }}/api/health || echo "000")
+            if [ "$STATUS" -eq 200 ]; then
+              echo "✅ Backend is Healthy!"
+              exit 0
+            fi
+            echo "Attempt $i/12: App returned $STATUS. Waiting 5 seconds..."
+            sleep 5
+          done
+          echo "❌ Error: Backend did not start in time!"
+          exit 1
+
+  # ==========================================
+  # STEP 4: DISCORD NOTIFICATION
+  # ==========================================
+  notify:
+    needs: [build-and-push, deploy-app, health-check-app]
+    if: always() 
+    runs-on: ubuntu-latest
+    steps:
       - name: Discord Notification
-        if: always() # Run this step regardless of success or failure
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}          
-          status: ${{ job.status }}
-          title: "🛠️ Infrastructure Update Report"
+          status: ${{ (needs.build-and-push.result == 'success' && needs.health-check-app.result == 'success') && 'success' || 'failure' }}
+          title: "🚀 Application Auto-Deployment Report"
           description: |
-            **Status:** ${{ job.status }}
-            **Updated stack:** Grafana, Prometheus, Loki, Alloy, cAdvisor, Node Exporter.
+            **1. Build & Push:** ${{ needs.build-and-push.result }}
+            **2. Server Deploy:** ${{ needs.deploy-app.result }}
+            **3. App Health Check:** ${{ needs.health-check-app.result }}
             
+            The latest changes to the main branch have been deployed.
             Check details here: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
