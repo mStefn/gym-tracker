@@ -3,12 +3,12 @@ name: Deploy Infrastructure
 on:
   push:
     branches: [ main ]
-    paths:
+    paths:      
       - 'infra-compose.yml'
       - 'prometheus.yml'
       - 'grafana/**'
       - 'alloy/**'
-  workflow_dispatch:
+  workflow_dispatch: # Allows manual execution from the GitHub UI
 
 jobs:
   deploy-infra:
@@ -25,19 +25,25 @@ jobs:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            cd ${{ secrets.PROJECT_PATH }}
+          script: |            
+            cd ${{ secrets.PROJECT_PATH }} || { echo "❌ Error: Project directory not found!"; exit 1; }
+            
+            # Fetch the latest infrastructure configurations
             git pull origin main
+            
+            # Start/Update the monitoring stack without affecting the main app
+            echo "Deploying Infrastructure updates (Monitoring)..."
             docker compose -f infra-compose.yml -p gym-infra up -d --remove-orphans
 
       - name: Discord Notification
-        if: always()
+        if: always() # Run this step regardless of success or failure
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}          
           status: ${{ job.status }}
-          title: "Infrastructure Update Report"
+          title: "🛠️ Infrastructure Update Report"
           description: |
             **Status:** ${{ job.status }}
-            Deployed: SonarQube, Grafana, Prometheus, Loki stack.
+            **Updated stack:** Grafana, Prometheus, Loki, Alloy, cAdvisor, Node Exporter.
+            
             Check details here: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
