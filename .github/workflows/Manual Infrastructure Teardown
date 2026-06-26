@@ -1,0 +1,42 @@
+name: Manual Infrastructure Teardown
+
+on:
+  workflow_dispatch: # Allows manual execution from the GitHub UI ONLY
+
+jobs:
+  teardown-infra:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: Stop Infrastructure via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |            
+            # Safely navigate to the project directory or abort if it doesn't exist
+            cd ${{ secrets.PROJECT_PATH }} || { echo "❌ Error: Project directory not found!"; exit 1; }
+            
+            # Stop and remove the monitoring stack networks and containers
+            echo "Stopping Infrastructure stack (Monitoring)..."
+            docker compose -f infra-compose.yml -p gym-infra down
+
+      - name: Discord Notification
+        if: always() # Run this step regardless of success or failure
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}          
+          status: ${{ job.status }}
+          title: "🛑 Infrastructure Teardown Report"
+          description: |
+            **Status:** ${{ job.status }}
+            **Stopped stack:** Grafana, Prometheus, Loki, Alloy, cAdvisor, Node Exporter.
+            
+            All infrastructure containers and networks have been successfully stopped. Persistent data remains safe on the disk.
+            
+            Check details here: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
