@@ -1,51 +1,18 @@
 services:
   # ==========================================
-  # 1. QUALITY ASSURANCE TIER
-  # ==========================================
-  sonarqube:
-    image: sonarqube:community
-    container_name: gym-sonarqube
-    restart: always
-    ports:
-      - "9000:9000"
-    environment:
-      - SONAR_JDBC_URL=jdbc:postgresql://db-sonar:5432/sonar
-      - SONAR_JDBC_USERNAME=${SONAR_DB_USER:-sonar}
-      - SONAR_JDBC_PASSWORD=${SONAR_DB_PASSWORD:-sonar}
-    volumes:
-      - ./data/sonar/data:/opt/sonarqube/data         # MAPOWANIE NA DYSK
-      - ./data/sonar/logs:/opt/sonarqube/logs         # MAPOWANIE NA DYSK
-      - ./data/sonar/extensions:/opt/sonarqube/extensions # MAPOWANIE NA DYSK
-    depends_on:
-      - db-sonar
-    networks:
-      - gym_monitor_net
-
-  db-sonar:
-    image: postgres:15
-    container_name: gym-sonar-db
-    restart: always
-    environment:
-      - POSTGRES_USER=${SONAR_DB_USER:-sonar}
-      - POSTGRES_PASSWORD=${SONAR_DB_PASSWORD:-sonar}
-    volumes:
-      - ./data/sonar_db:/var/lib/postgresql/data      # MAPOWANIE NA DYSK
-    networks:
-      - gym_monitor_net
-
-  # ==========================================
-  # 2. MONITORING & OBSERVABILITY TIER
+  # 1. MONITORING & OBSERVABILITY TIER
   # ==========================================
   grafana:
     image: grafana/grafana:latest
     container_name: gym-grafana
     restart: always
     ports:
-      - "3000:3000"
+      # VERY IMPORTANT: Grafana is accessible ONLY via Tailscale VPN!
+      - "100.73.51.58:3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
     volumes:
-      - ./data/grafana:/var/lib/grafana               # MAPOWANIE NA DYSK
+      - ./data/grafana:/var/lib/grafana               
       - ./grafana/provisioning:/etc/grafana/provisioning
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
@@ -59,9 +26,12 @@ services:
     image: prom/prometheus:latest
     container_name: gym-prometheus
     restart: always
+    # Uncomment the 2 lines below if you want direct access to Prometheus (also only via VPN)
+    # ports:
+    #   - "100.73.51.58:9090:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./data/prometheus:/prometheus                 # MAPOWANIE NA DYSK
+      - ./data/prometheus:/prometheus                 
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
     networks:
@@ -121,7 +91,19 @@ services:
     networks:
       - gym_monitor_net
 
+  # If you keep Cloudflare Tunnel in infra-compose, you can add it here, e.g.:
+  # cloudflared:
+  #   image: cloudflare/cloudflared:latest
+  #   container_name: cloudflare-tunnel
+  #   command: tunnel run --token YOUR_TOKEN_HERE
+  #   restart: unless-stopped
+  #   networks:
+  #     - cloudflare_net
+
 networks:
   gym_monitor_net:
     name: gym_monitor_net
     driver: bridge
+  # If you uncomment cloudflared above, also add the network definition:
+  # cloudflare_net:
+  #   external: true
