@@ -1,13 +1,6 @@
 name: Deploy Infrastructure
 
-on:
-  push:
-    branches: [ main ]
-    paths:      
-      - 'infra-compose.yml'
-      - 'prometheus.yml'
-      - 'grafana/**'
-      - 'alloy/**'
+on:  
   workflow_dispatch: # Allows manual execution from the GitHub UI
 
 jobs:
