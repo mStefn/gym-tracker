@@ -1,0 +1,55 @@
+name: Manual Full Stack Teardown
+
+on:
+  workflow_dispatch: 
+
+jobs:
+  # ==========================================
+  # STEP 1: TEARDOWN EVERYTHING
+  # ==========================================
+  teardown-all:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: Stop App and Infra Stack via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # Bezpieczne wejście do folderu
+            cd ${{ secrets.PROJECT_PATH }} || { echo "❌ Error: Project directory not found!"; exit 1; }
+            
+            # Najpierw gasimy aplikację
+            echo "Stopping Application containers..."
+            docker compose -f app-compose.yml -p gym-app down
+            
+            # Następnie gasimy infrastrukturę
+            echo "Stopping Infrastructure containers..."
+            docker compose -f infra-compose.yml -p gym-infra down
+
+  # ==========================================
+  # STEP 2: DISCORD NOTIFICATION
+  # ==========================================
+  notify:
+    needs: teardown-all
+    if: always() 
+    runs-on: ubuntu-latest
+    steps:
+      - name: Discord Notification
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}          
+          status: ${{ needs.teardown-all.result }}
+          title: "🛑 Manual Full Stack Teardown Report"
+          description: |
+            **Status:** ${{ needs.teardown-all.result }}
+            
+            All containers and networks (App & Infrastructure) have been successfully stopped and removed. Data in `./data/` is preserved.
+            
+            Check details here: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
