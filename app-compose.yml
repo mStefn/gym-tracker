@@ -2,9 +2,7 @@ version: "3.8"
 
 services:
   frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile.frontend
+    image: ghcr.io/mstefn/gym-frontend:${APP_VERSION:-latest}
     container_name: gym-frontend
     restart: always
     expose:
@@ -19,9 +17,7 @@ services:
       - backend
 
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile.backend
+    image: ghcr.io/mstefn/gym-backend:${APP_VERSION:-latest}
     container_name: gym-backend
     restart: always
     expose:
