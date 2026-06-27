@@ -1,7 +1,7 @@
 name: Manual Infrastructure Teardown
 
 on:
-  workflow_dispatch: # Allows manual execution from the GitHub UI ONLY
+  workflow_dispatch: 
 
 jobs:
   teardown-infra:
