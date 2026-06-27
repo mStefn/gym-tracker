@@ -3,15 +3,14 @@ name: Deploy App (Auto CI/CD)
 on:
   push:
     branches: [ main ]
-    # Ignorujemy zmiany w plikach infrastruktury, żeby nie budować 
-    # aplikacji na nowo, jeśli zmienisz tylko coś w Grafanie.
+    # Ignore infrastructure files to prevent triggering app builds on monitoring updates
     paths-ignore:
       - 'infra-compose.yml'
       - 'prometheus.yml'
       - 'grafana/**'
       - 'alloy/**'
       - 'README.md'
-  workflow_dispatch: # Przycisk do ręcznego odpalenia
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -20,7 +19,7 @@ env:
 
 jobs:
   # ==========================================
-  # STEP 1: BUILD & PUSH APP (BEZ INFRA)
+  # STEP 1: BUILD & PUSH APP
   # ==========================================
   build-and-push:
     runs-on: ubuntu-latest
@@ -30,6 +29,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        
+      - name: Set Image Tag
+        run: echo "APP_TAG=sha-${GITHUB_SHA::7}" >> $GITHUB_ENV
         
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -44,7 +46,9 @@ jobs:
           context: .
           file: Dockerfile.backend
           push: true
-          tags: ${{ env.IMAGE_NAME_BACKEND }}:latest
+          tags: |
+            ${{ env.IMAGE_NAME_BACKEND }}:latest
+            ${{ env.IMAGE_NAME_BACKEND }}:${{ env.APP_TAG }}
           
       - name: Build and push Frontend
         uses: docker/build-push-action@v6
@@ -52,7 +56,9 @@ jobs:
           context: .
           file: Dockerfile.frontend
           push: true
-          tags: ${{ env.IMAGE_NAME_FRONTEND }}:latest
+          tags: |
+            ${{ env.IMAGE_NAME_FRONTEND }}:latest
+            ${{ env.IMAGE_NAME_FRONTEND }}:${{ env.APP_TAG }}
 
   # ==========================================
   # STEP 2: DEPLOY APP ON SERVER
@@ -75,18 +81,17 @@ jobs:
           script: |
             cd ${{ secrets.PROJECT_PATH }} || { echo "❌ Error: Project directory not found!"; exit 1; }
             
-            # Pobieramy najnowszy plik app-compose.yml
             git pull origin main
             
-            # Logowanie do rejestru i pobranie nowych obrazów (wymagane, by użyć świeżo zbudowanego kodu)
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin            
-            docker compose -f app-compose.yml pull
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
-            # Uruchamiamy tylko aplikację
-            echo "Deploying Main Application..."
+            # Inject the specific commit hash as the image tag into .env file
+            echo "APP_VERSION=sha-${GITHUB_SHA::7}" > .env
+            
+            docker compose -f app-compose.yml pull
             docker compose -f app-compose.yml -p gym-app up -d --remove-orphans
             
-            # Sprzątamy stare, nieużywane obrazy z dysku, żeby nie zapchać serwera
+            # Global cleanup of unused/dangling images
             docker image prune -af
 
   # ==========================================
