@@ -1,41 +1,4 @@
-version: "3.8"
-
 services:
-  frontend:
-    image: ghcr.io/mstefn/gym-frontend:${APP_VERSION:-latest}
-    container_name: gym-frontend
-    restart: always
-    expose:
-      - "80" 
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - /etc/timezone:/etc/timezone:ro
-    networks:
-      - gym_app_net
-      - cloudflare_net
-    depends_on:
-      - backend
-
-  backend:
-    image: ghcr.io/mstefn/gym-backend:${APP_VERSION:-latest}
-    container_name: gym-backend
-    restart: always
-    expose:
-      - "4000" 
-    env_file: .env
-    environment:
-      - DB_DSN=${DB_DSN}
-      - AUTH_SECRET=${AUTH_SECRET}
-      - CORS_ORIGIN=${CORS_ORIGIN}
-    depends_on:
-      - db
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - /etc/timezone:/etc/timezone:ro
-    networks:
-      - gym_app_net
-      - gym_monitor_net 
-
   db:
     image: mariadb:10.11
     container_name: gym-db
@@ -52,6 +15,41 @@ services:
       - /etc/timezone:/etc/timezone:ro
     networks:
       - gym_app_net
+
+  backend:
+    image: ghcr.io/mstefn/gym-backend:${APP_VERSION:-latest}
+    container_name: gym-backend
+    restart: always
+    expose:
+      - "4000"
+    env_file: .env
+    environment:
+      - DB_DSN=${DB_DSN}
+      - AUTH_SECRET=${AUTH_SECRET}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+    depends_on:
+      - db
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    networks:
+      - gym_app_net
+      - gym_monitor_net
+
+  frontend:
+    image: ghcr.io/mstefn/gym-frontend:${APP_VERSION:-latest}
+    container_name: gym-frontend
+    restart: always
+    expose:
+      - "80"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    networks:
+      - gym_app_net
+      - cloudflare_net
+    depends_on:
+      - backend
 
 networks:
   gym_app_net:
