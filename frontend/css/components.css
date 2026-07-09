@@ -1,0 +1,71 @@
+/* =========================================
+    UI COMPONENTS
+   ========================================= */
+
+/* CARDS */
+.glass-card {
+    background: var(--card-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+/* BUTTONS BASE */
+.btn {
+    border: none; border-radius: 14px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 1px;
+    cursor: pointer; transition: all 0.2s ease;
+    display: flex; justify-content: center; align-items: center;
+}
+.btn-block { width: 100%; padding: 16px; font-size: 15px; }
+
+/* BUTTON VARIANTS */
+.btn-primary { background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary-glow); }
+.btn-primary:active { transform: scale(0.98); }
+@media (hover: hover) { .btn-primary:hover { filter: brightness(1.15); } }
+
+.btn-success { background: var(--success); color: #000; box-shadow: 0 4px 12px rgba(255, 149, 0, 0.4); }
+.btn-danger { background: var(--danger); color: #fff; box-shadow: 0 4px 12px rgba(255, 59, 48, 0.4); }
+
+.btn-outline { background: transparent; color: var(--text); border: 2px solid var(--border); }
+.btn-outline:hover { border-color: var(--primary); color: var(--primary); box-shadow: 0 0 15px var(--primary-glow); }
+
+.btn-outline-primary { background: rgba(0, 210, 255, 0.05); border: 2px dashed var(--primary); color: var(--primary); }
+.btn-outline-primary:hover { background: rgba(0, 210, 255, 0.15); box-shadow: 0 0 15px var(--primary-glow); }
+
+.btn-outline-danger { background: rgba(255, 59, 48, 0.05); border: 2px dashed var(--danger); color: var(--danger); }
+
+/* INPUTS */
+input, select {
+    width: 100%; padding: 14px; border: 1px solid var(--border); 
+    border-radius: 12px; font-size: 16px !important; font-weight: 600;
+    background: rgba(0, 0, 0, 0.3); color: var(--text);
+    outline: none; transition: all 0.2s ease;
+}
+input:focus { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-glow); }
+
+/* BADGES */
+.badge {
+    display: inline-block; padding: 4px 8px; border-radius: 6px;
+    font-size: 11px; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;
+}
+.badge-primary { background: rgba(0, 210, 255, 0.15); color: var(--primary); border: 1px solid var(--primary); box-shadow: 0 0 10px var(--primary-glow); }
+
+/* MODALS */
+.modal-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.8); z-index: 3000; display: flex; 
+    align-items: center; justify-content: center; backdrop-filter: blur(8px);
+    opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+}
+.modal-overlay.show { opacity: 1; pointer-events: auto; }
+.modal-content {
+    background: var(--card-bg); border: 1px solid var(--border);
+    width: 92%; max-width: 500px; border-radius: 24px; overflow: hidden;
+}
+
+/* MISC */
+.back-link { background: transparent; border: none; color: var(--primary); font-size: 14px; font-weight: 600; cursor: pointer; padding: 0; margin-bottom: 20px; }
+.success-bg { background: linear-gradient(90deg, var(--primary), #00ffcc) !important; color: #000 !important; }

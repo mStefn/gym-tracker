@@ -1,0 +1,13 @@
+.settings-section { padding: 20px; margin-bottom: 20px; }
+.section-title { margin: 0 0 10px 0; color: var(--primary); font-size: 14px; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px dashed rgba(0, 210, 255, 0.2); padding-bottom: 8px; }
+
+.btn-settings-item { width: 100%; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text); padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+@media (hover: hover) { .btn-settings-item:hover { background: rgba(0, 210, 255, 0.1); border-color: var(--primary); box-shadow: 0 0 10px var(--primary-glow); } }
+
+/* Install Guide Overlay Specifics */
+#install-guide-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+#install-guide-overlay.show { opacity: 1; pointer-events: auto; }
+
+.install-card { padding: 30px 25px; max-width: 350px; text-align: center; box-shadow: 0 15px 50px rgba(0,0,0,0.8); transform: translateY(20px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+#install-guide-overlay.show .install-card { transform: translateY(0); }
+.install-title { color: var(--primary); font-size: 24px; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px var(--primary-glow); }
