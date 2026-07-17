@@ -85,8 +85,8 @@ jobs:
             
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
-            # Inject the specific commit hash as the image tag into .env file
-            echo "APP_VERSION=sha-${GITHUB_SHA::7}" > .env
+            # ZMIANA TUTAJ: Eksportujemy zmienną do pamięci, zamiast kasować plik .env
+            export APP_VERSION=sha-${GITHUB_SHA::7}
             
             docker compose -f app-compose.yml pull
             docker compose -f app-compose.yml -p gym-app up -d --remove-orphans
