@@ -20,6 +20,14 @@ window.openAuth = (mode) => renderAuthScreen(mode);
 window.renderWorkout = renderWorkout;
 window.appLogout = logout;
 
+// BARKUJĄCA FUNKCJA DO ZAMYKANIA MODALA INSTALACJI
+window.closeInstallModal = () => {
+    const modal = document.getElementById('install-guide-overlay');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+};
+
 /**
  * SPA Router
  */

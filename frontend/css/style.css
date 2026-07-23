@@ -1,5 +1,5 @@
 /* =========================================
-    CORE VARIABLES & THEME (NEON DARK)
+   CORE VARIABLES & THEME (NEON DARK)
    ========================================= */
 :root {
     --bg-color: #0b101e;
@@ -77,4 +77,44 @@ html, body {
 
 @media (hover: hover) {
     .nav-item:hover { color: var(--text); }
+}
+
+/* =========================================
+   BUTTON STYLES (Odtworzone po refaktorze AI)
+   ========================================= */
+.btn-logout {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+}
+
+.btn-logout:hover {
+    background: rgba(255, 59, 48, 0.1);
+    box-shadow: 0 0 10px rgba(255, 59, 48, 0.4);
+}
+
+.btn-modal-close {
+    background: var(--primary);
+    color: var(--bg-color);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 15px;
+    box-shadow: 0 0 15px var(--primary-glow);
+    transition: all 0.2s ease;
+}
+
+.btn-modal-close:hover {
+    filter: brightness(1.2);
 }

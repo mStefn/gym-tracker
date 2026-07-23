@@ -1,0 +1,46 @@
+services:
+  db-staging:
+    image: mariadb:10.11
+    container_name: gym-db-staging
+    env_file: .env
+    volumes:
+      - ./data/mariadb_staging:/var/lib/mysql
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    networks:
+      - gym_staging_net
+
+  backend-staging:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: gym-backend-staging
+    env_file: .env
+    depends_on:
+      - db-staging
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    networks:
+      gym_staging_net:
+        aliases:
+          - gym-backend # <--- TO RATUJE SYTUACJĘ (Alias dla Nginxa)
+
+  frontend-staging:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: gym-frontend-staging
+    ports:
+      - "8888:80"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    depends_on:
+      - backend-staging
+    networks:
+      - gym_staging_net
+
+networks:
+  gym_staging_net:
+    driver: bridge
