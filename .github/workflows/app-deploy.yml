@@ -65,7 +65,7 @@ jobs:
   # ==========================================
   deploy-app:
     needs: build-and-push
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Connect to Tailscale
         uses: tailscale/github-action@v3
@@ -99,7 +99,7 @@ jobs:
   # ==========================================
   health-check-app:
     needs: deploy-app
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Connect to Tailscale
         uses: tailscale/github-action@v3
