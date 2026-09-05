@@ -1,0 +1,46 @@
+name: Start App Remotely
+
+on:
+  workflow_dispatch:
+
+jobs:
+  start-app:
+    name: Start Gym App
+    runs-on: ubuntu-22.04
+
+    steps:
+      # ==========================================
+      # STEP 1: CONNECT TO TAILSCALE
+      # ==========================================
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      # ==========================================
+      # STEP 2: START APPLICATION
+      # ==========================================
+      - name: Start App on Server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+
+            echo "🚀 Starting Gym App..."
+
+            cd ${{ secrets.PROJECT_PATH }} || {
+              echo "❌ Error: Project directory not found!"
+              exit 1
+            }
+
+            docker compose -f app-compose.yml -p gym-app up -d
+
+            echo ""
+            echo "📦 Container status:"
+            docker compose -f app-compose.yml -p gym-app ps
+
+            echo ""
+            echo "✅ Gym App start command completed successfully!"
