@@ -20,12 +20,19 @@ jobs:
       contents: read
       packages: write
 
+    outputs:
+      app_tag: ${{ steps.set-tag.outputs.app_tag }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set Image Tag
-        run: echo "APP_TAG=sha-${GITHUB_SHA:0:7}" >> "$GITHUB_ENV"
+        id: set-tag
+        run: |
+          APP_TAG=$(TZ=Europe/Warsaw date +'%Y-%m-%d-%H%M')
+          echo "app_tag=$APP_TAG" >> "$GITHUB_OUTPUT"
+          echo "🏷️ Image tag: $APP_TAG"
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -42,7 +49,7 @@ jobs:
           push: true
           tags: |
             ${{ env.IMAGE_NAME_BACKEND }}:latest
-            ${{ env.IMAGE_NAME_BACKEND }}:${{ env.APP_TAG }}
+            ${{ env.IMAGE_NAME_BACKEND }}:${{ steps.set-tag.outputs.app_tag }}
 
       - name: Build and push Frontend
         uses: docker/build-push-action@v6
@@ -52,12 +59,15 @@ jobs:
           push: true
           tags: |
             ${{ env.IMAGE_NAME_FRONTEND }}:latest
-            ${{ env.IMAGE_NAME_FRONTEND }}:${{ env.APP_TAG }}
+            ${{ env.IMAGE_NAME_FRONTEND }}:${{ steps.set-tag.outputs.app_tag }}
 
   deploy:
     name: Deploy to Homelab
     needs: build-and-push
     runs-on: ubuntu-22.04
+
+    env:
+      APP_VERSION: ${{ needs.build-and-push.outputs.app_tag }}
 
     steps:
       - name: Connect to Tailscale
@@ -68,12 +78,18 @@ jobs:
 
       - name: Deploy Application via SSH
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          APP_VERSION: ${{ needs.build-and-push.outputs.app_tag }}
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: APP_VERSION
           script: |
             set -e
+
+            echo "🚀 Starting deployment..."
+            echo "🏷️ Application version: ${APP_VERSION}"
 
             cd ${{ secrets.PROJECT_PATH }} || {
               echo "❌ Error: Project directory not found!"
@@ -88,8 +104,6 @@ jobs:
               -u "${{ github.actor }}" \
               --password-stdin
 
-            export APP_VERSION=sha-${GITHUB_SHA:0:7}
-
             echo "📦 Pulling Docker images..."
             docker compose -f app-compose.yml -p gym-app pull
 
@@ -99,7 +113,10 @@ jobs:
             echo "🧹 Cleaning unused Docker images..."
             docker image prune -af
 
-            echo "✅ Deployment completed."
+            echo "📊 Container status:"
+            docker compose -f app-compose.yml -p gym-app ps
+
+            echo "✅ Deployment completed successfully."
 
   health-check:
     name: Health Check
@@ -109,7 +126,7 @@ jobs:
     steps:
       - name: Check Application Health
         run: |
-          echo "Waiting for application to start (up to 60 seconds)..."
+          echo "🏥 Waiting for application to start (up to 60 seconds)..."
 
           for i in {1..12}; do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
@@ -147,6 +164,7 @@ jobs:
             **Build & Push:** ${{ needs.build-and-push.result }}
             **Deployment:** ${{ needs.deploy.result }}
             **Health Check:** ${{ needs.health-check.result }}
+            **Image Tag:** ${{ needs.build-and-push.outputs.app_tag }}
 
             The latest version of Gym Tracker has been deployed.
 
