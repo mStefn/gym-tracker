@@ -1,19 +1,18 @@
-name: Manual App Teardown (No Infra)
+name: Manual App Teardown
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
 
 jobs:
-  # ==========================================
-  # STEP 1: TEARDOWN APP
-  # ==========================================
   teardown-app:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+
     steps:
       - name: Connect to Tailscale
         uses: tailscale/github-action@v3
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          args: --accept-dns=false
 
       - name: Stop Application Stack via SSH
         uses: appleboy/ssh-action@v1.2.0
@@ -22,28 +21,34 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd ${{ secrets.PROJECT_PATH }}
-            echo "Stopping Application containers..."
+            set -e
+
+            cd ${{ secrets.PROJECT_PATH }} || {
+              echo "❌ Error: Project directory not found!"
+              exit 1
+            }
+
+            echo "🛑 Stopping Gym Tracker..."
             docker compose -f app-compose.yml -p gym-app down
 
-  # ==========================================
-  # STEP 2: DISCORD NOTIFICATION
-  # ==========================================
+            echo "✅ Application stack stopped."
+
   notify:
     needs: [teardown-app]
-    if: always() 
+    if: always()
     runs-on: ubuntu-latest
+
     steps:
       - name: Discord Notification
         uses: sarisia/actions-status-discord@v1
         with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK }}          
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: ${{ needs.teardown-app.result }}
-          title: "🛑 Manual App Teardown Report (No Infra)"
+          title: "🛑 Gym Tracker Teardown Report"
           description: |
-            **1. App Teardown:** ${{ needs.teardown-app.result }}
-            
-            Aplikacja (Frontend, Backend, DB) została zatrzymana. 
-            Infrastruktura (Monitoring, SonarQube) nadal działa w tle.
-            
-            Check details here: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            **Application Teardown:** ${{ needs.teardown-app.result }}
+
+            Gym Tracker application stack has been stopped.
+
+            Check details here:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
