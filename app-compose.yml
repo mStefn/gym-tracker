@@ -1,7 +1,6 @@
 services:
   db:
     image: mariadb:10.11
-    container_name: gym-db
     restart: always
     env_file: .env
     environment:
@@ -17,7 +16,6 @@ services:
 
   backend:
     image: ghcr.io/mstefn/gym-backend:${APP_VERSION:-latest}
-    container_name: gym-backend
     restart: always
     expose:
       - "4000"
@@ -35,21 +33,22 @@ services:
 
   frontend:
     image: ghcr.io/mstefn/gym-frontend:${APP_VERSION:-latest}
-    container_name: gym-frontend
     restart: always
     expose:
       - "80"
     volumes:
       - /etc/localtime:/etc/localtime:ro
+    depends_on:
+      - backend
     networks:
       - gym_app_net
       - cloudflare_net
-    depends_on:
-      - backend
 
 networks:
   gym_app_net:
-    driver: bridge
+    external: true
+    name: gym_app_net
 
   cloudflare_net:
     external: true
+    name: cloudflare_net
