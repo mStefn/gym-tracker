@@ -9,17 +9,12 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      # ==========================================
-      # STEP 1: CONNECT TO TAILSCALE
-      # ==========================================
       - name: Connect to Tailscale
         uses: tailscale/github-action@v3
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          args: --accept-dns=false
 
-      # ==========================================
-      # STEP 2: START APPLICATION
-      # ==========================================
       - name: Start App on Server
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -29,7 +24,7 @@ jobs:
           script: |
             set -e
 
-            echo "🚀 Starting Gym App..."
+            echo "🚀 Starting Gym Tracker..."
 
             cd ${{ secrets.PROJECT_PATH }} || {
               echo "❌ Error: Project directory not found!"
@@ -43,4 +38,4 @@ jobs:
             docker compose -f app-compose.yml -p gym-app ps
 
             echo ""
-            echo "✅ Gym App start command completed successfully!"
+            echo "✅ Gym Tracker started successfully!"
