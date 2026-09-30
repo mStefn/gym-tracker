@@ -12,7 +12,6 @@ services:
     volumes:
       - ./data/mariadb:/var/lib/mysql
       - /etc/localtime:/etc/localtime:ro
-      - /etc/timezone:/etc/timezone:ro
     networks:
       - gym_app_net
 
@@ -31,10 +30,8 @@ services:
       - db
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - /etc/timezone:/etc/timezone:ro
     networks:
       - gym_app_net
-      - gym_monitor_net
 
   frontend:
     image: ghcr.io/mstefn/gym-frontend:${APP_VERSION:-latest}
@@ -44,7 +41,6 @@ services:
       - "80"
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - /etc/timezone:/etc/timezone:ro
     networks:
       - gym_app_net
       - cloudflare_net
@@ -54,7 +50,6 @@ services:
 networks:
   gym_app_net:
     driver: bridge
-  gym_monitor_net:
-    external: true
+
   cloudflare_net:
     external: true
