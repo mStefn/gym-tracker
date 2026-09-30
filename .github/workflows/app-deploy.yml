@@ -1,45 +1,39 @@
-name: Deploy App (Auto CI/CD)
+```yaml
+name: CI/CD - Build, Deploy & Health Check
 
 on:
   push:
     branches: [ main ]
-    # Ignore infrastructure files to prevent triggering app builds on monitoring updates
-    paths-ignore:
-      - 'infra-compose.yml'
-      - 'prometheus.yml'
-      - 'grafana/**'
-      - 'alloy/**'
-      - 'README.md'
   workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME_BACKEND: ghcr.io/mstefn/gym-backend
-  IMAGE_NAME_FRONTEND: ghcr.io/mstefn/gym-frontend  
+  IMAGE_NAME_FRONTEND: ghcr.io/mstefn/gym-frontend
 
 jobs:
-  # ==========================================
-  # STEP 1: BUILD & PUSH APP
-  # ==========================================
   build-and-push:
+    name: Build & Push Images
     runs-on: ubuntu-latest
+
     permissions:
       contents: read
       packages: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: Set Image Tag
         run: echo "APP_TAG=sha-${GITHUB_SHA::7}" >> $GITHUB_ENV
-        
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-          
+
       - name: Build and push Backend
         uses: docker/build-push-action@v6
         with:
@@ -49,7 +43,7 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME_BACKEND }}:latest
             ${{ env.IMAGE_NAME_BACKEND }}:${{ env.APP_TAG }}
-          
+
       - name: Build and push Frontend
         uses: docker/build-push-action@v6
         with:
@@ -60,85 +54,99 @@ jobs:
             ${{ env.IMAGE_NAME_FRONTEND }}:latest
             ${{ env.IMAGE_NAME_FRONTEND }}:${{ env.APP_TAG }}
 
-  # ==========================================
-  # STEP 2: DEPLOY APP ON SERVER
-  # ==========================================
-  deploy-app:
+  deploy:
+    name: Deploy to Homelab
     needs: build-and-push
     runs-on: ubuntu-22.04
+
     steps:
       - name: Connect to Tailscale
         uses: tailscale/github-action@v3
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          args: --accept-dns=false
 
-      - name: Deploy App to Server via SSH
+      - name: Deploy Application via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd ${{ secrets.PROJECT_PATH }} || { echo "❌ Error: Project directory not found!"; exit 1; }
-            
+            set -e
+
+            cd ${{ secrets.PROJECT_PATH }} || {
+              echo "❌ Error: Project directory not found!"
+              exit 1
+            }
+
+            echo "📥 Pulling latest repository changes..."
             git pull origin main
-            
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            
-            # ZMIANA TUTAJ: Eksportujemy zmienną do pamięci, zamiast kasować plik .env
+
+            echo "🔐 Logging in to GHCR..."
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
+              -u "${{ github.actor }}" \
+              --password-stdin
+
             export APP_VERSION=sha-${GITHUB_SHA::7}
-            
-            docker compose -f app-compose.yml pull
+
+            echo "📦 Pulling Docker images..."
+            docker compose -f app-compose.yml -p gym-app pull
+
+            echo "🚀 Starting application..."
             docker compose -f app-compose.yml -p gym-app up -d --remove-orphans
-            
-            # Global cleanup of unused/dangling images
+
+            echo "🧹 Cleaning unused Docker images..."
             docker image prune -af
 
-  # ==========================================
-  # STEP 3: APP HEALTH CHECK
-  # ==========================================
-  health-check-app:
-    needs: deploy-app
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Connect to Tailscale
-        uses: tailscale/github-action@v3
-        with:
-          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+            echo "✅ Deployment completed."
 
-      - name: Check Backend Health
+  health-check:
+    name: Health Check
+    needs: deploy
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Check Application Health
         run: |
-          echo "Waiting for app to start (up to 60 seconds)..."
+          echo "Waiting for application to start (up to 60 seconds)..."
+
           for i in {1..12}; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://gym.m-stefn.com.pl/api/health || echo "000")
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              https://gym.m-stefn.com.pl/api/health || echo "000")
+
             if [ "$STATUS" -eq 200 ]; then
-              echo "✅ Backend is Healthy!"
+              echo "✅ Gym Tracker is healthy!"
               exit 0
             fi
+
             echo "Attempt $i/12: App returned $STATUS. Waiting 5 seconds..."
             sleep 5
           done
-          echo "❌ Error: Backend did not start in time!"
+
+          echo "❌ Application did not become healthy in time!"
           exit 1
 
-  # ==========================================
-  # STEP 4: DISCORD NOTIFICATION
-  # ==========================================
   notify:
-    needs: [build-and-push, deploy-app, health-check-app]
-    if: always() 
+    name: Deployment Notification
+    needs: [build-and-push, deploy, health-check]
+    if: always()
     runs-on: ubuntu-latest
+
     steps:
       - name: Discord Notification
         uses: sarisia/actions-status-discord@v1
         with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK }}          
-          status: ${{ (needs.build-and-push.result == 'success' && needs.health-check-app.result == 'success') && 'success' || 'failure' }}
-          title: "🚀 Application Auto-Deployment Report"
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: ${{ (needs.build-and-push.result == 'success' && needs.deploy.result == 'success' && needs.health-check.result == 'success') && 'success' || 'failure' }}
+          title: "🚀 Gym Tracker CI/CD Deployment"
           description: |
-            **1. Build & Push:** ${{ needs.build-and-push.result }}
-            **2. Server Deploy:** ${{ needs.deploy-app.result }}
-            **3. App Health Check:** ${{ needs.health-check-app.result }}
-            
-            The latest changes to the main branch have been deployed.
-            Check details here: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            **Build & Push:** ${{ needs.build-and-push.result }}
+            **Deployment:** ${{ needs.deploy.result }}
+            **Health Check:** ${{ needs.health-check.result }}
+
+            The latest version of Gym Tracker has been deployed.
+
+            Check details here:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+```
