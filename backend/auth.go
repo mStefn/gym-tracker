@@ -58,6 +58,7 @@ func VerifyToken(token string) (int, bool) {
 	if err != nil {
 		return 0, false
 	}
+
 	return userID, true
 }
 
@@ -93,8 +94,14 @@ func AdminRequired() gin.HandlerFunc {
 		}
 
 		var isAdmin bool
+
+		// PostgreSQL uses $1, $2, etc. for query parameters
 		// Direct DB check ensures admin status changes are immediate
-		err := db.QueryRow("SELECT is_admin FROM users WHERE id = ?", userID).Scan(&isAdmin)
+		err := db.QueryRow(
+			"SELECT is_admin FROM users WHERE id = $1",
+			userID,
+		).Scan(&isAdmin)
+
 		if err != nil || !isAdmin {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Administrator privileges required"})
 			return
