@@ -1,11 +1,11 @@
 services:
   db:
-    image: mariadb:10.11
+    image: postgres:16
     container_name: gym-test-db
     restart: unless-stopped
     env_file: .env.test
     volumes:
-      - ./data-test/mariadb:/var/lib/mysql
+      - gym_test_db_data:/var/lib/postgresql/data  
       - /etc/localtime:/etc/localtime:ro
     networks:
       - gym_test_net
@@ -34,6 +34,11 @@ services:
       - backend
     networks:
       - gym_test_net
+
+
+volumes:
+  gym_test_db_data:
+    name: gym_test_db_data
 
 networks:
   gym_test_net:

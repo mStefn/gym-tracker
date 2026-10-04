@@ -1,15 +1,10 @@
 services:
   db:
-    image: mariadb:10.11
+    image: postgres:16
     restart: always
     env_file: .env
-    environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
-      - ./data/mariadb:/var/lib/mysql
+      - gym_db_data:/var/lib/postgresql/data  
       - /etc/localtime:/etc/localtime:ro
     networks:
       - gym_app_net
@@ -43,6 +38,11 @@ services:
     networks:
       - gym_app_net
       - cloudflare_net
+
+
+volumes:
+  gym_db_data:
+    name: gym_db_data
 
 networks:
   gym_app_net:
