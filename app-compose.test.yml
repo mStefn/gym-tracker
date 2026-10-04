@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     env_file: .env.test
     volumes:
-      - ./data-test/postgres:/var/lib/postgresql/data
+      - gym_test_db_data:/var/lib/postgresql/data  
       - /etc/localtime:/etc/localtime:ro
     networks:
       - gym_test_net
@@ -34,6 +34,11 @@ services:
       - backend
     networks:
       - gym_test_net
+
+
+volumes:
+  gym_test_db_data:
+    name: gym_test_db_data
 
 networks:
   gym_test_net:
