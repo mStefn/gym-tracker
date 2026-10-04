@@ -32,7 +32,7 @@ jobs:
         run: |
           APP_TAG=$(TZ=Europe/Warsaw date +'%Y-%m-%d-%H%M')
           echo "app_tag=$APP_TAG" >> "$GITHUB_OUTPUT"
-          echo "🏷️ Image tag: $APP_TAG"
+          echo "Image tag: $APP_TAG"
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -88,35 +88,38 @@ jobs:
           script: |
             set -e
 
-            echo "🚀 Starting deployment..."
-            echo "🏷️ Application version: ${APP_VERSION}"
+            echo "Starting deployment..."
+            echo "Application version: ${APP_VERSION}"
 
             cd ${{ secrets.PROJECT_PATH }} || {
-              echo "❌ Error: Project directory not found!"
+              echo "Error: Project directory not found!"
               exit 1
             }
 
-            echo "📥 Pulling latest repository changes..."
+            echo "Pulling latest repository changes..."
             git pull origin main
 
-            echo "🔐 Logging in to GHCR..."
+            echo "Updating APP_VERSION in .env file..."
+            sed -i "s/^APP_VERSION=.*/APP_VERSION=${APP_VERSION}/" .env
+
+            echo "Logging in to GHCR..."
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
               -u "${{ github.actor }}" \
               --password-stdin
 
-            echo "📦 Pulling Docker images..."
+            echo "Pulling Docker images..."
             docker compose -f app-compose.yml -p gym-app pull
 
-            echo "🚀 Starting application..."
+            echo "Starting application..."
             docker compose -f app-compose.yml -p gym-app up -d --remove-orphans
 
-            echo "🧹 Cleaning unused Docker images..."
+            echo "Cleaning unused Docker images..."
             docker image prune -af
 
-            echo "📊 Container status:"
+            echo "Container status:"
             docker compose -f app-compose.yml -p gym-app ps
 
-            echo "✅ Deployment completed successfully."
+            echo "Deployment completed successfully."
 
   health-check:
     name: Health Check
@@ -126,14 +129,14 @@ jobs:
     steps:
       - name: Check Application Health
         run: |
-          echo "🏥 Waiting for application to start (up to 60 seconds)..."
+          echo "Waiting for application to start (up to 60 seconds)..."
 
           for i in {1..12}; do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
               https://gym.m-stefn.com.pl/api/health || echo "000")
 
             if [ "$STATUS" -eq 200 ]; then
-              echo "✅ Gym Tracker is healthy!"
+              echo "Gym Tracker is healthy!"
               exit 0
             fi
 
@@ -141,7 +144,7 @@ jobs:
             sleep 5
           done
 
-          echo "❌ Application did not become healthy in time!"
+          echo "Application did not become healthy in time!"
           exit 1
 
   notify:
@@ -159,7 +162,7 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: ${{ (needs.build-and-push.result == 'success' && needs.deploy.result == 'success' && needs.health-check.result == 'success') && 'success' || 'failure' }}
-          title: "🚀 Gym Tracker CI/CD Deployment"
+          title: "Gym Tracker CI/CD Deployment"
           description: |
             **Build & Push:** ${{ needs.build-and-push.result }}
             **Deployment:** ${{ needs.deploy.result }}
