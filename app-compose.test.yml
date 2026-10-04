@@ -1,0 +1,40 @@
+services:
+  db:
+    image: mariadb:10.11
+    container_name: gym-test-db
+    restart: unless-stopped
+    env_file: .env.test
+    volumes:
+      - ./data-test/mariadb:/var/lib/mysql
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - gym_test_net
+
+  backend:
+    image: gym-backend:test
+    container_name: gym-test-backend
+    restart: unless-stopped
+    expose:
+      - "4000"
+    env_file: .env.test
+    depends_on:
+      - db
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - gym_test_net
+
+  frontend:
+    image: gym-frontend:test
+    container_name: gym-test-frontend
+    restart: unless-stopped
+    ports:
+      - "8085:80"
+    depends_on:
+      - backend
+    networks:
+      - gym_test_net
+
+networks:
+  gym_test_net:
+    name: gym_test_net

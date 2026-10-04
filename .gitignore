@@ -28,3 +28,9 @@ desktop.ini
 docker-compose.override.yml
 
 data/
+
+
+# Test environment
+.env.test
+data-test/
+gym_db_backup_*.sql
