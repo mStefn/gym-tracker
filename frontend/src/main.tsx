@@ -2,7 +2,12 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
-import './css/style.css'; // Globalne style
+
+// 1. Najpierw ładujemy Tailwind i nowe zmienne (chudy plik, który za chwilę utworzysz)
+import './index.css'; 
+
+// 2. Potem ładujemy stary CSS, żeby dotychczasowy wygląd się nie zepsuł (będziemy go stopniowo odchudzać)
+import './css/style.css'; 
 
 // Inicjalizacja klienta React Query
 const queryClient = new QueryClient({
