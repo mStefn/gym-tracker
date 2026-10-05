@@ -34,13 +34,15 @@ html, body {
     -webkit-font-smoothing: antialiased;
 }
 
+/* 
 #main-bg {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
     background: url('../gym-tracker.webp') center top / cover no-repeat;
     z-index: -1;
     transition: filter 0.5s ease;
-}
+} 
+*/
 
 #main-bg.dimmed {
     filter: brightness(0.2) blur(8px);
