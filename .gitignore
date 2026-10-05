@@ -34,3 +34,7 @@ data/
 .env.test
 data-test/
 gym_db_backup_*.sql
+node_modules/
+frontend/node_modules/
+backup/
+frontend/dist/

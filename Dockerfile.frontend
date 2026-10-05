@@ -1,4 +1,18 @@
 # ==========================================
+# BUILD STAGE (Kompilacja React/Vite)
+# ==========================================
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+# Kopiowanie zależności
+COPY frontend/package*.json ./
+RUN npm install
+
+# Kopiowanie reszty i budowa (tworzy folder dist)
+COPY frontend/ ./
+RUN npm run build
+
+# ==========================================
 # FRONTEND & GATEWAY RUNTIME STAGE
 # ==========================================
 FROM nginx:alpine
@@ -7,16 +21,23 @@ FROM nginx:alpine
 RUN rm -rf /usr/share/nginx/html/*
 RUN rm -f /etc/nginx/conf.d/default.conf
 
-# Kopiowanie plików frontendu
-COPY frontend/ /usr/share/nginx/html/
+# Kopiowanie zbudowanej aplikacji React
+COPY --from=builder /app/dist /usr/share/nginx/html/
 
-# Kopiowanie naszej nowej konfiguracji Reverse Proxy
+# Kopiowanie Twoich plików statycznych (PWA, ikony itp.)
+COPY frontend/manifest.json /usr/share/nginx/html/
+COPY frontend/sw.js /usr/share/nginx/html/
+COPY frontend/img /usr/share/nginx/html/img
+COPY frontend/gym-tracker.webp /usr/share/nginx/html/
+
+# Kopiowanie legacy admina
+COPY frontend/_legacy_js /usr/share/nginx/html/_legacy_js/
+
+# Kopiowanie konfiguracji Nginx
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
 RUN chown -R nginx:nginx /usr/share/nginx/html && \
     chmod -R 755 /usr/share/nginx/html
 
-# Wystawiamy standardowy port HTTP
 EXPOSE 80
-
 CMD ["nginx", "-g", "daemon off;"]
