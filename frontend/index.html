@@ -5,86 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Gym Tracker</title>
     
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0b101e">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="img/icon-512.png">
-    
-    <link rel="stylesheet" href="css/style.css?v=2.0">
-
-    <script>        
-        if ('serviceWorker' in navigator) {
-            globalThis.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => {
-                        console.log('PWA: Service Worker Registered');
-                        
-                        reg.addEventListener('updatefound', () => {
-                            const newWorker = reg.installing;
-                            newWorker.addEventListener('statechange', () => {                                
-                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    console.log('PWA: New version available! Reloading...');                                    
-                                    globalThis.location.reload();
-                                }
-                            });
-                        });
-                    })
-                    .catch(err => console.error('PWA: Service Worker Error', err));
-            });
-        }
-
-        /**
-         * Dynamic Viewport Height Fix
-         * Addresses the 100vh issue on mobile browsers
-         */
-        const setAppHeight = () => {
-            document.documentElement.style.setProperty('--app-height', `${globalThis.innerHeight}px`);
-        };
-        globalThis.addEventListener('resize', setAppHeight);
-        globalThis.addEventListener('orientationchange', setAppHeight);
-        setAppHeight(); 
-    </script>
+    <link rel="apple-touch-icon" href="/img/icon-512.png">
 </head>
 <body>
     <div id="main-bg"></div>
-
-    <div id="app-container">
-        <main id="main-content">
-            <header id="top-bar" style="display: none;">
-                <div id="user-greeting"></div>
-                <button onclick="globalThis.appLogout()" class="btn-logout">Logout</button>
-            </header>
-            
-            <nav id="sidebar" style="display: none;">
-                <ul class="nav-links">
-                    <li><button onclick="globalThis.navigate('home')" class="nav-item active" id="nav-home">Home</button></li>
-                    <li><button onclick="globalThis.navigate('workout')" class="nav-item" id="nav-workout">Workouts</button></li>
-                    <li><button onclick="globalThis.navigate('stats')" class="nav-item" id="nav-stats">Statistics</button></li>
-                    <li><button onclick="globalThis.navigate('settings')" class="nav-item" id="nav-settings">Settings</button></li>
-                </ul>
-            </nav>
-            
-            <div id="exercises"></div>
-        </main>
-    </div>
-
-    <div id="install-guide-overlay">
-        <div class="install-card">
-            <h2 class="install-title">Install App</h2>
-            <p class="install-subtitle">Add Gym Tracker to your home screen for the best experience.</p>
-            
-            <div class="install-step">
-                <span class="step-num">1.</span> Tap <b>Share</b> <span class="icon">⍗</span> (iOS) or <b>Menu</b> <span class="icon">⋮</span> (Android).
-            </div>
-            <div class="install-step">
-                <span class="step-num">2.</span> Select <br><b>"Add to Home Screen"</b> ➕.
-            </div>
-            
-            <button onclick="globalThis.closeInstallModal()" class="btn-modal-close">Got it</button>
-        </div>
-    </div>
-
-    <script type="module" src="js/app.js?v=2.0"></script>
+    <div id="root"></div> <!-- Tutaj wchodzi React! -->
+    
+    <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>
