@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gym Tracker | Admin Console</title>
     
-    <link rel="stylesheet" href="css/style.css">
+    <!-- Poprawiona ścieżka do głównego pliku CSS -->
+    <link rel="stylesheet" href="../src/css/style.css">
     
     <style>
         /* Specific overrides for the admin environment */
@@ -85,7 +86,8 @@
 
             <h2 class="admin-section-title">User Management</h2>
             <div id="user-list">
-                </div>
+                <!-- Populated by admin.js -->
+            </div>
 
             <h2 class="admin-section-title">Security Settings</h2>
             <div class="admin-card">
@@ -100,6 +102,7 @@
         </div>
     </div>
 
-    <script type="module" src="js/admin.js"></script>
+    <!-- Poprawiona ścieżka - ładujemy plik z tego samego folderu -->
+    <script type="module" src="./admin.js"></script>
 </body>
 </html>

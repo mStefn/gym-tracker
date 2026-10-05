@@ -7,14 +7,21 @@
     
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0b101e">
+    
+    <!-- PWA & Mobile Web App settings -->
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="/img/icon-512.png">
 </head>
 <body>
+    <!-- Tło aplikacji - zostaje z oryginalnego CSS -->
     <div id="main-bg"></div>
-    <div id="root"></div> <!-- Tutaj wchodzi React! -->
     
+    <!-- Kontener, w którym React zbuduje aplikację (App.tsx) -->
+    <div id="root"></div>
+    
+    <!-- Punkt startowy Vite & React -->
     <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>

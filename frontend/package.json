@@ -1,10 +1,13 @@
 {
-  "name": "frontend",
+  "name": "gym-tracker-frontend",
   "version": "1.0.0",
-  "description": "",
-  "main": "sw.js",
+  "description": "Gym Tracker React Migration",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
   },
   "keywords": [],
   "author": "",
