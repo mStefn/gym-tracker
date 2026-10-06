@@ -91,4 +91,84 @@ export default function App() {
 
       {/* 💻 SIDEBAR (Tylko na tabletach/PC - md:flex) */}
       <aside className="hidden md:flex flex-col w-64 bg-slate-900 border-r border-slate-800 p-4 z-10">
-        <div className="flex items-center
+        <div className="flex items-center gap-2 font-black text-2xl mb-8 px-2 tracking-tight text-white">
+          <span className="text-blue-500">🏋️‍♂️</span> Gym Tracker
+        </div>
+        <div className="mb-8 px-2 text-slate-400 text-sm">
+          Zalogowany jako <br/>
+          <span className="text-white font-bold text-base">{currentUserName}</span>
+        </div>
+        
+        <nav className="flex flex-col gap-2 flex-1">
+          <button 
+            onClick={() => setCurrentView('home')} 
+            className={`${navItemBase} ${currentView === 'home' ? navItemActive : navItemInactive}`}
+          >
+            Pulpit
+          </button>
+          <button 
+            onClick={() => setCurrentView('workout')} 
+            className={`${navItemBase} ${currentView === 'workout' ? navItemActive : navItemInactive}`}
+          >
+            Treningi
+          </button>
+          <button 
+            onClick={() => setCurrentView('stats')} 
+            className={`${navItemBase} ${currentView === 'stats' ? navItemActive : navItemInactive}`}
+          >
+            Statystyki
+          </button>
+          <button 
+            onClick={() => setCurrentView('settings')} 
+            className={`${navItemBase} ${currentView === 'settings' ? navItemActive : navItemInactive}`}
+          >
+            Ustawienia
+          </button>
+        </nav>
+
+        <button 
+          onClick={logout} 
+          className="mt-auto px-4 py-3 bg-slate-800/50 hover:bg-rose-600 hover:text-white rounded-xl text-sm font-semibold transition-colors text-left text-slate-300"
+        >
+          Wyloguj się
+        </button>
+      </aside>
+      
+      {/* 🏋️ GŁÓWNA ZAWARTOŚĆ (Widoki) */}
+      <main className="flex-1 overflow-y-auto p-4 pb-24 md:pb-4 w-full max-w-7xl mx-auto">
+        {renderView()}
+      </main>
+
+      {/* 📱 BOTTOM NAVIGATION (Tylko na telefonie) */}
+      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-slate-900 border-t border-slate-800 p-2 flex gap-1 z-20 shadow-[0_-4px_10px_rgba(0,0,0,0.3)]">
+        <button 
+          onClick={() => setCurrentView('home')} 
+          className={`${navItemBase} ${currentView === 'home' ? navItemActive : navItemInactive}`}
+        >
+          Pulpit
+        </button>
+        <button 
+          onClick={() => setCurrentView('workout')} 
+          className={`${navItemBase} ${currentView === 'workout' ? navItemActive : navItemInactive}`}
+        >
+          Treningi
+        </button>
+        <button 
+          onClick={() => setCurrentView('stats')} 
+          className={`${navItemBase} ${currentView === 'stats' ? navItemActive : navItemInactive}`}
+        >
+          Statystyki
+        </button>
+        <button 
+          onClick={() => setCurrentView('settings')} 
+          className={`${navItemBase} ${currentView === 'settings' ? navItemActive : navItemInactive}`}
+        >
+          Ustaw. 
+        </button>
+      </nav>
+
+      {/* Instrukcja instalacji PWA pokazana warunkowo */}
+      {showInstallGuide && <InstallGuide onClose={() => setShowInstallGuide(false)} />}
+    </div>
+  );
+}
