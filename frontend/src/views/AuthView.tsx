@@ -17,19 +17,18 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
     setError(null);
 
     if (!name.trim() || !pin.trim()) {
-      setError('Please provide both username and PIN.');
+      setError('Podaj nazwę użytkownika oraz PIN.');
       return;
     }
 
     if (!isLogin && pin !== confirmPin) {
-      setError('PINs do not match.');
+      setError('Podane kody PIN nie zgadzają się.');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // UWAGA: Zmieniono /api/register na /api/signup (zgodnie z backendem w Go)
       const endpoint = isLogin ? '/api/login' : '/api/signup';
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -40,7 +39,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || (isLogin ? 'Invalid credentials' : 'Registration failed'));
+        throw new Error(data.error || (isLogin ? 'Nieprawidłowe dane logowania' : 'Rejestracja nie powiodła się'));
       }
 
       if (isLogin) {
@@ -55,17 +54,16 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
           window.location.reload();
         }
       } else {
-        // Po udanej rejestracji przełączamy na logowanie
         setIsLogin(true);
         setPin('');
         setConfirmPin('');
-        setError('Account created successfully! You can now sign in.');
+        setError('Konto utworzone pomyślnie! Możesz się teraz zalogować.');
       }
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('Network error occurred.');
+        setError('Wystąpił błąd sieci.');
       }
     } finally {
       setIsLoading(false);
@@ -73,61 +71,75 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-slate-950 text-slate-100">
-      <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-2xl shadow-2xl p-6 sm:p-8 backdrop-blur-md">
-        {/* Header / Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-500 mb-3 text-2xl font-bold">
-            🏋️‍♂
+    <div className="relative min-h-screen w-full flex items-center justify-center p-4 bg-black text-white selection:bg-lime-400 selection:text-black overflow-hidden">
+      {/* Dynamiczne poświaty w tle (Radial ambient glows) */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] h-[340px] bg-lime-500/10 rounded-full blur-[110px] pointer-events-none" />
+      <div className="absolute bottom-10 right-10 w-[220px] h-[220px] bg-emerald-500/5 rounded-full blur-[90px] pointer-events-none" />
+
+      {/* Główna karta */}
+      <div className="relative w-full max-w-sm sm:max-w-md bg-zinc-950/80 border border-zinc-800/80 rounded-3xl p-7 sm:p-9 shadow-2xl backdrop-blur-xl">
+        
+        {/* Sekcja logo i nagłówka */}
+        <div className="flex flex-col items-center text-center mb-8">
+          <div className="relative mb-4 group">
+            <div className="absolute -inset-1 rounded-2xl bg-gradient-to-tr from-lime-400 to-emerald-400 opacity-20 blur group-hover:opacity-40 transition duration-300" />
+            <img 
+              src="/img/icon-512.png" 
+              alt="Gym Tracker Logo" 
+              className="relative w-20 h-20 rounded-2xl object-cover ring-1 ring-white/10 shadow-xl"
+            />
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-white">Gym Tracker</h1>
-          <p className="text-sm text-slate-400 mt-1">
-            {isLogin ? 'Sign in to continue your workout' : 'Create an account to track your progress'}
+          
+          <h1 className="text-3xl font-black tracking-tight text-white uppercase italic">
+            Gym <span className="text-lime-400">Tracker</span>
+          </h1>
+          <p className="text-xs font-medium text-zinc-400 tracking-wide mt-1.5 uppercase">
+            {isLogin ? 'Zaloguj się, aby kontynuować' : 'Załóż konto i śledź progres'}
           </p>
         </div>
 
-        {/* Tab Switcher: Login / Register */}
-        <div className="flex bg-slate-950/60 p-1 rounded-xl mb-6 border border-slate-800">
+        {/* Zakładki Sign In / Sign Up */}
+        <div className="grid grid-cols-2 p-1 bg-zinc-900/90 rounded-2xl border border-zinc-800 mb-6">
           <button
             type="button"
             onClick={() => { setIsLogin(true); setError(null); }}
-            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+            className={`py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-200 ${
               isLogin
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-lime-400 text-black shadow-md'
+                : 'text-zinc-400 hover:text-white'
             }`}
           >
-            Sign In
+            Logowanie
           </button>
           <button
             type="button"
             onClick={() => { setIsLogin(false); setError(null); }}
-            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+            className={`py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-200 ${
               !isLogin
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-lime-400 text-black shadow-md'
+                : 'text-zinc-400 hover:text-white'
             }`}
           >
-            Sign Up
+            Rejestracja
           </button>
         </div>
 
-        {/* Error / Success Feedback */}
+        {/* Komunikat o błędzie lub sukcesie */}
         {error && (
-          <div className={`p-3 rounded-lg text-sm mb-4 border ${
-            error.includes('successfully') 
-              ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-300' 
-              : 'bg-rose-950/40 border-rose-800/60 text-rose-300'
+          <div className={`p-3.5 rounded-xl text-xs font-medium mb-5 border leading-relaxed ${
+            error.includes('pomyślnie') 
+              ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-300' 
+              : 'bg-rose-950/30 border-rose-500/40 text-rose-300'
           }`}>
             {error}
           </div>
         )}
 
-        {/* Form */}
+        {/* Formularz */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-              Username
+            <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+              Użytkownik
             </label>
             <input
               type="text"
@@ -135,14 +147,14 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
               autoFocus={isLogin}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. stefan"
-              className="w-full px-4 py-2.5 bg-slate-950/60 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              placeholder="np. stefan"
+              className="w-full px-4 py-3 bg-zinc-900/60 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400 transition-all text-sm font-medium"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-              PIN / Password
+            <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+              PIN / Hasło
             </label>
             <input
               type="password"
@@ -150,14 +162,14 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
               value={pin}
               onChange={(e) => setPin(e.target.value)}
               placeholder="••••"
-              className="w-full px-4 py-2.5 bg-slate-950/60 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 bg-zinc-900/60 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400 transition-all text-sm font-medium tracking-widest"
             />
           </div>
 
           {!isLogin && (
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                Confirm PIN
+              <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+                Potwierdź PIN
               </label>
               <input
                 type="password"
@@ -165,7 +177,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
                 value={confirmPin}
                 onChange={(e) => setConfirmPin(e.target.value)}
                 placeholder="••••"
-                className="w-full px-4 py-2.5 bg-slate-950/60 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 bg-zinc-900/60 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400 transition-all text-sm font-medium tracking-widest"
               />
             </div>
           )}
@@ -173,12 +185,12 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 px-4 mt-2 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold rounded-xl transition duration-200 shadow-lg shadow-blue-600/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+            className="w-full py-3.5 px-4 mt-3 bg-lime-400 hover:bg-lime-300 active:scale-[0.98] text-black font-extrabold uppercase tracking-wider text-xs rounded-xl transition duration-150 shadow-lg shadow-lime-400/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center"
           >
             {isLoading ? (
-              <span className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span className="inline-block w-4 h-4 border-2 border-black/40 border-t-black rounded-full animate-spin" />
             ) : (
-              <span>{isLogin ? 'Sign In' : 'Create Account'}</span>
+              <span>{isLogin ? 'Zaloguj się' : 'Utwórz konto'}</span>
             )}
           </button>
         </form>
