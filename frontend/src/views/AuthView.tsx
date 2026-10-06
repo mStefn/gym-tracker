@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 interface AuthViewProps {
-  onLoginSuccess: (token: string, user: { id: string; username: string }) => void;
+  onLoginSuccess?: (token: string, user: { id: string; username: string }) => void;
 }
 
 export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
@@ -43,7 +43,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
       }
 
       if (isLogin) {
-        onLoginSuccess(data.token, data.user);
+        onLoginSuccess?.(data.token, data.user);
       } else {
         setIsLogin(true);
         setPassword('');
