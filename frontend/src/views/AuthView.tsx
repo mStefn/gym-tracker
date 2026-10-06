@@ -1,96 +1,178 @@
-import { useState } from 'react';
-const styles: Record<string, string> = {};
-import { useAuthStore } from '../store/useAuthStore';
-import { API } from '../api';
+import React, { useState } from 'react';
 
-export default function AuthView() {
-  const setAuth = useAuthStore(state => state.setAuth);
-  
-  const [isLoginMode, setIsLoginMode] = useState(true);
-  const [name, setName] = useState('');
-  const [pin, setPin] = useState('');
-  const [error, setError] = useState('');
+interface AuthViewProps {
+  onLoginSuccess: (token: string, user: { id: string; username: string }) => void;
+}
+
+export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
+  const [isLogin, setIsLogin] = useState(true);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !pin) {
-      setError('Please fill in all fields');
+    setError(null);
+
+    if (!username.trim() || !password.trim()) {
+      setError('Please fill in all required fields.');
       return;
     }
 
-    setError('');
+    if (!isLogin && password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
     setIsLoading(true);
 
-    // Wywołanie odpowiedniego endpointu przez naszego klienta API
-    const response = isLoginMode 
-      ? await API.login(name, pin) 
-      : await API.signup(name, pin);
+    try {
+      const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
 
-    setIsLoading(false);
+      const data = await response.json();
 
-    if (response.ok && response.data) {
-      // Zapisujemy prawdziwe dane w Zustand (który zrzuci je do LocalStorage)
-      setAuth(response.data.userId, response.data.name, response.data.token);
-    } else {
-      setError(response.error || 'Authentication failed');
+      if (!response.ok) {
+        throw new Error(data.message || 'Authentication failed.');
+      }
+
+      if (isLogin) {
+        onLoginSuccess(data.token, data.user);
+      } else {
+        setIsLogin(true);
+        setPassword('');
+        setConfirmPassword('');
+        setError('Account created successfully! You can now sign in.');
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unexpected network error occurred.');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.card}>
-        <div className={styles.iconContainer}>
-          <img src="/img/icon-512.png" alt="Gym Tracker" className={styles.logo} />
+    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-slate-950 text-slate-100">
+      <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-2xl shadow-2xl p-6 sm:p-8 backdrop-blur-md">
+        {/* Header / Logo */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-500 mb-3 text-2xl font-bold">
+            🏋️‍♂️️
+          </div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-white">Gym Tracker</h1>
+          <p className="text-sm text-slate-400 mt-1">
+            {isLogin ? 'Sign in to continue your workout' : 'Create an account to track your progress'}
+          </p>
         </div>
-        
-        <h1 className={styles.title}>{isLoginMode ? 'Welcome Back' : 'Create Account'}</h1>
-        <p className={styles.subtitle}>
-          {isLoginMode ? 'Enter your details to access your workouts.' : 'Sign up to start tracking your progress.'}
-        </p>
 
-        {error && <div className={styles.errorBox}>{error}</div>}
+        {/* Tab Switcher: Login / Register */}
+        <div className="flex bg-slate-950/60 p-1 rounded-xl mb-6 border border-slate-800">
+          <button
+            type="button"
+            onClick={() => { setIsLogin(true); setError(null); }}
+            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+              isLogin
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Sign In
+          </button>
+          <button
+            type="button"
+            onClick={() => { setIsLogin(false); setError(null); }}
+            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+              !isLogin
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Sign Up
+          </button>
+        </div>
 
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <div className={styles.inputGroup}>
-            <label>Username</label>
-            <input 
-              type="text" 
-              value={name} 
-              onChange={(e) => setName(e.target.value)} 
-              placeholder="e.g. Stefan"
-              autoCapitalize="off"
+        {/* Feedback Messages */}
+        {error && (
+          <div className={`p-3 rounded-lg text-sm mb-4 border ${
+            error.includes('successfully') 
+              ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-300' 
+              : 'bg-rose-950/40 border-rose-800/60 text-rose-300'
+          }`}>
+            {error}
+          </div>
+        )}
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              Username
+            </label>
+            <input
+              type="text"
+              required
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="e.g. gymbro99"
+              className="w-full px-4 py-2.5 bg-slate-950/60 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
           </div>
 
-          <div className={styles.inputGroup}>
-            <label>PIN</label>
-            <input 
-              type="password" 
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={pin} 
-              onChange={(e) => setPin(e.target.value)} 
-              placeholder="Enter PIN"
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              Password
+            </label>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full px-4 py-2.5 bg-slate-950/60 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
           </div>
 
-          <button type="submit" className={styles.submitBtn} disabled={isLoading}>
-            {isLoading ? 'Connecting...' : (isLoginMode ? 'Login' : 'Sign Up')}
+          {!isLogin && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-4 py-2.5 bg-slate-950/60 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              />
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full py-3 px-4 mt-2 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold rounded-xl transition duration-200 shadow-lg shadow-blue-600/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+          >
+            {isLoading ? (
+              <span className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <span>{isLogin ? 'Sign In' : 'Create Account'}</span>
+            )}
           </button>
         </form>
-
-        <button 
-          type="button" 
-          className={styles.toggleBtn}
-          onClick={() => {
-            setIsLoginMode(!isLoginMode);
-            setError('');
-          }}
-        >
-          {isLoginMode ? "Don't have an account? Sign Up" : "Already have an account? Login"}
-        </button>
       </div>
     </div>
   );
-}
+};
+
+export default AuthView;
