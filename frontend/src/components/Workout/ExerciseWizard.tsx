@@ -1,7 +1,7 @@
 import { useState } from 'react';
+const styles: Record<string, string> = {};
 import { EXERCISE_SCHEMA, ExerciseDefinition } from '../../constants/exerciseSchema';
 import { authFetch, API_URL } from '../../api/client';
-import styles from './ExerciseWizard.module.css';
 
 interface ExerciseWizardProps {
   onClose: () => void;

@@ -1,7 +1,7 @@
 import { useState } from 'react';
+const styles: Record<string, string> = {};
 import { useAuthStore } from '../store/useAuthStore';
 import { API } from '../api';
-import styles from './AuthView.module.css';
 
 export default function AuthView() {
   const setAuth = useAuthStore(state => state.setAuth);
