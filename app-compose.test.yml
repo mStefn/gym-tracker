@@ -26,6 +26,9 @@ services:
 
   frontend:
     image: gym-frontend:test
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
     container_name: gym-test-frontend
     restart: unless-stopped
     ports:
@@ -34,7 +37,6 @@ services:
       - backend
     networks:
       - gym_test_net
-
 
 volumes:
   gym_test_db_data:

@@ -28,7 +28,6 @@ COPY --from=builder /app/dist /usr/share/nginx/html/
 COPY frontend/manifest.json /usr/share/nginx/html/
 COPY frontend/sw.js /usr/share/nginx/html/
 COPY frontend/img /usr/share/nginx/html/img
-COPY frontend/gym-tracker.webp /usr/share/nginx/html/
 
 # Kopiowanie legacy admina
 COPY frontend/_legacy_js /usr/share/nginx/html/_legacy_js/

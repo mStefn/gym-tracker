@@ -13,7 +13,6 @@ const ASSETS = [
   './js/plans.js',
   './js/dashboard.js',
   './js/stats.js',
-  './gym-tracker.webp',
   './img/icon-512.png',
   './manifest.json'
 ];
