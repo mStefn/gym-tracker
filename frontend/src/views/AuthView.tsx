@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 
 interface AuthViewProps {
-  onLoginSuccess?: (token: string, user: { id: string; username: string }) => void;
+  onLoginSuccess?: (token: string, user: { id: number; name: string }) => void;
 }
 
 export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
-  const [isLogin, setIsLogin] = useState(true);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState('');
+  const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -16,45 +14,41 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     setError(null);
 
-    if (!username.trim() || !password.trim()) {
-      setError('Please fill in all required fields.');
-      return;
-    }
-
-    if (!isLogin && password !== confirmPassword) {
-      setError('Passwords do not match.');
+    if (!name.trim() || !pin.trim()) {
+      setError('Please provide both username and PIN.');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
-      const response = await fetch(endpoint, {
+      const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ name: name.trim(), pin: pin.trim() }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Authentication failed.');
+        throw new Error(data.error || 'Invalid credentials');
       }
 
-      if (isLogin) {
-        onLoginSuccess?.(data.token, data.user);
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify({ id: data.id, name: data.name }));
+      }
+
+      if (onLoginSuccess) {
+        onLoginSuccess(data.token, { id: data.id, name: data.name });
       } else {
-        setIsLogin(true);
-        setPassword('');
-        setConfirmPassword('');
-        setError('Account created successfully! You can now sign in.');
+        window.location.reload();
       }
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('An unexpected network error occurred.');
+        setError('Network error occurred.');
       }
     } finally {
       setIsLoading(false);
@@ -67,47 +61,15 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
         {/* Header / Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-500 mb-3 text-2xl font-bold">
-            🏋️‍♂️️
+            🏋️‍♂️
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight text-white">Gym Tracker</h1>
-          <p className="text-sm text-slate-400 mt-1">
-            {isLogin ? 'Sign in to continue your workout' : 'Create an account to track your progress'}
-          </p>
+          <p className="text-sm text-slate-400 mt-1">Sign in with your username and PIN</p>
         </div>
 
-        {/* Tab Switcher: Login / Register */}
-        <div className="flex bg-slate-950/60 p-1 rounded-xl mb-6 border border-slate-800">
-          <button
-            type="button"
-            onClick={() => { setIsLogin(true); setError(null); }}
-            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-              isLogin
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            onClick={() => { setIsLogin(false); setError(null); }}
-            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-              !isLogin
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Sign Up
-          </button>
-        </div>
-
-        {/* Feedback Messages */}
+        {/* Error Feedback */}
         {error && (
-          <div className={`p-3 rounded-lg text-sm mb-4 border ${
-            error.includes('successfully') 
-              ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-300' 
-              : 'bg-rose-950/40 border-rose-800/60 text-rose-300'
-          }`}>
+          <div className="p-3 rounded-lg text-sm mb-5 bg-rose-950/40 border border-rose-800/60 text-rose-300">
             {error}
           </div>
         )}
@@ -121,42 +83,27 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
             <input
               type="text"
               required
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="e.g. gymbro99"
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. stefan"
               className="w-full px-4 py-2.5 bg-slate-950/60 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-              Password
+              PIN / Password
             </label>
             <input
               type="password"
               required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+              placeholder="••••"
               className="w-full px-4 py-2.5 bg-slate-950/60 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
           </div>
-
-          {!isLogin && (
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                Confirm Password
-              </label>
-              <input
-                type="password"
-                required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-2.5 bg-slate-950/60 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              />
-            </div>
-          )}
 
           <button
             type="submit"
@@ -166,7 +113,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
             {isLoading ? (
               <span className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
-              <span>{isLogin ? 'Sign In' : 'Create Account'}</span>
+              <span>Sign In</span>
             )}
           </button>
         </form>
