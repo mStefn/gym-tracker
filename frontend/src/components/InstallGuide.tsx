@@ -1,5 +1,6 @@
 import React from 'react';
-// Możemy później dodać tu osobny plik CSS Module, na razie zostawiamy Twoje klasy
+import { Button } from './ui/Button';
+import { Card } from './ui/Card';
 
 interface InstallGuideProps {
   onClose: () => void;
@@ -7,20 +8,46 @@ interface InstallGuideProps {
 
 export function InstallGuide({ onClose }: InstallGuideProps) {
   return (
-    <div id="install-guide-overlay" style={{ display: 'flex' }}>
-      <div className="install-card">
-        <h2 className="install-title">Install App</h2>
-        <p className="install-subtitle">Add Gym Tracker to your home screen for the best experience.</p>
-        
-        <div className="install-step">
-          <span className="step-num">1.</span> Tap <b>Share</b> <span className="icon">⍗</span> (iOS) or <b>Menu</b> <span className="icon">⋮</span> (Android).
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
+      <Card className="w-full max-w-md p-6 sm:p-8">
+        <div className="mb-6">
+          <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">
+            Install App
+          </h2>
+
+          <p className="mt-2 text-sm text-muted">
+            Add Gym Tracker to your home screen for the best experience.
+          </p>
         </div>
-        <div className="install-step">
-          <span className="step-num">2.</span> Select <br /><b>"Add to Home Screen"</b> ➕.
+
+        <div className="space-y-4">
+          <div className="flex gap-3 rounded-xl border border-border bg-background/50 p-4">
+            <span className="font-black text-accent">1.</span>
+
+            <p className="text-sm text-muted">
+              Tap <strong className="text-foreground">Share</strong> on iOS
+              or <strong className="text-foreground">Menu</strong> on
+              Android.
+            </p>
+          </div>
+
+          <div className="flex gap-3 rounded-xl border border-border bg-background/50 p-4">
+            <span className="font-black text-accent">2.</span>
+
+            <p className="text-sm text-muted">
+              Select{' '}
+              <strong className="text-foreground">
+                "Add to Home Screen"
+              </strong>
+              .
+            </p>
+          </div>
         </div>
-        
-        <button onClick={onClose} className="btn-modal-close">Got it</button>
-      </div>
+
+        <Button onClick={onClose} className="mt-6">
+          Got it
+        </Button>
+      </Card>
     </div>
   );
 }

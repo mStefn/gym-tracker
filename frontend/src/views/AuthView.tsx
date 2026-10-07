@@ -100,9 +100,9 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-zinc-950 p-4 text-zinc-100">
-      <div className="absolute left-1/2 top-1/4 h-80 w-80 -translate-x-1/2 rounded-full bg-[#ccff00]/10 blur-[110px]" />
-      <div className="absolute bottom-10 right-10 h-56 w-56 rounded-full bg-emerald-500/5 blur-[90px]" />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background p-4 text-foreground">
+      <div className="absolute left-1/2 top-1/4 h-80 w-80 -translate-x-1/2 rounded-full bg-accent/10 blur-[110px]" />
+      <div className="absolute bottom-10 right-10 h-56 w-56 rounded-full bg-success/5 blur-[90px]" />
 
       <Card className="relative w-full max-w-md rounded-3xl p-7 sm:p-9">
         <div className="mb-8 text-center">
@@ -113,24 +113,24 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
           />
 
           <h1 className="text-3xl font-black uppercase italic tracking-tight">
-            Gym <span className="text-[#ccff00]">Tracker</span>
+            Gym <span className="text-accent">Tracker</span>
           </h1>
 
-          <p className="mt-1.5 text-xs font-medium uppercase tracking-wide text-zinc-400">
+          <p className="mt-1.5 text-xs font-medium uppercase tracking-wide text-muted">
             {isLogin
               ? 'Sign in to continue'
               : 'Create an account and track your progress'}
           </p>
         </div>
 
-        <div className="mb-6 grid grid-cols-2 rounded-2xl border border-zinc-800 bg-zinc-900/90 p-1">
+        <div className="mb-6 grid grid-cols-2 rounded-2xl border border-border bg-surface/90 p-1">
           <button
             type="button"
             onClick={() => switchMode(true)}
             className={`rounded-xl py-2.5 text-xs font-bold uppercase tracking-wider transition ${
               isLogin
-                ? 'bg-[#ccff00] text-black shadow-md'
-                : 'text-zinc-400 hover:text-zinc-100'
+                ? 'bg-accent text-background shadow-md'
+                : 'text-muted hover:text-foreground'
             }`}
           >
             Sign In
@@ -141,8 +141,8 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
             onClick={() => switchMode(false)}
             className={`rounded-xl py-2.5 text-xs font-bold uppercase tracking-wider transition ${
               !isLogin
-                ? 'bg-[#ccff00] text-black shadow-md'
-                : 'text-zinc-400 hover:text-zinc-100'
+                ? 'bg-accent text-background shadow-md'
+                : 'text-muted hover:text-foreground'
             }`}
           >
             Sign Up
@@ -153,8 +153,8 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
           <div
             className={`mb-5 rounded-xl border p-3.5 text-xs font-medium ${
               error.includes('successfully')
-                ? 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300'
-                : 'border-red-500/40 bg-red-950/30 text-red-300'
+                ? 'border-success/40 bg-success/10 text-success'
+                : 'border-danger/40 bg-danger/10 text-danger'
             }`}
           >
             {error}
@@ -201,7 +201,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
             className="mt-3"
           >
             {isLoading ? (
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/40 border-t-black" />
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-background/40 border-t-background" />
             ) : (
               isLogin ? 'Sign In' : 'Create Account'
             )}

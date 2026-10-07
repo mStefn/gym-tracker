@@ -1,43 +1,48 @@
 import { useState } from 'react';
-import { EXERCISE_SCHEMA, ExerciseDefinition } from '../../constants/exerciseSchema';
+import {
+  EXERCISE_SCHEMA,
+  ExerciseDefinition,
+} from '../../constants/exerciseSchema';
 import { authFetch, API_URL } from '../../api/client';
-import { theme } from '../../constants/theme';
 import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
 
 interface ExerciseWizardProps {
   onClose: () => void;
   onComplete: (exercise: any) => void;
 }
 
-export function ExerciseWizard({ onClose, onComplete }: ExerciseWizardProps) {
-  // Stan aplikacji - zarządza krokami i wyborami użytkownika
+export function ExerciseWizard({
+  onClose,
+  onComplete,
+}: ExerciseWizardProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [category, setCategory] = useState<string | null>(null);
-  const [baseExercise, setBaseExercise] = useState<ExerciseDefinition | null>(null);
-  
+  const [baseExercise, setBaseExercise] =
+    useState<ExerciseDefinition | null>(null);
+
   const [equipment, setEquipment] = useState<string>('');
   const [angle, setAngle] = useState<string>('');
   const [variant, setVariant] = useState<string>('');
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // KROK 1: Wybór kategorii
   const handleCategorySelect = (cat: string) => {
     setCategory(cat);
     setStep(2);
   };
 
-  // KROK 2: Wybór ćwiczenia
   const handleBaseExerciseSelect = (ex: ExerciseDefinition) => {
     setBaseExercise(ex);
-    
-    const hasOptions = (ex.equipment?.length) || (ex.angles?.length) || (ex.variants?.length);
-    
+
+    const hasOptions =
+      ex.equipment?.length ||
+      ex.angles?.length ||
+      ex.variants?.length;
+
     if (!hasOptions) {
-      // Jeśli brak opcji (np. Push-Up), od razu zapisujemy
       submitExercise(ex.name, ex.category);
     } else {
-      // Ustawiamy domyślne opcje na pierwsze z listy i przechodzimy do kroku 3
       setEquipment(ex.equipment?.[0] || '');
       setAngle(ex.angles?.[0] || '');
       setVariant(ex.variants?.[0] || '');
@@ -45,55 +50,86 @@ export function ExerciseWizard({ onClose, onComplete }: ExerciseWizardProps) {
     }
   };
 
-  // Generator finalnej nazwy (np. "Incline Barbell Bench Press")
-  const buildFinalName = (ex: ExerciseDefinition = baseExercise!) => {
+  const buildFinalName = (
+    ex: ExerciseDefinition = baseExercise!
+  ) => {
     const parts = [];
-    if (angle && angle !== 'Flat') parts.push(angle);
-    if (equipment && equipment !== 'Bodyweight') parts.push(equipment);
+
+    if (angle && angle !== 'Flat') {
+      parts.push(angle);
+    }
+
+    if (equipment && equipment !== 'Bodyweight') {
+      parts.push(equipment);
+    }
+
     parts.push(ex.name);
-    if (variant && variant !== 'Standard') parts.push(`- ${variant}`);
+
+    if (variant && variant !== 'Standard') {
+      parts.push(`- ${variant}`);
+    }
+
     return parts.join(' ').replace(/\s+/g, ' ').trim();
   };
 
-  // Zapis do API
-  const submitExercise = async (name: string = buildFinalName(), cat: string = category!) => {
+  const submitExercise = async (
+    name: string = buildFinalName(),
+    cat: string = category!
+  ) => {
     setIsSubmitting(true);
+
     try {
-      const res = await authFetch(`${API_URL}/exercises/find-or-create`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, category: cat })
-      });
-      
-      if (!res.ok) throw new Error('Backend Sync Failed');
+      const res = await authFetch(
+        `${API_URL}/exercises/find-or-create`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, category: cat }),
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error('Backend Sync Failed');
+      }
+
       const data = await res.json();
-      
+
       onComplete(data);
     } catch (error) {
       console.error('Wizard Sync Error:', error);
-      alert('Connection error. Could not sync exercise with server.');
+      alert(
+        'Connection error. Could not sync exercise with server.'
+      );
       setIsSubmitting(false);
     }
   };
 
-  // Zmienne pomocnicze do renderowania
-  const categories = [...new Set(EXERCISE_SCHEMA.map(e => e.category))];
-  const exercisesForCategory = EXERCISE_SCHEMA.filter(e => e.category === category);
+  const categories = [
+    ...new Set(EXERCISE_SCHEMA.map((e) => e.category)),
+  ];
 
-  // Bazowe klasy dla kafelków wyboru
-  const tileBase = "p-4 rounded-xl border font-bold transition-all text-left w-full";
-  const tileInactive = "bg-zinc-900/50 border-zinc-800 text-zinc-300 hover:border-[#ccff00]/50 hover:bg-zinc-800";
-  const tileActive = `bg-[#ccff00]/10 border-[#ccff00] ${theme.text.accent} ${theme.fx.glowLime}`;
+  const exercisesForCategory = EXERCISE_SCHEMA.filter(
+    (e) => e.category === category
+  );
+
+  const tileBase =
+    'w-full rounded-xl border p-4 text-left font-bold transition-all';
+
+  const tileInactive =
+    'bg-surface/50 border-border text-muted hover:border-accent/50 hover:bg-surface';
+
+  const tileActive =
+    'bg-accent/10 border-accent text-accent shadow-glow';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className={`${theme.bg.card} w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden shadow-2xl`}>
-        
-        {/* Nagłówek Modalny */}
-        <div className="flex justify-between items-center p-5 border-b border-zinc-800/60 shrink-0 bg-zinc-950/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-md">
+      <Card className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden shadow-2xl">
+        {/* Modal header */}
+        <div className="flex shrink-0 items-center justify-between border-b border-border/60 bg-background/50 p-5">
           {step > 1 ? (
-            <button 
-              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-zinc-800 text-zinc-400 transition-colors" 
+            <button
+              type="button"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
               onClick={() => setStep(step === 3 ? 2 : 1)}
             >
               ←
@@ -101,28 +137,33 @@ export function ExerciseWizard({ onClose, onComplete }: ExerciseWizardProps) {
           ) : (
             <div className="w-8" />
           )}
-          
-          <h3 className="m-0 text-lg font-black uppercase tracking-widest text-white">
-            {step === 1 && 'Wybierz partię'}
+
+          <h3 className="m-0 text-lg font-black uppercase tracking-widest text-foreground">
+            {step === 1 && 'Choose Muscle Group'}
             {step === 2 && category}
-            {step === 3 && 'Konfiguracja'}
+            {step === 3 && 'Configuration'}
           </h3>
-          
-          <button 
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-zinc-800 text-zinc-400 transition-colors text-xl" 
+
+          <button
+            type="button"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-xl text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
             onClick={onClose}
           >
             &times;
           </button>
         </div>
 
-        {/* Ciało Modalne */}
-        <div className="p-5 overflow-y-auto flex-grow custom-scrollbar">
-          
+        {/* Modal body */}
+        <div className="flex-grow overflow-y-auto p-5">
           {step === 1 && (
             <div className="grid grid-cols-2 gap-3">
-              {categories.map(cat => (
-                <button key={cat} className={`${tileBase} ${tileInactive}`} onClick={() => handleCategorySelect(cat)}>
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  className={`${tileBase} ${tileInactive}`}
+                  onClick={() => handleCategorySelect(cat)}
+                >
                   {cat}
                 </button>
               ))}
@@ -131,8 +172,13 @@ export function ExerciseWizard({ onClose, onComplete }: ExerciseWizardProps) {
 
           {step === 2 && (
             <div className="flex flex-col gap-3">
-              {exercisesForCategory.map(ex => (
-                <button key={ex.name} className={`${tileBase} ${tileInactive}`} onClick={() => handleBaseExerciseSelect(ex)}>
+              {exercisesForCategory.map((ex) => (
+                <button
+                  key={ex.name}
+                  type="button"
+                  className={`${tileBase} ${tileInactive}`}
+                  onClick={() => handleBaseExerciseSelect(ex)}
+                >
                   {ex.name}
                 </button>
               ))}
@@ -141,16 +187,26 @@ export function ExerciseWizard({ onClose, onComplete }: ExerciseWizardProps) {
 
           {step === 3 && baseExercise && (
             <div className="space-y-6">
-              <h2 className={`text-2xl font-black text-center ${theme.text.accent}`}>{baseExercise.name}</h2>
-              
+              <h2 className="text-center text-2xl font-black text-accent">
+                {baseExercise.name}
+              </h2>
+
               {baseExercise.equipment && (
                 <div>
-                  <label className={theme.input.label}>Sprzęt</label>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    {baseExercise.equipment.map(eq => (
-                      <button 
-                        key={eq} 
-                        className={`${tileBase} ${equipment === eq ? tileActive : tileInactive} !p-3 !text-sm`} 
+                  <label className="ml-1 text-[11px] font-bold uppercase tracking-widest text-muted">
+                    Equipment
+                  </label>
+
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {baseExercise.equipment.map((eq) => (
+                      <button
+                        key={eq}
+                        type="button"
+                        className={`${tileBase} ${
+                          equipment === eq
+                            ? tileActive
+                            : tileInactive
+                        } !p-3 !text-sm`}
                         onClick={() => setEquipment(eq)}
                       >
                         {eq}
@@ -162,12 +218,20 @@ export function ExerciseWizard({ onClose, onComplete }: ExerciseWizardProps) {
 
               {baseExercise.angles && (
                 <div>
-                  <label className={theme.input.label}>Kąt / Ławka</label>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    {baseExercise.angles.map(ang => (
-                      <button 
-                        key={ang} 
-                        className={`${tileBase} ${angle === ang ? tileActive : tileInactive} !p-3 !text-sm`} 
+                  <label className="ml-1 text-[11px] font-bold uppercase tracking-widest text-muted">
+                    Angle / Bench
+                  </label>
+
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {baseExercise.angles.map((ang) => (
+                      <button
+                        key={ang}
+                        type="button"
+                        className={`${tileBase} ${
+                          angle === ang
+                            ? tileActive
+                            : tileInactive
+                        } !p-3 !text-sm`}
                         onClick={() => setAngle(ang)}
                       >
                         {ang}
@@ -177,27 +241,34 @@ export function ExerciseWizard({ onClose, onComplete }: ExerciseWizardProps) {
                 </div>
               )}
 
-              <div className="mt-8 p-4 border-2 border-dashed border-zinc-800/60 rounded-xl text-center bg-zinc-950/30">
-                <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Finalna nazwa ćwiczenia</div>
-                <div className="text-lg font-black text-white">{buildFinalName()}</div>
+              <div className="mt-8 rounded-xl border-2 border-dashed border-border/60 bg-background/30 p-4 text-center">
+                <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-subtle">
+                  Final Exercise Name
+                </div>
+
+                <div className="text-lg font-black text-foreground">
+                  {buildFinalName()}
+                </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Stopka (Tylko w Kroku 3) */}
+        {/* Modal footer */}
         {step === 3 && (
-          <div className="p-5 border-t border-zinc-800/60 shrink-0 bg-zinc-950/50">
-            <Button 
-              className="w-full" 
-              onClick={() => submitExercise()} 
+          <div className="shrink-0 border-t border-border/60 bg-background/50 p-5">
+            <Button
+              className="w-full"
+              onClick={() => submitExercise()}
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Zapisywanie...' : 'Zatwierdź i Dodaj'}
+              {isSubmitting
+                ? 'Saving...'
+                : 'Confirm & Add Exercise'}
             </Button>
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

@@ -7,20 +7,20 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 const variants = {
   primary: `
     w-full
-    bg-[#ccff00]
-    text-zinc-950
+    bg-accent
+    text-background
     font-bold
     py-3
     px-4
     rounded-xl
     transition-all
     duration-200
-    hover:bg-[#b3e600]
-    hover:shadow-[0_0_15px_rgba(204,255,0,0.4)]
+    hover:bg-accent-hover
+    hover:shadow-glow-strong
     active:scale-[0.98]
     focus-visible:outline-none
     focus-visible:ring-2
-    focus-visible:ring-[#ccff00]
+    focus-visible:ring-accent
     disabled:opacity-40
     disabled:cursor-not-allowed
     disabled:pointer-events-none
@@ -33,22 +33,22 @@ const variants = {
 
   secondary: `
     w-full
-    bg-zinc-800
-    text-zinc-100
+    bg-surface-muted
+    text-foreground
     font-bold
     py-3
     px-4
     rounded-xl
     border
-    border-zinc-700
+    border-border-light
     transition-all
     duration-200
-    hover:bg-zinc-700
-    hover:border-zinc-600
+    hover:bg-border-light
+    hover:border-border-light
     active:scale-[0.98]
     focus-visible:outline-none
     focus-visible:ring-2
-    focus-visible:ring-zinc-500
+    focus-visible:ring-muted
     disabled:opacity-40
     disabled:cursor-not-allowed
     disabled:pointer-events-none
@@ -60,14 +60,14 @@ const variants = {
   `,
 
   ghost: `
-    text-zinc-400
-    hover:text-[#ccff00]
+    text-muted
+    hover:text-accent
     transition-colors
     duration-200
     rounded-lg
     focus-visible:outline-none
     focus-visible:ring-2
-    focus-visible:ring-[#ccff00]
+    focus-visible:ring-accent
     disabled:opacity-40
     disabled:cursor-not-allowed
     disabled:pointer-events-none
@@ -75,22 +75,22 @@ const variants = {
 
   danger: `
     w-full
-    bg-red-500/10
-    text-red-500
+    bg-danger/10
+    text-danger
     font-bold
     py-3
     px-4
     rounded-xl
     border
-    border-red-500/20
+    border-danger/20
     transition-all
     duration-200
-    hover:bg-red-500/20
-    hover:border-red-500/30
+    hover:bg-danger/20
+    hover:border-danger/30
     active:scale-[0.98]
     focus-visible:outline-none
     focus-visible:ring-2
-    focus-visible:ring-red-500
+    focus-visible:ring-danger
     disabled:opacity-40
     disabled:cursor-not-allowed
     disabled:pointer-events-none

@@ -10,10 +10,11 @@ export default function SettingsView() {
   return (
     <div className="relative z-10 space-y-6 sm:space-y-8">
       <section>
-        <h1 className="mb-2 text-3xl font-black uppercase tracking-tight text-white sm:text-4xl">
-          Your <span className="text-[#ccff00]">Settings</span>
+        <h1 className="mb-2 text-3xl font-black uppercase tracking-tight text-foreground sm:text-4xl">
+          Your <span className="text-accent">Settings</span>
         </h1>
-        <p className="text-sm font-medium tracking-wide text-zinc-400">
+
+        <p className="text-sm font-medium tracking-wide text-muted">
           Customize your profile, application preferences and account.
         </p>
       </section>
@@ -21,20 +22,21 @@ export default function SettingsView() {
       <div className="grid grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-2">
         <div className="space-y-5 sm:space-y-6">
           <Card className="p-5 sm:p-6">
-            <h2 className="mb-5 border-b border-zinc-800/60 pb-3 text-xs font-bold uppercase tracking-widest text-zinc-500">
+            <h2 className="mb-5 border-b border-border/60 pb-3 text-xs font-bold uppercase tracking-widest text-subtle">
               User Profile
             </h2>
 
             <div className="mb-6 flex items-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full border border-zinc-800 bg-zinc-950 text-2xl font-black text-[#ccff00]">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border border-border bg-background text-2xl font-black text-accent">
                 {currentUserName?.charAt(0).toUpperCase() || 'U'}
               </div>
 
               <div>
-                <div className="text-xl font-bold text-white">
+                <div className="text-xl font-bold text-foreground">
                   {currentUserName}
                 </div>
-                <div className="mt-1 text-xs text-zinc-400">
+
+                <div className="mt-1 text-xs text-muted">
                   Active account
                 </div>
               </div>
@@ -64,47 +66,49 @@ export default function SettingsView() {
 
         <div className="space-y-5 sm:space-y-6">
           <Card className="p-5 sm:p-6">
-            <h2 className="mb-5 border-b border-zinc-800/60 pb-3 text-xs font-bold uppercase tracking-widest text-zinc-500">
+            <h2 className="mb-5 border-b border-border/60 pb-3 text-xs font-bold uppercase tracking-widest text-subtle">
               App Preferences
             </h2>
 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm font-bold text-white">
+                  <div className="text-sm font-bold text-foreground">
                     App Theme
                   </div>
-                  <div className="mt-1 text-xs text-zinc-400">
+
+                  <div className="mt-1 text-xs text-muted">
                     Dark mode is enabled
                   </div>
                 </div>
 
-                <div className="relative h-6 w-12 cursor-not-allowed rounded-full bg-[#ccff00] opacity-80">
-                  <div className="absolute right-1 top-1 h-4 w-4 rounded-full bg-zinc-950" />
+                <div className="relative h-6 w-12 cursor-not-allowed rounded-full bg-accent opacity-80">
+                  <div className="absolute right-1 top-1 h-4 w-4 rounded-full bg-background" />
                 </div>
               </div>
 
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm font-bold text-white">
+                  <div className="text-sm font-bold text-foreground">
                     Weight Units
                   </div>
-                  <div className="mt-1 text-xs text-zinc-400">
+
+                  <div className="mt-1 text-xs text-muted">
                     Kilograms (kg)
                   </div>
                 </div>
 
-                <div className="flex rounded-lg border border-zinc-800 bg-zinc-950 p-1">
+                <div className="flex rounded-lg border border-border bg-background p-1">
                   <button
                     type="button"
-                    className="rounded-md bg-[#ccff00] px-3 py-1 text-xs font-bold text-zinc-950"
+                    className="rounded-md bg-accent px-3 py-1 text-xs font-bold text-background"
                   >
                     KG
                   </button>
 
                   <button
                     type="button"
-                    className="rounded-md px-3 py-1 text-xs font-bold text-zinc-500 transition-colors hover:text-white"
+                    className="rounded-md px-3 py-1 text-xs font-bold text-subtle transition-colors hover:text-foreground"
                   >
                     LBS
                   </button>
@@ -113,13 +117,13 @@ export default function SettingsView() {
             </div>
           </Card>
 
-          <Card className="border-red-500/20 bg-red-500/5 p-5 sm:p-6">
-            <h2 className="mb-5 border-b border-red-500/20 pb-3 text-xs font-bold uppercase tracking-widest text-red-500">
+          <Card className="border-danger/20 bg-danger/5 p-5 sm:p-6">
+            <h2 className="mb-5 border-b border-danger/20 pb-3 text-xs font-bold uppercase tracking-widest text-danger">
               Danger Zone
             </h2>
 
             <div className="space-y-3">
-              <p className="mb-4 text-sm text-zinc-400">
+              <p className="mb-4 text-sm text-muted">
                 Signing out will remove your session token. Deleting your
                 account is permanent and will remove all your workouts.
               </p>

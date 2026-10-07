@@ -18,7 +18,7 @@ export const Input: React.FC<InputProps> = ({
       {label && (
         <label
           htmlFor={id}
-          className="ml-1 text-[11px] font-bold uppercase tracking-widest text-zinc-400"
+          className="ml-1 text-[11px] font-bold uppercase tracking-widest text-muted"
         >
           {label}
         </label>
@@ -30,20 +30,20 @@ export const Input: React.FC<InputProps> = ({
           w-full
           rounded-xl
           border
-          bg-zinc-900/60
+          bg-surface/60
           px-4
           py-3
           text-sm
           font-medium
-          text-zinc-100
-          placeholder:text-zinc-600
+          text-foreground
+          placeholder:text-disabled
           transition-all
           focus:outline-none
           focus:ring-1
           ${
             error
-              ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500'
-              : 'border-zinc-800 focus:border-[#ccff00] focus:ring-[#ccff00]'
+              ? 'border-danger/50 focus:border-danger focus:ring-danger'
+              : 'border-border focus:border-accent focus:ring-accent'
           }
           ${className}
         `}
@@ -51,7 +51,7 @@ export const Input: React.FC<InputProps> = ({
       />
 
       {error && (
-        <span className="ml-1 text-xs text-red-400">
+        <span className="ml-1 text-xs text-danger">
           {error}
         </span>
       )}

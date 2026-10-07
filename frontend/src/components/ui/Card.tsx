@@ -6,29 +6,29 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const variants = {
   default: `
-    bg-zinc-900/80
+    bg-surface/80
     backdrop-blur-md
     border
-    border-zinc-800
-    shadow-xl
+    border-border
+    shadow-card
   `,
 
   muted: `
-    bg-zinc-900/50
+    bg-surface/50
     border
-    border-zinc-800/50
+    border-border/50
   `,
 
   interactive: `
-    bg-zinc-900/80
+    bg-surface/80
     backdrop-blur-md
     border
-    border-zinc-800
-    shadow-xl
+    border-border
+    shadow-card
     transition-all
     duration-200
-    hover:border-zinc-700
-    hover:bg-zinc-900
+    hover:border-border-light
+    hover:bg-surface
   `,
 } as const;
 
