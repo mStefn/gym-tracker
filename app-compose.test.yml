@@ -5,13 +5,16 @@ services:
     restart: unless-stopped
     env_file: .env.test
     volumes:
-      - gym_test_db_data:/var/lib/postgresql/data  
+      - gym_test_db_data:/var/lib/postgresql/data
       - /etc/localtime:/etc/localtime:ro
     networks:
       - gym_test_net
 
   backend:
     image: gym-backend:test
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: gym-test-backend
     restart: unless-stopped
     expose:
