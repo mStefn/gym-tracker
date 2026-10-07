@@ -41,6 +41,7 @@ func main() {
 	} else {
 		corsConfig.AllowOrigins = []string{allowOrigin}
 	}
+
 	r.Use(cors.New(corsConfig))
 
 	// --- PUBLIC ROUTES ---
@@ -52,26 +53,31 @@ func main() {
 	auth := r.Group("/")
 	auth.Use(AuthRequired())
 	{
+		// Authentication
 		auth.POST("/change-pin", ChangePin)
-		auth.GET("/plans", GetUserPlans)
-		auth.GET("/plan-exercises/:plan_id", GetPlanExercises)
-		auth.POST("/log", LogSet)
-		auth.GET("/last/:user_id/:ex_id/:set", GetLastResult)
-		auth.GET("/exercises", GetExercises)
 
-		// Plan management
+		// Workout plans
+		auth.GET("/plans", GetUserPlans)
 		auth.POST("/plans", CreatePlan)
 		auth.PUT("/plan/:id", UpdatePlanName)
 		auth.DELETE("/plan/:id", DeletePlan)
 
-		// Plan exercise management
+		// Plan exercises
+		auth.GET("/plan-exercises/:plan_id", GetPlanExercises)
 		auth.POST("/plan-exercises", AddExerciseToPlan)
 		auth.DELETE("/plan-exercises/:plan_id", DeletePlanExercises)
 		auth.POST("/plan-exercises/sync", SyncPlanExercises)
 
-		// Statistics and Dashboard
-		auth.GET("/stats/:user_id", GetUserStats)
+		// Workout & progress
+		auth.POST("/log", LogSet)
+		auth.GET("/last/:user_id/:ex_id/:set", GetLastResult)
+
+		// Exercises
+		auth.GET("/exercises", GetExercises)
 		auth.POST("/exercises/find-or-create", FindOrCreateExerciseHandler)
+
+		// Statistics and dashboard
+		auth.GET("/stats/:user_id", GetUserStats)
 		auth.POST("/weight", LogBodyWeight)
 		auth.GET("/dashboard/:user_id", GetDashboardData)
 		auth.GET("/stats/advanced/:user_id", GetAdvancedStats)
@@ -106,6 +112,7 @@ type FindOrCreateReq struct {
 // FindOrCreateExerciseHandler handles the logic for exercise lookup or creation
 func FindOrCreateExerciseHandler(c *gin.Context) {
 	var req FindOrCreateReq
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(400, gin.H{"error": "Invalid input"})
 		return
@@ -117,5 +124,9 @@ func FindOrCreateExerciseHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, gin.H{"id": id, "name": req.Name, "category": req.Category})
+	c.JSON(200, gin.H{
+		"id":       id,
+		"name":     req.Name,
+		"category": req.Category,
+	})
 }
