@@ -2,8 +2,11 @@ import React from 'react';
 import { theme } from '../constants/theme';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
+import { useWorkoutStore } from '../store/useWorkoutStore';
 
 export default function WorkoutView() {
+  const { startWorkout } = useWorkoutStore();
+
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-500 relative z-10">
       
@@ -26,8 +29,11 @@ export default function WorkoutView() {
               Zacznij od zera i dodawaj ćwiczenia na bieżąco. Idealne na spontaniczną sesję.
             </p>
           </div>
-          <Button className="w-full sm:w-auto px-8 py-4">
-            <span className="text-xl">⚡</span> Rozpocznij
+          <Button 
+            className="w-full sm:w-auto px-8 py-4 text-sm" 
+            onClick={() => startWorkout('Pusty trening')}
+          >
+            ROZPOCZNIJ
           </Button>
         </Card>
       </section>
@@ -41,7 +47,10 @@ export default function WorkoutView() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           
           {/* Szablon 1 */}
-          <Card className="p-5 flex flex-col h-full hover:border-zinc-700 transition-colors group cursor-pointer">
+          <Card 
+            className="p-5 flex flex-col h-full hover:border-zinc-700 transition-colors group cursor-pointer"
+            onClick={() => startWorkout('Push Day')}
+          >
             <div className="flex justify-between items-start mb-6">
               <div>
                 <h3 className="text-lg font-bold text-white group-hover:text-[#ccff00] transition-colors">
@@ -62,7 +71,10 @@ export default function WorkoutView() {
           </Card>
 
           {/* Szablon 2 */}
-          <Card className="p-5 flex flex-col h-full hover:border-zinc-700 transition-colors group cursor-pointer">
+          <Card 
+            className="p-5 flex flex-col h-full hover:border-zinc-700 transition-colors group cursor-pointer"
+            onClick={() => startWorkout('Pull Day')}
+          >
             <div className="flex justify-between items-start mb-6">
               <div>
                 <h3 className="text-lg font-bold text-white group-hover:text-[#ccff00] transition-colors">
