@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from './store/useAuthStore';
 import { InstallGuide } from './components/InstallGuide';
+import { theme } from './constants/theme';
+import { Button } from './components/ui/Button';
 
 import Dashboard from './views/Dashboard';
 import WorkoutView from './views/WorkoutView';
@@ -65,26 +67,23 @@ export default function App() {
     }
   };
 
-  // Zaktualizowane klasy bazujące na Cyber Lime i głębokiej czerni
+  // Zaktualizowane klasy nawigacji korzystające z nowego motywu
   const navItemBase = "flex-1 md:flex-none py-3.5 px-2 md:px-5 rounded-xl text-xs md:text-sm font-bold uppercase tracking-wider transition-all duration-200 text-center md:text-left cursor-pointer";
-  const navItemActive = "bg-lime-400 text-black shadow-[0_0_15px_rgba(204,255,0,0.15)]"; 
-  const navItemInactive = "text-zinc-500 hover:text-white hover:bg-zinc-900";
+  const navItemActive = `bg-[#ccff00] text-zinc-950 ${theme.fx.glowLime}`; 
+  const navItemInactive = "text-zinc-500 hover:text-zinc-100 hover:bg-zinc-900";
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col md:flex-row font-sans selection:bg-lime-400 selection:text-black">
+    <div className={`${theme.bg.main} flex flex-col md:flex-row font-sans selection:bg-[#ccff00] selection:text-black`}>
       
       {/* 📱 TOP BAR (Tylko na telefonie) */}
       <header className="bg-zinc-950/80 p-4 flex justify-between items-center md:hidden shadow-md z-10 border-b border-zinc-900 backdrop-blur-xl sticky top-0">
         <div className="flex items-center gap-2">
           <img src="/img/icon-512.png" alt="Logo" className="w-8 h-8 rounded-lg" />
           <div className="font-black text-sm uppercase italic tracking-tight">
-            Hi, <span className="text-lime-400">{currentUserName}</span>
+            Hi, <span className={theme.text.accent}>{currentUserName}</span>
           </div>
         </div>
-        <button 
-          onClick={logout} 
-          className="px-4 py-2 bg-zinc-900 border border-zinc-800 hover:border-rose-500/50 hover:text-rose-400 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-colors text-zinc-400"
-        >
+        <button onClick={logout} className="px-4 py-2 bg-zinc-900 border border-zinc-800 hover:border-red-500/50 hover:text-red-400 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-colors text-zinc-400">
           Wyloguj
         </button>
       </header>
@@ -93,7 +92,7 @@ export default function App() {
       <aside className="hidden md:flex flex-col w-72 bg-zinc-950 border-r border-zinc-900 p-5 z-10 shadow-2xl">
         <div className="flex items-center gap-3 font-black text-2xl mb-8 px-2 tracking-tight text-white uppercase italic">
           <img src="/img/icon-512.png" alt="Logo" className="w-10 h-10 rounded-xl" />
-          <span>Gym <span className="text-lime-400">Tracker</span></span>
+          <span>Gym <span className={theme.text.accent}>Tracker</span></span>
         </div>
         
         <div className="mb-10 px-3 py-4 bg-zinc-900/50 border border-zinc-800/50 rounded-2xl">
@@ -108,17 +107,14 @@ export default function App() {
           <button onClick={() => setCurrentView('settings')} className={`${navItemBase} ${currentView === 'settings' ? navItemActive : navItemInactive}`}>Ustawienia</button>
         </nav>
 
-        <button 
-          onClick={logout} 
-          className="mt-auto px-5 py-4 bg-zinc-900 hover:bg-rose-500/10 hover:border-rose-500/30 border border-transparent rounded-xl text-xs font-bold uppercase tracking-widest transition-all text-left text-zinc-400 hover:text-rose-400"
-        >
+        <Button variant="danger" onClick={logout} className="mt-auto">
           Wyloguj się
-        </button>
+        </Button>
       </aside>
       
       {/* 🏋️ GŁÓWNA ZAWARTOŚĆ (Widoki) */}
       <main className="flex-1 overflow-y-auto p-4 pb-28 md:pb-8 md:p-8 w-full max-w-7xl mx-auto relative">
-        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-lime-500/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[#ccff00]/5 rounded-full blur-[120px] pointer-events-none" />
         {renderView()}
       </main>
 
