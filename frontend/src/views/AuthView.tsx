@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { Input } from '../components/ui/Input';
 
 interface AuthViewProps {
-  onLoginSuccess?: (token: string, user: { id: number; name: string }) => void;
+  onLoginSuccess?: (
+    token: string,
+    user: { id: number; name: string }
+  ) => void;
 }
 
 export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
@@ -17,12 +23,12 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
     setError(null);
 
     if (!name.trim() || !pin.trim()) {
-      setError('Podaj nazwę użytkownika oraz PIN.');
+      setError('Please enter your username and PIN.');
       return;
     }
 
     if (!isLogin && pin !== confirmPin) {
-      setError('Podane kody PIN nie zgadzają się.');
+      setError('The PINs do not match.');
       return;
     }
 
@@ -30,26 +36,44 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
 
     try {
       const endpoint = isLogin ? '/api/login' : '/api/signup';
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), pin: pin.trim() }),
+        body: JSON.stringify({
+          name: name.trim(),
+          pin: pin.trim(),
+        }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || (isLogin ? 'Nieprawidłowe dane logowania' : 'Rejestracja nie powiodła się'));
+        throw new Error(
+          data.error ||
+            (isLogin
+              ? 'Invalid login credentials.'
+              : 'Registration failed.')
+        );
       }
 
       if (isLogin) {
         if (data.token) {
           localStorage.setItem('token', data.token);
-          localStorage.setItem('user', JSON.stringify({ id: data.id, name: data.name }));
+          localStorage.setItem(
+            'user',
+            JSON.stringify({
+              id: data.id,
+              name: data.name,
+            })
+          );
         }
 
         if (onLoginSuccess) {
-          onLoginSuccess(data.token, { id: data.id, name: data.name });
+          onLoginSuccess(data.token, {
+            id: data.id,
+            name: data.name,
+          });
         } else {
           window.location.reload();
         }
@@ -57,144 +81,133 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
         setIsLogin(true);
         setPin('');
         setConfirmPin('');
-        setError('Konto utworzone pomyślnie! Możesz się teraz zalogować.');
+        setError('Account created successfully! You can now sign in.');
       }
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('Wystąpił błąd sieci.');
-      }
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'A network error occurred.'
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  return (
-    <div className="relative min-h-screen w-full flex items-center justify-center p-4 bg-black text-white selection:bg-lime-400 selection:text-black overflow-hidden">
-      {/* Dynamiczne poświaty w tle (Radial ambient glows) */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] h-[340px] bg-lime-500/10 rounded-full blur-[110px] pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-[220px] h-[220px] bg-emerald-500/5 rounded-full blur-[90px] pointer-events-none" />
+  const switchMode = (login: boolean) => {
+    setIsLogin(login);
+    setError(null);
+  };
 
-      {/* Główna karta */}
-      <div className="relative w-full max-w-sm sm:max-w-md bg-zinc-950/80 border border-zinc-800/80 rounded-3xl p-7 sm:p-9 shadow-2xl backdrop-blur-xl">
-        
-        {/* Sekcja logo i nagłówka */}
-        <div className="flex flex-col items-center text-center mb-8">
-          <div className="relative mb-4 group">
-            <div className="absolute -inset-1 rounded-2xl bg-gradient-to-tr from-lime-400 to-emerald-400 opacity-20 blur group-hover:opacity-40 transition duration-300" />
-            <img 
-              src="/img/icon-512.png" 
-              alt="Gym Tracker Logo" 
-              className="relative w-20 h-20 rounded-2xl object-cover ring-1 ring-white/10 shadow-xl"
-            />
-          </div>
-          
-          <h1 className="text-3xl font-black tracking-tight text-white uppercase italic">
-            Gym <span className="text-lime-400">Tracker</span>
+  return (
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-zinc-950 p-4 text-zinc-100">
+      <div className="absolute left-1/2 top-1/4 h-80 w-80 -translate-x-1/2 rounded-full bg-[#ccff00]/10 blur-[110px]" />
+      <div className="absolute bottom-10 right-10 h-56 w-56 rounded-full bg-emerald-500/5 blur-[90px]" />
+
+      <Card className="relative w-full max-w-md rounded-3xl p-7 sm:p-9">
+        <div className="mb-8 text-center">
+          <img
+            src="/img/icon-512.png"
+            alt="Gym Tracker Logo"
+            className="mx-auto mb-4 h-20 w-20 rounded-2xl shadow-xl"
+          />
+
+          <h1 className="text-3xl font-black uppercase italic tracking-tight">
+            Gym <span className="text-[#ccff00]">Tracker</span>
           </h1>
-          <p className="text-xs font-medium text-zinc-400 tracking-wide mt-1.5 uppercase">
-            {isLogin ? 'Zaloguj się, aby kontynuować' : 'Załóż konto i śledź progres'}
+
+          <p className="mt-1.5 text-xs font-medium uppercase tracking-wide text-zinc-400">
+            {isLogin
+              ? 'Sign in to continue'
+              : 'Create an account and track your progress'}
           </p>
         </div>
 
-        {/* Zakładki Sign In / Sign Up */}
-        <div className="grid grid-cols-2 p-1 bg-zinc-900/90 rounded-2xl border border-zinc-800 mb-6">
+        <div className="mb-6 grid grid-cols-2 rounded-2xl border border-zinc-800 bg-zinc-900/90 p-1">
           <button
             type="button"
-            onClick={() => { setIsLogin(true); setError(null); }}
-            className={`py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-200 ${
+            onClick={() => switchMode(true)}
+            className={`rounded-xl py-2.5 text-xs font-bold uppercase tracking-wider transition ${
               isLogin
-                ? 'bg-lime-400 text-black shadow-md'
-                : 'text-zinc-400 hover:text-white'
+                ? 'bg-[#ccff00] text-black shadow-md'
+                : 'text-zinc-400 hover:text-zinc-100'
             }`}
           >
-            Logowanie
+            Sign In
           </button>
+
           <button
             type="button"
-            onClick={() => { setIsLogin(false); setError(null); }}
-            className={`py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-200 ${
+            onClick={() => switchMode(false)}
+            className={`rounded-xl py-2.5 text-xs font-bold uppercase tracking-wider transition ${
               !isLogin
-                ? 'bg-lime-400 text-black shadow-md'
-                : 'text-zinc-400 hover:text-white'
+                ? 'bg-[#ccff00] text-black shadow-md'
+                : 'text-zinc-400 hover:text-zinc-100'
             }`}
           >
-            Rejestracja
+            Sign Up
           </button>
         </div>
 
-        {/* Komunikat o błędzie lub sukcesie */}
         {error && (
-          <div className={`p-3.5 rounded-xl text-xs font-medium mb-5 border leading-relaxed ${
-            error.includes('pomyślnie') 
-              ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-300' 
-              : 'bg-rose-950/30 border-rose-500/40 text-rose-300'
-          }`}>
+          <div
+            className={`mb-5 rounded-xl border p-3.5 text-xs font-medium ${
+              error.includes('successfully')
+                ? 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300'
+                : 'border-red-500/40 bg-red-950/30 text-red-300'
+            }`}
+          >
             {error}
           </div>
         )}
 
-        {/* Formularz */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
-              Użytkownik
-            </label>
-            <input
-              type="text"
-              required
-              autoFocus={isLogin}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="np. stefan"
-              className="w-full px-4 py-3 bg-zinc-900/60 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400 transition-all text-sm font-medium"
-            />
-          </div>
+          <Input
+            id="auth-name"
+            label="Username"
+            type="text"
+            required
+            autoFocus={isLogin}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. stefan"
+          />
 
-          <div>
-            <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
-              PIN / Hasło
-            </label>
-            <input
-              type="password"
-              required
-              value={pin}
-              onChange={(e) => setPin(e.target.value)}
-              placeholder="••••"
-              className="w-full px-4 py-3 bg-zinc-900/60 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400 transition-all text-sm font-medium tracking-widest"
-            />
-          </div>
+          <Input
+            id="auth-pin"
+            label="PIN / Password"
+            type="password"
+            required
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            placeholder="••••"
+          />
 
           {!isLogin && (
-            <div>
-              <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
-                Potwierdź PIN
-              </label>
-              <input
-                type="password"
-                required
-                value={confirmPin}
-                onChange={(e) => setConfirmPin(e.target.value)}
-                placeholder="••••"
-                className="w-full px-4 py-3 bg-zinc-900/60 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400 transition-all text-sm font-medium tracking-widest"
-              />
-            </div>
+            <Input
+              id="auth-confirm-pin"
+              label="Confirm PIN"
+              type="password"
+              required
+              value={confirmPin}
+              onChange={(e) => setConfirmPin(e.target.value)}
+              placeholder="••••"
+            />
           )}
 
-          <button
+          <Button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3.5 px-4 mt-3 bg-lime-400 hover:bg-lime-300 active:scale-[0.98] text-black font-extrabold uppercase tracking-wider text-xs rounded-xl transition duration-150 shadow-lg shadow-lime-400/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center"
+            className="mt-3"
           >
             {isLoading ? (
-              <span className="inline-block w-4 h-4 border-2 border-black/40 border-t-black rounded-full animate-spin" />
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/40 border-t-black" />
             ) : (
-              <span>{isLogin ? 'Zaloguj się' : 'Utwórz konto'}</span>
+              isLogin ? 'Sign In' : 'Create Account'
             )}
-          </button>
+          </Button>
         </form>
-      </div>
+      </Card>
     </div>
   );
 };
