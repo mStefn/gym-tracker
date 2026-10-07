@@ -2,11 +2,9 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -174,19 +172,12 @@ func initDB() {
 		log.Fatal("Failed to migrate users.level:", err)
 	}
 
-	seedExercises()
 	seedAdmin()
 }
 
 // GetOrCreateExerciseDB returns an exercise ID,
 // creating the record if it doesn't exist.
 func GetOrCreateExerciseDB(name, category string) (int, error) {
-
-	// PostgreSQL equivalent of:
-	// INSERT IGNORE
-	//
-	// ON CONFLICT prevents a unique constraint error
-	// when the exercise already exists.
 	_, err := db.Exec(`
 		INSERT INTO exercises (name, category)
 		VALUES ($1, $2)
@@ -209,118 +200,6 @@ func GetOrCreateExerciseDB(name, category string) (int, error) {
 	}
 
 	return id, nil
-}
-
-// seedExercises populates the database from exercises.json
-// with various permutations.
-func seedExercises() {
-	var count int
-
-	if err := db.QueryRow(
-		"SELECT COUNT(*) FROM exercises",
-	).Scan(&count); err != nil {
-		log.Println("Error: Failed to check exercise count:", err)
-		return
-	}
-
-	if count > 0 {
-		return // Data already seeded
-	}
-
-	file, err := os.ReadFile("exercises.json")
-	if err != nil {
-		fmt.Println(
-			"Warning: exercises.json not found, skipping seed:",
-			err,
-		)
-		return
-	}
-
-	var exercises []struct {
-		Name      string   `json:"name"`
-		Category  string   `json:"category"`
-		Equipment []string `json:"equipment"`
-		Angles    []string `json:"angles"`
-		Variants  []string `json:"variants"`
-	}
-
-	if err := json.Unmarshal(file, &exercises); err != nil {
-		fmt.Println(
-			"Error: Failed to parse exercises.json:",
-			err,
-		)
-		return
-	}
-
-	// Generate permutations:
-	// Equipment + Angle + Name + Variant
-
-	for _, ex := range exercises {
-
-		eqs := ex.Equipment
-		if len(eqs) == 0 {
-			eqs = []string{""}
-		}
-
-		angs := ex.Angles
-		if len(angs) == 0 {
-			angs = []string{""}
-		}
-
-		vars := ex.Variants
-		if len(vars) == 0 {
-			vars = []string{""}
-		}
-
-		for _, eq := range eqs {
-			for _, ang := range angs {
-				for _, v := range vars {
-
-					var parts []string
-
-					if ang != "" && ang != "Flat" {
-						parts = append(parts, ang)
-					}
-
-					if eq != "" && eq != "Bodyweight" {
-						parts = append(parts, eq)
-					}
-
-					parts = append(parts, ex.Name)
-
-					if v != "" && v != "Standard" {
-						parts = append(parts, "- "+v)
-					}
-
-					fullName := strings.Join(parts, " ")
-
-					// Clean extra spaces
-					fullName = strings.Join(
-						strings.Fields(fullName),
-						" ",
-					)
-
-					_, err := db.Exec(`
-						INSERT INTO exercises (name, category)
-						VALUES ($1, $2)
-						ON CONFLICT (name) DO NOTHING
-					`, fullName, ex.Category)
-
-					if err != nil {
-						log.Printf(
-							"Warning: failed to insert exercise %q: %v",
-							fullName,
-							err,
-						)
-					}
-				}
-			}
-		}
-	}
-
-	fmt.Println(
-		"Infrastructure: Exercise database successfully seeded with permutations",
-	)
 }
 
 // seedAdmin creates the initial admin user if
