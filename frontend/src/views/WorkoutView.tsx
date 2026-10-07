@@ -1,18 +1,58 @@
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { authFetch, API_URL } from '../api/client';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { WorkoutPlanEditor } from '../components/Workout/WorkoutPlanEditor';
 import { useWorkoutStore } from '../store/useWorkoutStore';
 
+interface WorkoutPlan {
+  id: number;
+  name: string;
+}
+
 export default function WorkoutView() {
   const { startWorkout } = useWorkoutStore();
+
+  const [plans, setPlans] = useState<WorkoutPlan[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showPlanEditor, setShowPlanEditor] = useState(false);
+
+  const loadPlans = async () => {
+    try {
+      setError(null);
+
+      const response = await authFetch(`${API_URL}/plans`);
+
+      if (!response.ok) {
+        throw new Error('Failed to load workout plans.');
+      }
+
+      const data = await response.json();
+      setPlans(data);
+    } catch (err) {
+      console.error('Plans loading error:', err);
+      setError('Could not load workout plans.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPlans();
+  }, []);
+
+  const handlePlanSaved = async () => {
+    setShowPlanEditor(false);
+    setIsLoading(true);
+    await loadPlans();
+  };
 
   if (showPlanEditor) {
     return (
       <WorkoutPlanEditor
         onCancel={() => setShowPlanEditor(false)}
-        onSaved={() => setShowPlanEditor(false)}
+        onSaved={handlePlanSaved}
       />
     );
   }
@@ -52,86 +92,101 @@ export default function WorkoutView() {
       </section>
 
       <section>
-        <h2 className="mb-5 text-xs font-bold uppercase tracking-widest text-subtle">
-          My Templates
-        </h2>
+        <div className="mb-5 flex items-center justify-between gap-4">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-subtle">
+            My Templates
+          </h2>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
-          <Card
-            className="group flex h-full cursor-pointer flex-col p-5 transition-colors hover:border-border-light"
-            onClick={() => startWorkout('Push Day')}
-          >
-            <div className="mb-6 flex items-start justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-foreground transition-colors group-hover:text-accent">
-                  Push Day
-                </h3>
-
-                <p className="mt-1 text-xs text-muted">
-                  Chest, shoulders, triceps
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-border bg-background p-2 text-muted">
-                Template
-              </div>
-            </div>
-
-            <div className="mt-auto flex items-center justify-between border-t border-border/60 pt-4">
-              <p className="text-xs font-bold text-subtle">
-                6 exercises
-              </p>
-
-              <span className="text-xs font-bold text-accent opacity-0 transition-opacity group-hover:opacity-100">
-                Start
-              </span>
-            </div>
-          </Card>
-
-          <Card
-            className="group flex h-full cursor-pointer flex-col p-5 transition-colors hover:border-border-light"
-            onClick={() => startWorkout('Pull Day')}
-          >
-            <div className="mb-6 flex items-start justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-foreground transition-colors group-hover:text-accent">
-                  Pull Day
-                </h3>
-
-                <p className="mt-1 text-xs text-muted">
-                  Back, biceps, rear delts
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-border bg-background p-2 text-muted">
-                Template
-              </div>
-            </div>
-
-            <div className="mt-auto flex items-center justify-between border-t border-border/60 pt-4">
-              <p className="text-xs font-bold text-subtle">
-                5 exercises
-              </p>
-
-              <span className="text-xs font-bold text-accent opacity-0 transition-opacity group-hover:opacity-100">
-                Start
-              </span>
-            </div>
-          </Card>
-
-          <Card
-            className="group flex min-h-[160px] h-full cursor-pointer flex-col items-center justify-center border-2 border-dashed bg-transparent p-5 transition-colors hover:border-border-light hover:bg-surface/30"
+          <Button
+            variant="secondary"
             onClick={() => setShowPlanEditor(true)}
+            className="w-auto px-4 py-2 text-xs"
           >
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-border bg-background text-subtle transition-all group-hover:border-accent group-hover:bg-accent group-hover:text-background">
-              <span className="text-2xl">+</span>
-            </div>
-
-            <h3 className="text-sm font-bold uppercase tracking-widest text-muted transition-colors group-hover:text-foreground">
-              New Template
-            </h3>
-          </Card>
+            + New Template
+          </Button>
         </div>
+
+        {isLoading && (
+          <Card className="p-6">
+            <p className="text-sm text-muted">
+              Loading workout plans...
+            </p>
+          </Card>
+        )}
+
+        {!isLoading && error && (
+          <Card className="border-danger/20 bg-danger/5 p-6">
+            <p className="text-sm text-danger">{error}</p>
+
+            <Button
+              variant="secondary"
+              onClick={loadPlans}
+              className="mt-4 w-auto px-4"
+            >
+              Try Again
+            </Button>
+          </Card>
+        )}
+
+        {!isLoading && !error && plans.length === 0 && (
+          <Card className="p-8 text-center">
+            <h3 className="text-lg font-bold text-foreground">
+              No workout plans yet
+            </h3>
+
+            <p className="mt-2 text-sm text-muted">
+              Create your first workout template to get started.
+            </p>
+
+            <Button
+              onClick={() => setShowPlanEditor(true)}
+              className="mx-auto mt-5 w-auto px-6"
+            >
+              Create First Template
+            </Button>
+          </Card>
+        )}
+
+        {!isLoading && !error && plans.length > 0 && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {plans.map((plan) => (
+              <Card
+                key={plan.id}
+                className="group flex h-full flex-col p-5 transition-colors hover:border-border-light"
+              >
+                <div className="mb-6 flex items-start justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground transition-colors group-hover:text-accent">
+                      {plan.name}
+                    </h3>
+
+                    <p className="mt-1 text-xs text-muted">
+                      Workout template
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg border border-border bg-background p-2 text-xs font-bold text-subtle">
+                    PLAN
+                  </div>
+                </div>
+
+                <div className="mt-auto flex items-center justify-between border-t border-border/60 pt-4">
+                  <span className="text-xs font-bold text-subtle">
+                    Workout Plan
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => startWorkout(plan.name)}
+                    className="text-xs font-bold text-accent transition-colors hover:text-accent-hover"
+                  >
+                    Start
+                  </button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
