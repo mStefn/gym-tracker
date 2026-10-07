@@ -17,6 +17,8 @@ export default function WorkoutView() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showPlanEditor, setShowPlanEditor] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<WorkoutPlan | null>(null);
+  const [deletingPlanId, setDeletingPlanId] = useState<number | null>(null);
 
   const loadPlans = async () => {
     try {
@@ -42,16 +44,68 @@ export default function WorkoutView() {
     loadPlans();
   }, []);
 
-  const handlePlanSaved = async () => {
+  const openCreateEditor = () => {
+    setEditingPlan(null);
+    setShowPlanEditor(true);
+  };
+
+  const openEditEditor = (plan: WorkoutPlan) => {
+    setEditingPlan(plan);
+    setShowPlanEditor(true);
+  };
+
+  const closeEditor = () => {
     setShowPlanEditor(false);
+    setEditingPlan(null);
+  };
+
+  const handlePlanSaved = async () => {
+    closeEditor();
     setIsLoading(true);
     await loadPlans();
+  };
+
+  const handleDeletePlan = async (plan: WorkoutPlan) => {
+    const confirmed = window.confirm(
+      `Delete "${plan.name}"? This will also remove all exercises from this template.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingPlanId(plan.id);
+    setError(null);
+
+    try {
+      const response = await authFetch(
+        `${API_URL}/plan/${plan.id}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to delete workout plan.');
+      }
+
+      setPlans((current) =>
+        current.filter((item) => item.id !== plan.id)
+      );
+    } catch (err) {
+      console.error('Plan deletion error:', err);
+      setError('Could not delete workout plan.');
+    } finally {
+      setDeletingPlanId(null);
+    }
   };
 
   if (showPlanEditor) {
     return (
       <WorkoutPlanEditor
-        onCancel={() => setShowPlanEditor(false)}
+        planId={editingPlan?.id}
+        initialName={editingPlan?.name || ''}
+        onCancel={closeEditor}
         onSaved={handlePlanSaved}
       />
     );
@@ -99,7 +153,7 @@ export default function WorkoutView() {
 
           <Button
             variant="secondary"
-            onClick={() => setShowPlanEditor(true)}
+            onClick={openCreateEditor}
             className="w-auto px-4 py-2 text-xs"
           >
             + New Template
@@ -139,7 +193,7 @@ export default function WorkoutView() {
             </p>
 
             <Button
-              onClick={() => setShowPlanEditor(true)}
+              onClick={openCreateEditor}
               className="mx-auto mt-5 w-auto px-6"
             >
               Create First Template
@@ -154,26 +208,37 @@ export default function WorkoutView() {
                 key={plan.id}
                 className="group flex h-full flex-col p-5 transition-colors hover:border-border-light"
               >
-                <div className="mb-6 flex items-start justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-foreground transition-colors group-hover:text-accent">
-                      {plan.name}
-                    </h3>
+                <div className="mb-6">
+                  <h3 className="text-lg font-bold text-foreground transition-colors group-hover:text-accent">
+                    {plan.name}
+                  </h3>
 
-                    <p className="mt-1 text-xs text-muted">
-                      Workout template
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg border border-border bg-background p-2 text-xs font-bold text-subtle">
-                    PLAN
-                  </div>
+                  <p className="mt-1 text-xs text-muted">
+                    Workout template
+                  </p>
                 </div>
 
-                <div className="mt-auto flex items-center justify-between border-t border-border/60 pt-4">
-                  <span className="text-xs font-bold text-subtle">
-                    Workout Plan
-                  </span>
+                <div className="mt-auto flex items-center justify-between gap-3 border-t border-border/60 pt-4">
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openEditEditor(plan)}
+                      className="rounded-lg px-3 py-2 text-xs font-bold text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeletePlan(plan)}
+                      disabled={deletingPlanId === plan.id}
+                      className="rounded-lg px-3 py-2 text-xs font-bold text-danger transition-colors hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {deletingPlanId === plan.id
+                        ? 'Deleting...'
+                        : 'Delete'}
+                    </button>
+                  </div>
 
                   <button
                     type="button"
