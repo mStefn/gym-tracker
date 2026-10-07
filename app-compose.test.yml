@@ -14,7 +14,7 @@ services:
     image: gym-backend:test
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.backend
     container_name: gym-test-backend
     restart: unless-stopped
     expose:
