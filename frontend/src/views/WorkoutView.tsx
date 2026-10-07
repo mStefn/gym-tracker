@@ -1,10 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
+import { WorkoutPlanEditor } from '../components/Workout/WorkoutPlanEditor';
 import { useWorkoutStore } from '../store/useWorkoutStore';
 
 export default function WorkoutView() {
   const { startWorkout } = useWorkoutStore();
+  const [showPlanEditor, setShowPlanEditor] = useState(false);
+
+  if (showPlanEditor) {
+    return (
+      <WorkoutPlanEditor
+        onCancel={() => setShowPlanEditor(false)}
+        onSaved={() => setShowPlanEditor(false)}
+      />
+    );
+  }
 
   return (
     <div className="relative z-10 space-y-6 sm:space-y-8">
@@ -108,7 +119,10 @@ export default function WorkoutView() {
             </div>
           </Card>
 
-          <Card className="group flex min-h-[160px] h-full cursor-pointer flex-col items-center justify-center border-2 border-dashed bg-transparent p-5 transition-colors hover:border-border-light hover:bg-surface/30">
+          <Card
+            className="group flex min-h-[160px] h-full cursor-pointer flex-col items-center justify-center border-2 border-dashed bg-transparent p-5 transition-colors hover:border-border-light hover:bg-surface/30"
+            onClick={() => setShowPlanEditor(true)}
+          >
             <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-border bg-background text-subtle transition-all group-hover:border-accent group-hover:bg-accent group-hover:text-background">
               <span className="text-2xl">+</span>
             </div>

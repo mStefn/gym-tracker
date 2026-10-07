@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   EXERCISE_SCHEMA,
-  ExerciseDefinition,
+  type ExerciseDefinition,
 } from '../../constants/exerciseSchema';
 import { authFetch, API_URL } from '../../api/client';
 import { Button } from '../ui/Button';
@@ -21,39 +21,39 @@ export function ExerciseWizard({
   const [baseExercise, setBaseExercise] =
     useState<ExerciseDefinition | null>(null);
 
-  const [equipment, setEquipment] = useState<string>('');
-  const [angle, setAngle] = useState<string>('');
-  const [variant, setVariant] = useState<string>('');
-
+  const [equipment, setEquipment] = useState('');
+  const [angle, setAngle] = useState('');
+  const [variant, setVariant] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleCategorySelect = (cat: string) => {
-    setCategory(cat);
+  const handleCategorySelect = (selectedCategory: string) => {
+    setCategory(selectedCategory);
     setStep(2);
   };
 
-  const handleBaseExerciseSelect = (ex: ExerciseDefinition) => {
-    setBaseExercise(ex);
+  const handleBaseExerciseSelect = (exercise: ExerciseDefinition) => {
+    setBaseExercise(exercise);
 
     const hasOptions =
-      ex.equipment?.length ||
-      ex.angles?.length ||
-      ex.variants?.length;
+      Boolean(exercise.equipment?.length) ||
+      Boolean(exercise.angles?.length) ||
+      Boolean(exercise.variants?.length);
 
     if (!hasOptions) {
-      submitExercise(ex.name, ex.category);
-    } else {
-      setEquipment(ex.equipment?.[0] || '');
-      setAngle(ex.angles?.[0] || '');
-      setVariant(ex.variants?.[0] || '');
-      setStep(3);
+      submitExercise(exercise.name, exercise.category);
+      return;
     }
+
+    setEquipment(exercise.equipment?.[0] || '');
+    setAngle(exercise.angles?.[0] || '');
+    setVariant(exercise.variants?.[0] || '');
+    setStep(3);
   };
 
   const buildFinalName = (
-    ex: ExerciseDefinition = baseExercise!
+    exercise: ExerciseDefinition = baseExercise!
   ) => {
-    const parts = [];
+    const parts: string[] = [];
 
     if (angle && angle !== 'Flat') {
       parts.push(angle);
@@ -63,7 +63,7 @@ export function ExerciseWizard({
       parts.push(equipment);
     }
 
-    parts.push(ex.name);
+    parts.push(exercise.name);
 
     if (variant && variant !== 'Standard') {
       parts.push(`- ${variant}`);
@@ -79,24 +79,28 @@ export function ExerciseWizard({
     setIsSubmitting(true);
 
     try {
-      const res = await authFetch(
+      const response = await authFetch(
         `${API_URL}/exercises/find-or-create`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, category: cat }),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name,
+            category: cat,
+          }),
         }
       );
 
-      if (!res.ok) {
-        throw new Error('Backend Sync Failed');
+      if (!response.ok) {
+        throw new Error('Backend synchronization failed.');
       }
 
-      const data = await res.json();
-
+      const data = await response.json();
       onComplete(data);
     } catch (error) {
-      console.error('Wizard Sync Error:', error);
+      console.error('Wizard sync error:', error);
       alert(
         'Connection error. Could not sync exercise with server.'
       );
@@ -105,32 +109,40 @@ export function ExerciseWizard({
   };
 
   const categories = [
-    ...new Set(EXERCISE_SCHEMA.map((e) => e.category)),
+    ...new Set(EXERCISE_SCHEMA.map((exercise) => exercise.category)),
   ];
 
   const exercisesForCategory = EXERCISE_SCHEMA.filter(
-    (e) => e.category === category
+    (exercise) => exercise.category === category
   );
 
   const tileBase =
     'w-full rounded-xl border p-4 text-left font-bold transition-all';
 
   const tileInactive =
-    'bg-surface/50 border-border text-muted hover:border-accent/50 hover:bg-surface';
+    'border-border bg-surface/50 text-muted hover:border-accent/50 hover:bg-surface';
 
   const tileActive =
-    'bg-accent/10 border-accent text-accent shadow-glow';
+    'border-accent bg-accent/10 text-accent shadow-glow';
+
+  const goBack = () => {
+    if (step === 3) {
+      setStep(2);
+      return;
+    }
+
+    setStep(1);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-md">
       <Card className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden shadow-2xl">
-        {/* Modal header */}
         <div className="flex shrink-0 items-center justify-between border-b border-border/60 bg-background/50 p-5">
           {step > 1 ? (
             <button
               type="button"
+              onClick={goBack}
               className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
-              onClick={() => setStep(step === 3 ? 2 : 1)}
             >
               ←
             </button>
@@ -138,33 +150,32 @@ export function ExerciseWizard({
             <div className="w-8" />
           )}
 
-          <h3 className="m-0 text-lg font-black uppercase tracking-widest text-foreground">
+          <h3 className="text-lg font-black uppercase tracking-widest text-foreground">
             {step === 1 && 'Choose Muscle Group'}
             {step === 2 && category}
-            {step === 3 && 'Configuration'}
+            {step === 3 && 'Configure Exercise'}
           </h3>
 
           <button
             type="button"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-xl text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
             onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-xl text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
           >
             &times;
           </button>
         </div>
 
-        {/* Modal body */}
         <div className="flex-grow overflow-y-auto p-5">
           {step === 1 && (
             <div className="grid grid-cols-2 gap-3">
-              {categories.map((cat) => (
+              {categories.map((item) => (
                 <button
-                  key={cat}
+                  key={item}
                   type="button"
                   className={`${tileBase} ${tileInactive}`}
-                  onClick={() => handleCategorySelect(cat)}
+                  onClick={() => handleCategorySelect(item)}
                 >
-                  {cat}
+                  {item}
                 </button>
               ))}
             </div>
@@ -172,14 +183,14 @@ export function ExerciseWizard({
 
           {step === 2 && (
             <div className="flex flex-col gap-3">
-              {exercisesForCategory.map((ex) => (
+              {exercisesForCategory.map((exercise) => (
                 <button
-                  key={ex.name}
+                  key={exercise.name}
                   type="button"
                   className={`${tileBase} ${tileInactive}`}
-                  onClick={() => handleBaseExerciseSelect(ex)}
+                  onClick={() => handleBaseExerciseSelect(exercise)}
                 >
-                  {ex.name}
+                  {exercise.name}
                 </button>
               ))}
             </div>
@@ -191,57 +202,82 @@ export function ExerciseWizard({
                 {baseExercise.name}
               </h2>
 
-              {baseExercise.equipment && (
+              {baseExercise.equipment?.length ? (
                 <div>
                   <label className="ml-1 text-[11px] font-bold uppercase tracking-widest text-muted">
                     Equipment
                   </label>
 
                   <div className="mt-2 grid grid-cols-2 gap-2">
-                    {baseExercise.equipment.map((eq) => (
+                    {baseExercise.equipment.map((item) => (
                       <button
-                        key={eq}
+                        key={item}
                         type="button"
                         className={`${tileBase} ${
-                          equipment === eq
+                          equipment === item
                             ? tileActive
                             : tileInactive
                         } !p-3 !text-sm`}
-                        onClick={() => setEquipment(eq)}
+                        onClick={() => setEquipment(item)}
                       >
-                        {eq}
+                        {item}
                       </button>
                     ))}
                   </div>
                 </div>
-              )}
+              ) : null}
 
-              {baseExercise.angles && (
+              {baseExercise.angles?.length ? (
                 <div>
                   <label className="ml-1 text-[11px] font-bold uppercase tracking-widest text-muted">
                     Angle / Bench
                   </label>
 
                   <div className="mt-2 grid grid-cols-2 gap-2">
-                    {baseExercise.angles.map((ang) => (
+                    {baseExercise.angles.map((item) => (
                       <button
-                        key={ang}
+                        key={item}
                         type="button"
                         className={`${tileBase} ${
-                          angle === ang
+                          angle === item
                             ? tileActive
                             : tileInactive
                         } !p-3 !text-sm`}
-                        onClick={() => setAngle(ang)}
+                        onClick={() => setAngle(item)}
                       >
-                        {ang}
+                        {item}
                       </button>
                     ))}
                   </div>
                 </div>
-              )}
+              ) : null}
 
-              <div className="mt-8 rounded-xl border-2 border-dashed border-border/60 bg-background/30 p-4 text-center">
+              {baseExercise.variants?.length ? (
+                <div>
+                  <label className="ml-1 text-[11px] font-bold uppercase tracking-widest text-muted">
+                    Variant
+                  </label>
+
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {baseExercise.variants.map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        className={`${tileBase} ${
+                          variant === item
+                            ? tileActive
+                            : tileInactive
+                        } !p-3 !text-sm`}
+                        onClick={() => setVariant(item)}
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="rounded-xl border-2 border-dashed border-border/60 bg-background/30 p-4 text-center">
                 <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-subtle">
                   Final Exercise Name
                 </div>
@@ -254,17 +290,13 @@ export function ExerciseWizard({
           )}
         </div>
 
-        {/* Modal footer */}
         {step === 3 && (
           <div className="shrink-0 border-t border-border/60 bg-background/50 p-5">
             <Button
-              className="w-full"
               onClick={() => submitExercise()}
               disabled={isSubmitting}
             >
-              {isSubmitting
-                ? 'Saving...'
-                : 'Confirm & Add Exercise'}
+              {isSubmitting ? 'Saving...' : 'Confirm & Add Exercise'}
             </Button>
           </div>
         )}
