@@ -53,7 +53,7 @@ func main() {
 	auth.Use(AuthRequired())
 	{
 		auth.POST("/change-pin", ChangePin)
-		auth.GET("/plans/:user_id", GetUserPlans)
+		auth.GET("/plans", GetUserPlans)
 		auth.GET("/plan-exercises/:plan_id", GetPlanExercises)
 		auth.POST("/log", LogSet)
 		auth.GET("/last/:user_id/:ex_id/:set", GetLastResult)
