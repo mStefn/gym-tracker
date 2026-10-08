@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
+
 import { useAuthStore } from './store/useAuthStore';
+import { useWorkoutStore } from './store/useWorkoutStore';
+
 import { InstallGuide } from './components/InstallGuide';
 import { Button } from './components/ui/Button';
 
 import Dashboard from './views/Dashboard';
-import WorkoutView from './views/WorkoutView';
+import PlansView from './views/PlansView';
+import ActiveWorkoutView from './views/ActiveWorkoutView';
 import StatsView from './views/StatsView';
 import SettingsView from './views/SettingsView';
 import AuthView from './views/AuthView';
@@ -20,6 +24,13 @@ const navItems: { view: View; label: string }[] = [
 
 export default function App() {
   const { token, currentUserName, logout } = useAuthStore();
+
+  const {
+    workout,
+    isRestoring,
+    restoreActiveWorkout,
+  } = useWorkoutStore();
+
   const [currentView, setCurrentView] = useState<View>('home');
   const [showInstallGuide, setShowInstallGuide] = useState(false);
 
@@ -58,6 +69,14 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    restoreActiveWorkout();
+  }, [token, restoreActiveWorkout]);
+
   if (!token) {
     return (
       <AuthView
@@ -75,12 +94,16 @@ export default function App() {
     switch (currentView) {
       case 'home':
         return <Dashboard />;
+
       case 'workout':
-        return <WorkoutView />;
+        return <PlansView />;
+
       case 'stats':
         return <StatsView />;
+
       case 'settings':
         return <SettingsView />;
+
       default:
         return <Dashboard />;
     }
@@ -161,7 +184,11 @@ export default function App() {
           ))}
         </nav>
 
-        <Button variant="danger" onClick={logout} className="mt-auto">
+        <Button
+          variant="danger"
+          onClick={logout}
+          className="mt-auto"
+        >
           Sign Out
         </Button>
       </aside>
@@ -170,32 +197,48 @@ export default function App() {
       <main className="relative mx-auto w-full max-w-7xl flex-1 overflow-y-auto p-4 pb-28 md:p-8 md:pb-8">
         <div className="pointer-events-none absolute right-0 top-0 h-[400px] w-[400px] rounded-full bg-accent/5 blur-[120px]" />
 
-        {renderView()}
+        {isRestoring ? (
+          <div className="relative z-10 flex min-h-[60vh] items-center justify-center">
+            <p className="text-sm font-bold uppercase tracking-widest text-muted">
+              Loading workout...
+            </p>
+          </div>
+        ) : workout?.status === 'active' ? (
+          <div className="relative z-10">
+            <ActiveWorkoutView />
+          </div>
+        ) : (
+          <div className="relative z-10">
+            {renderView()}
+          </div>
+        )}
       </main>
 
       {/* Mobile bottom navigation */}
-      <nav className="fixed bottom-0 left-0 z-20 flex w-full gap-2 border-t border-border bg-background/95 p-3 pb-safe backdrop-blur-xl md:hidden">
-        {navItems.map((item) => (
-          <button
-            key={item.view}
-            type="button"
-            onClick={() => setCurrentView(item.view)}
-            className={`${navItemBase} ${
-              currentView === item.view
-                ? navItemActive
-                : navItemInactive
-            }`}
-          >
-            {item.view === 'home'
-              ? 'Home'
-              : item.view === 'workout'
-                ? 'Workout'
-                : item.view === 'stats'
-                  ? 'Stats'
-                  : 'Menu'}
-          </button>
-        ))}
-      </nav>
+      {workout?.status !== 'active' && (
+        <nav className="fixed bottom-0 left-0 z-20 flex w-full gap-2 border-t border-border bg-background/95 p-3 pb-safe backdrop-blur-xl md:hidden">
+          {navItems.map((item) => (
+            <button
+              key={item.view}
+              type="button"
+              onClick={() => setCurrentView(item.view)}
+              className={`${navItemBase} ${
+                currentView === item.view
+                  ? navItemActive
+                  : navItemInactive
+              }`}
+            >
+              {item.view === 'home'
+                ? 'Home'
+                : item.view === 'workout'
+                  ? 'Workout'
+                  : item.view === 'stats'
+                    ? 'Stats'
+                    : 'Menu'}
+            </button>
+          ))}
+        </nav>
+      )}
 
       {showInstallGuide && (
         <InstallGuide onClose={() => setShowInstallGuide(false)} />

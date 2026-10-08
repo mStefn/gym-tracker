@@ -10,8 +10,8 @@ interface WorkoutPlan {
   name: string;
 }
 
-export default function WorkoutView() {
-  const { startWorkout } = useWorkoutStore();
+export default function PlansView() {
+  const { startWorkout, isLoading: isWorkoutLoading } = useWorkoutStore();
 
   const [plans, setPlans] = useState<WorkoutPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -19,6 +19,7 @@ export default function WorkoutView() {
   const [showPlanEditor, setShowPlanEditor] = useState(false);
   const [editingPlan, setEditingPlan] = useState<WorkoutPlan | null>(null);
   const [deletingPlanId, setDeletingPlanId] = useState<number | null>(null);
+  const [startingWorkoutId, setStartingWorkoutId] = useState<number | 'empty' | null>(null);
 
   const loadPlans = async () => {
     try {
@@ -100,6 +101,39 @@ export default function WorkoutView() {
     }
   };
 
+  const handleStartEmptyWorkout = async () => {
+    setStartingWorkoutId('empty');
+    setError(null);
+
+    try {
+      await startWorkout({
+        name: 'Empty Workout',
+      });
+    } catch (err) {
+      console.error('Empty workout start error:', err);
+      setError('Could not start workout.');
+    } finally {
+      setStartingWorkoutId(null);
+    }
+  };
+
+  const handleStartPlanWorkout = async (plan: WorkoutPlan) => {
+    setStartingWorkoutId(plan.id);
+    setError(null);
+
+    try {
+      await startWorkout({
+        planId: plan.id,
+        name: plan.name,
+      });
+    } catch (err) {
+      console.error('Workout start error:', err);
+      setError('Could not start workout.');
+    } finally {
+      setStartingWorkoutId(null);
+    }
+  };
+
   if (showPlanEditor) {
     return (
       <WorkoutPlanEditor
@@ -111,17 +145,34 @@ export default function WorkoutView() {
     );
   }
 
+  const isStartingWorkout =
+    startingWorkoutId !== null || isWorkoutLoading;
+
   return (
     <div className="relative z-10 space-y-6 sm:space-y-8">
       <section>
         <h1 className="mb-2 text-3xl font-black uppercase tracking-tight text-foreground sm:text-4xl">
-          Your <span className="text-accent">Workout</span>
+          Your <span className="text-accent">Workouts</span>
         </h1>
 
         <p className="text-sm font-medium tracking-wide text-muted">
           Choose a workout plan or start with a clean slate.
         </p>
       </section>
+
+      {error && (
+        <Card className="border-danger/20 bg-danger/5 p-6">
+          <p className="text-sm text-danger">{error}</p>
+
+          <Button
+            variant="secondary"
+            onClick={loadPlans}
+            className="mt-4 w-auto px-4"
+          >
+            Try Again
+          </Button>
+        </Card>
+      )}
 
       <section>
         <Card className="flex flex-col items-center justify-between gap-6 border-accent/20 bg-surface/40 p-6 sm:flex-row sm:p-8">
@@ -138,9 +189,12 @@ export default function WorkoutView() {
 
           <Button
             className="w-full px-8 py-4 text-sm sm:w-auto"
-            onClick={() => startWorkout('Empty Workout')}
+            onClick={handleStartEmptyWorkout}
+            disabled={isStartingWorkout}
           >
-            START WORKOUT
+            {startingWorkoutId === 'empty'
+              ? 'STARTING...'
+              : 'START WORKOUT'}
           </Button>
         </Card>
       </section>
@@ -168,20 +222,6 @@ export default function WorkoutView() {
           </Card>
         )}
 
-        {!isLoading && error && (
-          <Card className="border-danger/20 bg-danger/5 p-6">
-            <p className="text-sm text-danger">{error}</p>
-
-            <Button
-              variant="secondary"
-              onClick={loadPlans}
-              className="mt-4 w-auto px-4"
-            >
-              Try Again
-            </Button>
-          </Card>
-        )}
-
         {!isLoading && !error && plans.length === 0 && (
           <Card className="p-8 text-center">
             <h3 className="text-lg font-bold text-foreground">
@@ -201,55 +241,60 @@ export default function WorkoutView() {
           </Card>
         )}
 
-        {!isLoading && !error && plans.length > 0 && (
+        {!isLoading && plans.length > 0 && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {plans.map((plan) => (
-              <Card
-                key={plan.id}
-                className="group flex h-full flex-col p-5 transition-colors hover:border-border-light"
-              >
-                <div className="mb-6">
-                  <h3 className="text-lg font-bold text-foreground transition-colors group-hover:text-accent">
-                    {plan.name}
-                  </h3>
+            {plans.map((plan) => {
+              const isStartingThisPlan = startingWorkoutId === plan.id;
+              const isDeletingThisPlan = deletingPlanId === plan.id;
 
-                  <p className="mt-1 text-xs text-muted">
-                    Workout template
-                  </p>
-                </div>
+              return (
+                <Card
+                  key={plan.id}
+                  className="group flex h-full flex-col p-5 transition-colors hover:border-border-light"
+                >
+                  <div className="mb-6">
+                    <h3 className="text-lg font-bold text-foreground transition-colors group-hover:text-accent">
+                      {plan.name}
+                    </h3>
 
-                <div className="mt-auto flex items-center justify-between gap-3 border-t border-border/60 pt-4">
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => openEditEditor(plan)}
-                      className="rounded-lg px-3 py-2 text-xs font-bold text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
-                    >
-                      Edit
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleDeletePlan(plan)}
-                      disabled={deletingPlanId === plan.id}
-                      className="rounded-lg px-3 py-2 text-xs font-bold text-danger transition-colors hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      {deletingPlanId === plan.id
-                        ? 'Deleting...'
-                        : 'Delete'}
-                    </button>
+                    <p className="mt-1 text-xs text-muted">
+                      Workout template
+                    </p>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => startWorkout(plan.name)}
-                    className="text-xs font-bold text-accent transition-colors hover:text-accent-hover"
-                  >
-                    Start
-                  </button>
-                </div>
-              </Card>
-            ))}
+                  <div className="mt-auto flex items-center justify-between gap-3 border-t border-border/60 pt-4">
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        onClick={() => openEditEditor(plan)}
+                        disabled={isStartingWorkout || isDeletingThisPlan}
+                        className="w-auto px-3 py-2 text-xs"
+                      >
+                        Edit
+                      </Button>
+
+                      <Button
+                        variant="danger"
+                        onClick={() => handleDeletePlan(plan)}
+                        disabled={isStartingWorkout || isDeletingThisPlan}
+                        className="w-auto px-3 py-2 text-xs"
+                      >
+                        {isDeletingThisPlan ? 'Deleting...' : 'Delete'}
+                      </Button>
+                    </div>
+
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleStartPlanWorkout(plan)}
+                      disabled={isStartingWorkout || isDeletingThisPlan}
+                      className="w-auto px-3 py-2 text-xs text-accent hover:text-accent-hover"
+                    >
+                      {isStartingThisPlan ? 'Starting...' : 'Start'}
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         )}
       </section>
