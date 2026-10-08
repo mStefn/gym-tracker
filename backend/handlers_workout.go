@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"errors"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -122,11 +123,15 @@ func StartWorkout(c *gin.Context) {
 	}
 
 	if input.PlanID != nil {
-		if err := copyPlanExercisesToSession(
-			tx,
-			sessionID,
-			*input.PlanID,
-		); err != nil {
+		if err := copyPlanExercisesToSession(tx, sessionID, *input.PlanID); err != nil {
+			log.Printf(
+				"StartWorkout: failed to copy plan exercises. user_id=%d plan_id=%d session_id=%d error=%v",
+				userID,
+				*input.PlanID,
+				sessionID,
+				err,
+			)
+
 			c.JSON(500, gin.H{
 				"error": "Failed to load plan exercises",
 			})
