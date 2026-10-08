@@ -22,6 +22,7 @@ func StartWorkout(c *gin.Context) {
 		PlanID *int   `json:"plan_id"`
 		Name   string `json:"name"`
 	}
+
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(400, gin.H{"error": "Invalid input"})
 		return
@@ -29,40 +30,36 @@ func StartWorkout(c *gin.Context) {
 
 	userID := c.GetInt("userID")
 
-	// One user gets one active workout. This prevents accidental parallel sessions.
-	var existingID int
-	err := db.QueryRow(
-		"SELECT id FROM workout_sessions WHERE user_id = $1 AND status = 'active' ORDER BY started_at DESC LIMIT 1",
-		userID,
-	).Scan(&existingID)
-	if err == nil {
-		c.JSON(409, gin.H{"error": "An active workout already exists", "workout_id": existingID})
-		return
-	}
-	if err != sql.ErrNoRows {
-		c.JSON(500, gin.H{"error": "Failed to check active workout"})
-		return
-	}
-
 	name := strings.TrimSpace(input.Name)
-	planID := sql.NullInt64{}
 
+	var planName string
 	if input.PlanID != nil {
 		if !planBelongsToUserID(*input.PlanID, userID) {
 			c.JSON(404, gin.H{"error": "Plan not found"})
 			return
 		}
-		planID = sql.NullInt64{Int64: int64(*input.PlanID), Valid: true}
+
+		if err := db.QueryRow(
+			"SELECT name FROM workout_plans WHERE id = $1 AND user_id = $2",
+			*input.PlanID,
+			userID,
+		).Scan(&planName); err != nil {
+			c.JSON(404, gin.H{"error": "Plan not found"})
+			return
+		}
 
 		if name == "" {
-			_ = db.QueryRow("SELECT name FROM workout_plans WHERE id = $1", *input.PlanID).Scan(&name)
+			name = planName
 		}
 	}
 
 	if name == "" {
-		name = "Workout"
+		name = "Empty Workout"
 	}
 
+	// The partial unique index guarantees one active workout per user.
+	// We intentionally do not rely on a separate SELECT here because
+	// multiple fast requests could otherwise race each other.
 	tx, err := db.Begin()
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Failed to start workout"})
@@ -72,34 +69,86 @@ func StartWorkout(c *gin.Context) {
 
 	var sessionID int
 	var startedAt time.Time
-	if err := tx.QueryRow(`
+
+	var planValue any
+	if input.PlanID != nil {
+		planValue = *input.PlanID
+	} else {
+		planValue = nil
+	}
+
+	err = tx.QueryRow(`
 		INSERT INTO workout_sessions (user_id, plan_id, name)
 		VALUES ($1, $2, $3)
 		RETURNING id, started_at
-	`, userID, planID, name).Scan(&sessionID, &startedAt); err != nil {
-		c.JSON(500, gin.H{"error": "Failed to create workout session"})
+	`,
+		userID,
+		planValue,
+		name,
+	).Scan(&sessionID, &startedAt)
+
+	if err != nil {
+		// Another request already created an active workout.
+		if strings.Contains(err.Error(), "idx_one_active_workout_per_user") {
+			var existingID int
+
+			lookupErr := db.QueryRow(`
+				SELECT id
+				FROM workout_sessions
+				WHERE user_id = $1
+				  AND status = 'active'
+				ORDER BY started_at DESC
+				LIMIT 1
+			`, userID).Scan(&existingID)
+
+			if lookupErr == nil {
+				c.JSON(409, gin.H{
+					"error":      "An active workout already exists",
+					"workout_id": existingID,
+				})
+				return
+			}
+
+			c.JSON(409, gin.H{
+				"error": "An active workout already exists",
+			})
+			return
+		}
+
+		c.JSON(500, gin.H{
+			"error": "Failed to create workout session",
+		})
 		return
 	}
 
 	if input.PlanID != nil {
-		if err := copyPlanExercisesToSession(tx, sessionID, *input.PlanID); err != nil {
-			c.JSON(500, gin.H{"error": "Failed to load plan exercises"})
+		if err := copyPlanExercisesToSession(
+			tx,
+			sessionID,
+			*input.PlanID,
+		); err != nil {
+			c.JSON(500, gin.H{
+				"error": "Failed to load plan exercises",
+			})
 			return
 		}
 	}
 
 	if err := tx.Commit(); err != nil {
-		c.JSON(500, gin.H{"error": "Failed to commit workout"})
+		c.JSON(500, gin.H{
+			"error": "Failed to commit workout",
+		})
 		return
 	}
 
-	c.JSON(201, gin.H{
-		"id":         sessionID,
-		"name":       name,
-		"plan_id":    nullableInt(planID),
-		"status":     "active",
-		"started_at": startedAt,
-	})
+	// Return the complete workout structure.
+	workout, err := loadWorkout(userID, sessionID)
+	if err != nil {
+		respondWorkoutError(c, err)
+		return
+	}
+
+	c.JSON(201, workout)
 }
 
 func GetActiveWorkout(c *gin.Context) {
