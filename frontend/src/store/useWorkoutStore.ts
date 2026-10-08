@@ -68,6 +68,7 @@ interface WorkoutState {
   workout: WorkoutSession | null;
   isRestoring: boolean;
   isLoading: boolean;
+  isStarting: boolean;
   error: string | null;
 
   startWorkout: (input: StartWorkoutInput) => Promise<boolean>;
@@ -88,10 +89,22 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
   workout: null,
   isRestoring: false,
   isLoading: false,
+  isStarting: false,
   error: null,
 
   startWorkout: async ({ planId, name }) => {
+    // Prevent multiple requests caused by rapid clicks.
+    if (get().isStarting) {
+      return false;
+    }
+
+    // Do not start another workout while one is already active.
+    if (get().workout?.status === 'active') {
+      return false;
+    }
+
     set({
+      isStarting: true,
       isLoading: true,
       error: null,
     });
@@ -126,28 +139,57 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
         }
 
         set({
-          error: message,
+          isStarting: false,
           isLoading: false,
+          error: message,
         });
 
         return false;
       }
 
-      const data = (await response.json()) as WorkoutSession;
+      const created = await response.json();
+
+      if (!created?.id) {
+        throw new Error('Workout response did not contain an ID.');
+      }
+
+      /*
+       * POST /workouts returns the newly-created session,
+       * but it does not necessarily contain the full exercises/sets data.
+       *
+       * Fetch the complete workout before putting it into Zustand.
+       * This prevents ActiveWorkoutView from rendering incomplete data.
+       */
+      const workoutResponse = await authFetch(
+        `${API_URL}/workouts/${created.id}`
+      );
+
+      if (!workoutResponse.ok) {
+        throw new Error('Failed to load created workout.');
+      }
+
+      const workout = (await workoutResponse.json()) as WorkoutSession;
 
       set({
-        workout: data,
+        workout,
+        isStarting: false,
         isLoading: false,
         error: null,
       });
-
-      await get().refreshWorkout();
 
       return true;
     } catch (err) {
       console.error('Workout start error:', err);
 
+      // Try to recover in case the workout was actually created.
+      try {
+        await get().restoreActiveWorkout();
+      } catch {
+        // Ignore recovery error.
+      }
+
       set({
+        isStarting: false,
         isLoading: false,
         error: 'Could not start workout.',
       });
@@ -171,8 +213,13 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
 
       const data = await response.json();
 
+      const workout = data?.workout ?? data ?? null;
+
       set({
-        workout: data.workout ?? data,
+        workout:
+          workout && workout.status === 'active'
+            ? workout
+            : null,
         isRestoring: false,
         error: null,
       });
@@ -207,6 +254,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
 
       set({
         workout: data,
+        error: null,
       });
     } catch (err) {
       console.error('Workout refresh error:', err);
@@ -226,7 +274,10 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     const workout = get().workout;
 
     if (!workout) {
-      set({ error: 'No active workout.' });
+      set({
+        error: 'No active workout.',
+      });
+
       return false;
     }
 
@@ -280,7 +331,10 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     const workout = get().workout;
 
     if (!workout) {
-      set({ error: 'No active workout.' });
+      set({
+        error: 'No active workout.',
+      });
+
       return false;
     }
 
@@ -333,9 +387,16 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     const workout = get().workout;
 
     if (!workout) {
-      set({ error: 'No active workout.' });
+      set({
+        error: 'No active workout.',
+      });
+
       return false;
     }
+
+    set({
+      error: null,
+    });
 
     try {
       const response = await authFetch(
@@ -402,6 +463,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       set({
         workout: null,
         isLoading: false,
+        isStarting: false,
         error: null,
       });
 
@@ -445,6 +507,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       set({
         workout: null,
         isLoading: false,
+        isStarting: false,
         error: null,
       });
 
