@@ -759,7 +759,7 @@ func loadCurrentTarget(userID, exerciseID, setNumber int) gin.H {
 }
 
 func copyPlanExercisesToSession(tx *sql.Tx, sessionID, planID int) error {
-	rows, err := tx.Query(`
+	rows, err := db.Query(`
 		SELECT exercise_id, target_sets, position
 		FROM plan_exercises
 		WHERE plan_id = $1
@@ -768,22 +768,59 @@ func copyPlanExercisesToSession(tx *sql.Tx, sessionID, planID int) error {
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+
+	var exercises []struct {
+		exerciseID int
+		targetSets int
+		position   int
+	}
 
 	for rows.Next() {
-		var exerciseID, targetSets, position int
-		if err := rows.Scan(&exerciseID, &targetSets, &position); err != nil {
+		var exercise struct {
+			exerciseID int
+			targetSets int
+			position   int
+		}
+
+		if err := rows.Scan(
+			&exercise.exerciseID,
+			&exercise.targetSets,
+			&exercise.position,
+		); err != nil {
+			rows.Close()
 			return err
 		}
+
+		exercises = append(exercises, exercise)
+	}
+
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return err
+	}
+
+	rows.Close()
+
+	for _, exercise := range exercises {
 		if _, err := tx.Exec(`
-			INSERT INTO workout_session_exercises (session_id, exercise_id, target_sets, position)
+			INSERT INTO workout_session_exercises (
+				session_id,
+				exercise_id,
+				target_sets,
+				position
+			)
 			VALUES ($1, $2, $3, $4)
-		`, sessionID, exerciseID, targetSets, position); err != nil {
+		`,
+			sessionID,
+			exercise.exerciseID,
+			exercise.targetSets,
+			exercise.position,
+		); err != nil {
 			return err
 		}
 	}
 
-	return rows.Err()
+	return nil
 }
 
 func workoutOwnedByUser(sessionID, userID int) bool {
