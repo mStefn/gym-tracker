@@ -18,17 +18,29 @@ func main() {
 
 	r := gin.Default()
 
+	// Prometheus metrics.
 	p := ginprometheus.NewPrometheus("gin")
 	p.Use(r)
 
+	// CORS configuration.
 	allowOrigin := os.Getenv("CORS_ORIGIN")
 	if allowOrigin == "" {
 		allowOrigin = "*"
 	}
 
 	corsConfig := cors.Config{
-		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders: []string{"Origin", "Content-Type", "Authorization"},
+		AllowMethods: []string{
+			"GET",
+			"POST",
+			"PUT",
+			"DELETE",
+			"OPTIONS",
+		},
+		AllowHeaders: []string{
+			"Origin",
+			"Content-Type",
+			"Authorization",
+		},
 	}
 
 	if allowOrigin == "*" {
@@ -44,32 +56,38 @@ func main() {
 	r.POST("/login", Login)
 	r.POST("/signup", SignUp)
 
+	// Protected routes.
 	auth := r.Group("/")
 	auth.Use(AuthRequired())
 	{
 		auth.POST("/change-pin", ChangePin)
 
-		// Plans.
+		// Workout plans.
 		auth.GET("/plans", GetUserPlans)
 		auth.POST("/plans", CreatePlan)
 		auth.PUT("/plan/:id", UpdatePlanName)
 		auth.DELETE("/plan/:id", DeletePlan)
+
+		// Exercises in workout plans.
 		auth.GET("/plan-exercises/:plan_id", GetPlanExercises)
 		auth.POST("/plan-exercises", AddExerciseToPlan)
 		auth.DELETE("/plan-exercises/:plan_id", DeletePlanExercises)
 		auth.POST("/plan-exercises/sync", SyncPlanExercises)
 
-		// Active workouts.
+		// Active workout sessions.
 		auth.POST("/workouts", StartWorkout)
 		auth.GET("/workouts/active", GetActiveWorkout)
 		auth.GET("/workouts/:id", GetWorkout)
 		auth.POST("/workouts/:id/exercises", AddExerciseToWorkout)
-		auth.DELETE("/workouts/:id/exercises/:session_exercise_id", RemoveExerciseFromWorkout)
+		auth.DELETE(
+			"/workouts/:id/exercises/:session_exercise_id",
+			RemoveExerciseFromWorkout,
+		)
 		auth.POST("/workouts/:id/sets", LogWorkoutSet)
 		auth.POST("/workouts/:id/finish", FinishWorkout)
 		auth.POST("/workouts/:id/cancel", CancelWorkout)
 
-		// Legacy progress endpoint kept for compatibility.
+		// Legacy progress endpoints.
 		auth.POST("/log", LogSet)
 		auth.GET("/last/:user_id/:ex_id/:set", GetLastResult)
 
@@ -81,7 +99,13 @@ func main() {
 		auth.GET("/stats/:user_id", GetUserStats)
 		auth.POST("/weight", LogBodyWeight)
 		auth.GET("/dashboard/:user_id", GetDashboardData)
+
+		// New endpoint: user ID comes from the authenticated token.
+		auth.GET("/stats/advanced", GetAdvancedStats)
+
+		// Legacy route retained for compatibility.
 		auth.GET("/stats/advanced/:user_id", GetAdvancedStats)
+
 		auth.GET("/stats/exercise/:user_id/:ex_id", GetExerciseDeepDive)
 
 		// Account management.
@@ -89,6 +113,7 @@ func main() {
 		auth.DELETE("/account/:user_id", DeleteOwnAccount)
 	}
 
+	// Admin routes.
 	admin := r.Group("/admin")
 	admin.Use(AuthRequired(), AdminRequired())
 	{
@@ -96,7 +121,12 @@ func main() {
 		admin.POST("/reset-pin", AdminResetPin)
 	}
 
-	r.DELETE("/user/:id", AuthRequired(), AdminRequired(), DeleteAccount)
+	r.DELETE(
+		"/user/:id",
+		AuthRequired(),
+		AdminRequired(),
+		DeleteAccount,
+	)
 
 	if err := r.Run("0.0.0.0:4000"); err != nil {
 		panic(err)
