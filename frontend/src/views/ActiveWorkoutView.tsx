@@ -29,6 +29,8 @@ export default function ActiveWorkoutView() {
     return null;
   }
 
+  const isFreeWorkout = workout.plan_id == null;
+
   const handleFinish = async () => {
     const confirmed = window.confirm(
       'Finish this workout? Saved sets will remain in your history.'
@@ -140,22 +142,26 @@ export default function ActiveWorkoutView() {
         </div>
       )}
 
-      <Button
-        variant="secondary"
-        onClick={() => {
-          setExerciseError(null);
-          setShowExerciseWizard(true);
-        }}
-        className="mx-auto w-full sm:w-auto"
-      >
-        + Add Exercise
-      </Button>
+      {isFreeWorkout && (
+        <>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setExerciseError(null);
+              setShowExerciseWizard(true);
+            }}
+            className="mx-auto w-full sm:w-auto"
+          >
+            + Add Exercise
+          </Button>
 
-      {showExerciseWizard && (
-        <ExerciseWizard
-          onClose={() => setShowExerciseWizard(false)}
-          onComplete={handleExerciseComplete}
-        />
+          {showExerciseWizard && (
+            <ExerciseWizard
+              onClose={() => setShowExerciseWizard(false)}
+              onComplete={handleExerciseComplete}
+            />
+          )}
+        </>
       )}
     </div>
   );

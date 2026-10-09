@@ -1,6 +1,4 @@
-import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { useWorkoutStore } from '../../store/useWorkoutStore';
 import WorkoutSetRow from './WorkoutSetRow';
 
 interface Props {
@@ -33,45 +31,20 @@ interface Props {
 }
 
 export default function WorkoutExerciseCard({ exercise }: Props) {
-  const { removeExercise, isLoading } = useWorkoutStore();
-
-  const handleRemove = async () => {
-    if (
-      !window.confirm(
-        `Remove "${exercise.exercise_name}" from this workout?`
-      )
-    ) {
-      return;
-    }
-
-    await removeExercise(exercise.id);
-  };
-
   return (
     <Card className="overflow-hidden">
-      <div className="flex items-start justify-between gap-4 border-b border-border p-5">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-subtle">
-            {exercise.category}
-          </p>
+      <div className="border-b border-border p-5">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-subtle">
+          {exercise.category}
+        </p>
 
-          <h2 className="mt-1 text-xl font-black text-foreground">
-            {exercise.exercise_name}
-          </h2>
+        <h2 className="mt-1 text-xl font-black text-foreground">
+          {exercise.exercise_name}
+        </h2>
 
-          <p className="mt-1 text-xs text-muted">
-            {exercise.target_sets} target sets
-          </p>
-        </div>
-
-        <Button
-          variant="danger"
-          onClick={handleRemove}
-          disabled={isLoading}
-          className="w-auto px-3 py-2 text-xs"
-        >
-          Remove
-        </Button>
+        <p className="mt-1 text-xs text-muted">
+          {exercise.target_sets} target sets
+        </p>
       </div>
 
       <div className="divide-y divide-border">
