@@ -515,11 +515,112 @@ func LogSet(c *gin.Context) {
 }
 
 func FinishWorkout(c *gin.Context) {
-	updateWorkoutStatus(c, "completed")
+	workoutID := c.Param("id")
+	userID := c.GetInt("userID")
+
+	result, err := db.Exec(`
+		UPDATE workout_sessions
+		SET status = 'completed',
+		    completed_at = CURRENT_TIMESTAMP
+		WHERE id = $1
+		  AND user_id = $2
+		  AND status = 'active'
+	`, workoutID, userID)
+
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to finish workout"})
+		return
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to verify workout status"})
+		return
+	}
+
+	if affected > 0 {
+		c.JSON(200, gin.H{"status": "completed"})
+		return
+	}
+
+	// The workout may already have been completed by an earlier request.
+	var status string
+	err = db.QueryRow(`
+		SELECT status
+		FROM workout_sessions
+		WHERE id = $1 AND user_id = $2
+	`, workoutID, userID).Scan(&status)
+
+	if err == sql.ErrNoRows {
+		c.JSON(404, gin.H{"error": "Workout not found"})
+		return
+	}
+
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to verify workout status"})
+		return
+	}
+
+	if status == "completed" {
+		c.JSON(200, gin.H{"status": "completed"})
+		return
+	}
+
+	c.JSON(409, gin.H{"error": "Workout is not active"})
 }
 
 func CancelWorkout(c *gin.Context) {
-	updateWorkoutStatus(c, "cancelled")
+	workoutID := c.Param("id")
+	userID := c.GetInt("userID")
+
+	result, err := db.Exec(`
+		UPDATE workout_sessions
+		SET status = 'cancelled'
+		WHERE id = $1
+		  AND user_id = $2
+		  AND status = 'active'
+	`, workoutID, userID)
+
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to cancel workout"})
+		return
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to verify workout status"})
+		return
+	}
+
+	if affected > 0 {
+		c.JSON(200, gin.H{"status": "cancelled"})
+		return
+	}
+
+	// Handle repeated requests or a stale frontend state.
+	var status string
+	err = db.QueryRow(`
+		SELECT status
+		FROM workout_sessions
+		WHERE id = $1 AND user_id = $2
+	`, workoutID, userID).Scan(&status)
+
+	if err == sql.ErrNoRows {
+		c.JSON(404, gin.H{"error": "Workout not found"})
+		return
+	}
+
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to verify workout status"})
+		return
+	}
+
+	if status == "completed" || status == "cancelled" {
+		c.JSON(200, gin.H{"status": status})
+		return
+	}
+
+	c.JSON(409, gin.H{"error": "Workout cannot be cancelled"})
 }
 
 func updateWorkoutStatus(c *gin.Context, status string) {
