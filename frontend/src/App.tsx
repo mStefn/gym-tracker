@@ -93,7 +93,7 @@ export default function App() {
   const renderView = () => {
     switch (currentView) {
       case 'home':
-        return <Dashboard />;
+        return <Dashboard onViewHistory={() => setCurrentView('stats')} />;
 
       case 'workout':
         return <PlansView />;
