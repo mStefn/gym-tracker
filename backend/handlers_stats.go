@@ -20,10 +20,10 @@ func GetAdvancedStats(c *gin.Context) {
 	}
 
 	type MonthlyTrend struct {
-		Month        string  `json:"month"`
-		TotalVolume  float64 `json:"totalVolume"`
-		WorkoutCount int     `json:"workoutCount"`
-		ChestVolume  float64 `json:"chestVolume"`
+		Month              string             `json:"month"`
+		TotalVolume        float64            `json:"totalVolume"`
+		WorkoutCount       int                `json:"workoutCount"`
+		MuscleGroupVolumes map[string]float64 `json:"muscleGroupVolumes"`
 	}
 
 	type PersonalRecord struct {
@@ -39,11 +39,9 @@ func GetAdvancedStats(c *gin.Context) {
 		Percent  int    `json:"percent"`
 	}
 
-	summary := Summary{
-		FavoriteExercise: "",
-	}
+	summary := Summary{}
 
-	// Completed workout sessions.
+	// Completed workouts.
 	if err := db.QueryRow(`
 		SELECT COUNT(*)
 		FROM workout_sessions
@@ -54,8 +52,7 @@ func GetAdvancedStats(c *gin.Context) {
 		return
 	}
 
-	// Weekly streak. If the user has not trained this week yet,
-	// their previous week's streak remains active until that week ends.
+	// Consecutive weeks with at least one completed workout.
 	if err := db.QueryRow(`
 		WITH RECURSIVE completed_weeks AS (
 			SELECT DISTINCT date_trunc('week', completed_at)::date AS week_start
@@ -69,7 +66,8 @@ func GetAdvancedStats(c *gin.Context) {
 				WHEN EXISTS (
 					SELECT 1
 					FROM completed_weeks
-					WHERE week_start = date_trunc('week', CURRENT_DATE)::date
+					WHERE week_start =
+						date_trunc('week', CURRENT_DATE)::date
 				)
 				THEN date_trunc('week', CURRENT_DATE)::date
 				ELSE (
@@ -94,7 +92,7 @@ func GetAdvancedStats(c *gin.Context) {
 			FROM streak
 			JOIN completed_weeks
 				ON completed_weeks.week_start =
-				   (streak.week_start - INTERVAL '1 week')::date
+					(streak.week_start - INTERVAL '1 week')::date
 		)
 		SELECT COALESCE(MAX(streak_weeks), 0)
 		FROM streak
@@ -103,7 +101,7 @@ func GetAdvancedStats(c *gin.Context) {
 		return
 	}
 
-	// Highest number of completed workouts in a calendar month.
+	// Highest number of completed workouts in any calendar month.
 	if err := db.QueryRow(`
 		SELECT COALESCE(MAX(monthly_count), 0)
 		FROM (
@@ -119,7 +117,7 @@ func GetAdvancedStats(c *gin.Context) {
 		return
 	}
 
-	// Favorite exercise: the exercise with the most logged sets.
+	// Favorite exercise, based on the number of logged sets.
 	err := db.QueryRow(`
 		SELECT e.name
 		FROM logs l
@@ -135,7 +133,7 @@ func GetAdvancedStats(c *gin.Context) {
 		return
 	}
 
-	// All-time training volume and logged sets, retained for compatibility.
+	// All-time volume and logged sets.
 	var totalVolume float64
 	var totalSets int
 
@@ -150,7 +148,7 @@ func GetAdvancedStats(c *gin.Context) {
 		return
 	}
 
-	// Monthly trend: current month and the previous five months.
+	// Monthly totals: current month and the previous five months.
 	trendRows, err := db.Query(`
 		WITH months AS (
 			SELECT generate_series(
@@ -166,7 +164,7 @@ func GetAdvancedStats(c *gin.Context) {
 			FROM logs
 			WHERE user_id = $1
 			  AND created_at >=
-			      date_trunc('month', CURRENT_DATE) - INTERVAL '5 months'
+				  date_trunc('month', CURRENT_DATE) - INTERVAL '5 months'
 			GROUP BY 1
 		),
 		monthly_workouts AS (
@@ -176,31 +174,18 @@ func GetAdvancedStats(c *gin.Context) {
 			FROM workout_sessions
 			WHERE user_id = $1
 			  AND status = 'completed'
+			  AND completed_at IS NOT NULL
 			  AND completed_at >=
-			      date_trunc('month', CURRENT_DATE) - INTERVAL '5 months'
-			GROUP BY 1
-		),
-		monthly_chest AS (
-			SELECT
-				date_trunc('month', l.created_at)::date AS month,
-				SUM(l.weight * l.reps)::double precision AS volume
-			FROM logs l
-			JOIN exercises e ON e.id = l.exercise_id
-			WHERE l.user_id = $1
-			  AND l.created_at >=
-			      date_trunc('month', CURRENT_DATE) - INTERVAL '5 months'
-			  AND LOWER(COALESCE(e.category, '')) LIKE '%chest%'
+				  date_trunc('month', CURRENT_DATE) - INTERVAL '5 months'
 			GROUP BY 1
 		)
 		SELECT
 			to_char(m.month, 'YYYY-MM'),
 			COALESCE(v.volume, 0)::double precision,
-			COALESCE(w.workout_count, 0)::int,
-			COALESCE(ch.volume, 0)::double precision
+			COALESCE(w.workout_count, 0)::int
 		FROM months m
 		LEFT JOIN monthly_volume v ON v.month = m.month
 		LEFT JOIN monthly_workouts w ON w.month = m.month
-		LEFT JOIN monthly_chest ch ON ch.month = m.month
 		ORDER BY m.month ASC
 	`, userID)
 
@@ -210,6 +195,7 @@ func GetAdvancedStats(c *gin.Context) {
 	}
 
 	monthlyTrend := make([]MonthlyTrend, 0, 6)
+	monthIndexes := make(map[string]int, 6)
 
 	for trendRows.Next() {
 		var point MonthlyTrend
@@ -218,13 +204,15 @@ func GetAdvancedStats(c *gin.Context) {
 			&point.Month,
 			&point.TotalVolume,
 			&point.WorkoutCount,
-			&point.ChestVolume,
 		); err != nil {
 			trendRows.Close()
 			c.JSON(500, gin.H{"error": "Failed to read monthly training data"})
 			return
 		}
 
+		point.MuscleGroupVolumes = make(map[string]float64)
+
+		monthIndexes[point.Month] = len(monthlyTrend)
 		monthlyTrend = append(monthlyTrend, point)
 	}
 
@@ -235,8 +223,63 @@ func GetAdvancedStats(c *gin.Context) {
 	}
 	trendRows.Close()
 
-	// Best logged weighted performance for each exercise.
-	// Results are ordered by the date those best performances were recorded.
+	// Monthly volume by every muscle group represented in the user's data.
+	muscleVolumeRows, err := db.Query(`
+		SELECT
+			to_char(date_trunc('month', l.created_at), 'YYYY-MM'),
+			COALESCE(e.category, 'Other'),
+			COALESCE(SUM(l.weight * l.reps), 0)::double precision
+		FROM logs l
+		JOIN exercises e ON e.id = l.exercise_id
+		WHERE l.user_id = $1
+		  AND l.created_at >=
+			  date_trunc('month', CURRENT_DATE) - INTERVAL '5 months'
+		GROUP BY 1, 2
+		ORDER BY 1, 2
+	`, userID)
+
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to load muscle group volume"})
+		return
+	}
+
+	muscleGroupSet := make(map[string]struct{})
+
+	for muscleVolumeRows.Next() {
+		var month string
+		var category string
+		var volume float64
+
+		if err := muscleVolumeRows.Scan(&month, &category, &volume); err != nil {
+			muscleVolumeRows.Close()
+			c.JSON(500, gin.H{"error": "Failed to read muscle group volume"})
+			return
+		}
+
+		category = normalizeMuscleCategory(category)
+		muscleGroupSet[category] = struct{}{}
+
+		if index, ok := monthIndexes[month]; ok {
+			monthlyTrend[index].MuscleGroupVolumes[category] += volume
+		}
+	}
+
+	if err := muscleVolumeRows.Err(); err != nil {
+		muscleVolumeRows.Close()
+		c.JSON(500, gin.H{"error": "Failed to read muscle group volume"})
+		return
+	}
+	muscleVolumeRows.Close()
+
+	muscleGroups := make([]string, 0, len(muscleGroupSet))
+
+	for category := range muscleGroupSet {
+		muscleGroups = append(muscleGroups, category)
+	}
+
+	sort.Strings(muscleGroups)
+
+	// Best recorded weighted performance for each exercise.
 	recordRows, err := db.Query(`
 		WITH best AS (
 			SELECT DISTINCT ON (l.exercise_id)
@@ -293,7 +336,7 @@ func GetAdvancedStats(c *gin.Context) {
 	}
 	recordRows.Close()
 
-	// Muscle group distribution based on logged sets over the last 30 days.
+	// Muscle group distribution based on logged sets in the last 30 days.
 	distributionRows, err := db.Query(`
 		SELECT
 			COALESCE(e.category, 'Other'),
@@ -335,6 +378,7 @@ func GetAdvancedStats(c *gin.Context) {
 	distributionRows.Close()
 
 	totalDistSets := 0
+
 	for _, count := range distributionCounts {
 		totalDistSets += count
 	}
@@ -345,7 +389,9 @@ func GetAdvancedStats(c *gin.Context) {
 		percent := 0
 
 		if totalDistSets > 0 {
-			percent = int(math.Round(float64(count) * 100 / float64(totalDistSets)))
+			percent = int(math.Round(
+				float64(count) * 100 / float64(totalDistSets),
+			))
 		}
 
 		distribution = append(distribution, MuscleDistribution{
@@ -359,10 +405,11 @@ func GetAdvancedStats(c *gin.Context) {
 		if distribution[i].Count == distribution[j].Count {
 			return distribution[i].Category < distribution[j].Category
 		}
+
 		return distribution[i].Count > distribution[j].Count
 	})
 
-	// Keep the existing fields for any older frontend consumers.
+	// Keep existing fields for compatibility with other frontend views.
 	hallOfFame := make([]gin.H, 0)
 
 	fameRows, err := db.Query(`
@@ -445,6 +492,7 @@ func GetAdvancedStats(c *gin.Context) {
 	c.JSON(200, gin.H{
 		"summary":         summary,
 		"monthlyTrend":    monthlyTrend,
+		"muscleGroups":    muscleGroups,
 		"personalRecords": personalRecords,
 		"distribution":    distribution,
 		"totalDistSets":   totalDistSets,
@@ -465,21 +513,26 @@ func normalizeMuscleCategory(category string) string {
 	switch {
 	case strings.Contains(normalized, "chest"):
 		return "Chest"
+
 	case strings.Contains(normalized, "back"):
 		return "Back"
+
 	case strings.Contains(normalized, "leg"),
 		strings.Contains(normalized, "quad"),
 		strings.Contains(normalized, "hamstring"),
 		strings.Contains(normalized, "glute"),
 		strings.Contains(normalized, "calf"):
 		return "Legs"
+
 	case strings.Contains(normalized, "shoulder"),
 		strings.Contains(normalized, "bicep"),
 		strings.Contains(normalized, "tricep"),
 		strings.Contains(normalized, "arm"):
 		return "Shoulders & Arms"
+
 	case original == "":
 		return "Other"
+
 	default:
 		return original
 	}
@@ -514,9 +567,17 @@ func GetExerciseDeepDive(c *gin.Context) {
 	for rows.Next() {
 		var point ChartPoint
 
-		if err := rows.Scan(&point.Date, &point.Weight); err == nil {
-			points = append(points, point)
+		if err := rows.Scan(&point.Date, &point.Weight); err != nil {
+			c.JSON(500, gin.H{"error": "Failed to read exercise data"})
+			return
 		}
+
+		points = append(points, point)
+	}
+
+	if err := rows.Err(); err != nil {
+		c.JSON(500, gin.H{"error": "Failed to read exercise data"})
+		return
 	}
 
 	c.JSON(200, points)

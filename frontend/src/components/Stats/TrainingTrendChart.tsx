@@ -1,16 +1,17 @@
+import { useState } from 'react';
 import { Card } from '../ui/Card';
 
 export interface MonthlyTrendPoint {
   month: string;
   totalVolume: number;
   workoutCount: number;
-  chestVolume: number;
+  muscleGroupVolumes: Record<string, number>;
 }
 
 export type ChartMetric =
   | 'totalVolume'
   | 'workoutCount'
-  | 'chestVolume';
+  | 'muscleGroupVolume';
 
 interface Props {
   data: MonthlyTrendPoint[];
@@ -21,7 +22,7 @@ interface Props {
 const metricLabels: Record<ChartMetric, string> = {
   totalVolume: 'Total Volume',
   workoutCount: 'Workout Count',
-  chestVolume: 'Chest Volume',
+  muscleGroupVolume: 'Volume by Muscle Group',
 };
 
 function formatNumber(value: number) {
@@ -33,6 +34,7 @@ function formatNumber(value: number) {
 function formatMonth(month: string) {
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
+    year: '2-digit',
   }).format(new Date(`${month}-01T12:00:00`));
 }
 
@@ -41,8 +43,39 @@ export default function TrainingTrendChart({
   metric,
   onMetricChange,
 }: Props) {
-  const values = data.map((point) => point[metric]);
+  const [selectedMuscleGroup, setSelectedMuscleGroup] = useState('');
+
+  const muscleGroups = [
+    ...new Set(
+      data.flatMap((point) =>
+        Object.keys(point.muscleGroupVolumes ?? {})
+      )
+    ),
+  ].sort((a, b) => a.localeCompare(b));
+
+  const activeMuscleGroup =
+    muscleGroups.find((group) => group === selectedMuscleGroup) ??
+    muscleGroups[0] ??
+    '';
+
+  const getValue = (point: MonthlyTrendPoint): number => {
+    switch (metric) {
+      case 'totalVolume':
+        return point.totalVolume ?? 0;
+
+      case 'workoutCount':
+        return point.workoutCount ?? 0;
+
+      case 'muscleGroupVolume':
+        return activeMuscleGroup
+          ? point.muscleGroupVolumes?.[activeMuscleGroup] ?? 0
+          : 0;
+    }
+  };
+
+  const values = data.map(getValue);
   const maxValue = Math.max(...values, 1);
+  const peakValue = Math.max(...values, 0);
   const hasData = values.some((value) => value > 0);
 
   const width = 640;
@@ -55,11 +88,13 @@ export default function TrainingTrendChart({
   const chartWidth = width - left - right;
 
   const points = data.map((point, index) => {
-    const value = point[metric];
+    const value = getValue(point);
 
     const x =
       left +
-      (data.length > 1 ? (index / (data.length - 1)) * chartWidth : chartWidth / 2);
+      (data.length > 1
+        ? (index / (data.length - 1)) * chartWidth
+        : chartWidth / 2);
 
     const y = top + chartHeight - (value / maxValue) * chartHeight;
 
@@ -75,32 +110,63 @@ export default function TrainingTrendChart({
     .map((point) => `${point.x},${point.y}`)
     .join(' ');
 
+  const heading =
+    metric === 'muscleGroupVolume' && activeMuscleGroup
+      ? `${activeMuscleGroup} Volume (Last 6 Months)`
+      : `${metricLabels[metric]} (Last 6 Months)`;
+
   return (
     <Card className="flex min-h-[350px] flex-col p-5 sm:p-6">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xs font-bold uppercase tracking-widest text-subtle">
-          Training Volume (Last 6 Months)
+          {heading}
         </h2>
 
-        <select
-          value={metric}
-          onChange={(event) =>
-            onMetricChange(event.target.value as ChartMetric)
-          }
-          className="cursor-pointer rounded-lg border border-border bg-background p-2 text-xs font-bold text-muted focus:border-accent focus:outline-none"
-        >
-          <option value="totalVolume">Total Volume</option>
-          <option value="workoutCount">Workout Count</option>
-          <option value="chestVolume">Chest Volume</option>
-        </select>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <select
+            value={metric}
+            onChange={(event) =>
+              onMetricChange(event.target.value as ChartMetric)
+            }
+            className="cursor-pointer rounded-lg border border-border bg-background p-2 text-xs font-bold text-muted focus:border-accent focus:outline-none"
+          >
+            <option value="totalVolume">Total Volume</option>
+            <option value="workoutCount">Workout Count</option>
+            <option value="muscleGroupVolume">
+              Volume by Muscle Group
+            </option>
+          </select>
+
+          {metric === 'muscleGroupVolume' && (
+            <select
+              value={activeMuscleGroup}
+              onChange={(event) =>
+                setSelectedMuscleGroup(event.target.value)
+              }
+              disabled={muscleGroups.length === 0}
+              className="cursor-pointer rounded-lg border border-border bg-background p-2 text-xs font-bold text-muted focus:border-accent focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {muscleGroups.length === 0 ? (
+                <option value="">No muscle groups</option>
+              ) : (
+                muscleGroups.map((group) => (
+                  <option key={group} value={group}>
+                    {group}
+                  </option>
+                ))
+              )}
+            </select>
+          )}
+        </div>
       </div>
 
       {hasData ? (
         <div className="flex-1">
           <p className="mb-2 text-xs text-muted">
-            {metricLabels[metric]}:{' '}
+            Peak:{' '}
             <span className="font-bold text-foreground">
-              {formatNumber(Math.max(...values))}
+              {formatNumber(peakValue)}
+              {metric !== 'workoutCount' ? ' kg' : ' workouts'}
             </span>
           </p>
 
@@ -108,7 +174,7 @@ export default function TrainingTrendChart({
             viewBox={`0 0 ${width} ${height}`}
             className="h-64 w-full overflow-visible"
             role="img"
-            aria-label={`${metricLabels[metric]} over the last six months`}
+            aria-label={`${heading} chart`}
           >
             {[0, 1, 2, 3].map((line) => {
               const y = top + (chartHeight / 3) * line;
