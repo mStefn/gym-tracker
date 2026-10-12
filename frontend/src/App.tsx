@@ -91,23 +91,32 @@ export default function App() {
   }
 
   const renderView = () => {
-    switch (currentView) {
-      case 'home':
-        return <Dashboard onViewHistory={() => setCurrentView('stats')} />;
+  switch (currentView) {
+    case 'home':
+      return (
+        <Dashboard
+          onStartWorkout={() => setCurrentView('workout')}
+          onViewHistory={() => setCurrentView('stats')}
+        />
+      );
 
-      case 'workout':
-        return <PlansView />;
+    case 'workout':
+      return <PlansView />;
 
-      case 'stats':
-        return <StatsView />;
+    case 'stats':
+      return <StatsView />;
 
-      case 'settings':
-        return <SettingsView />;
+    case 'settings':
+      return <SettingsView />;
 
-      default:
-        return <Dashboard />;
-    }
-  };
+    default:
+      return (
+        <Dashboard
+          onStartWorkout={() => setCurrentView('workout')}
+        />
+      );
+  }
+};
 
   const navItemBase =
     'flex-1 md:flex-none py-3.5 px-2 md:px-5 rounded-xl text-xs md:text-sm font-bold uppercase tracking-wider transition-all duration-200 text-center md:text-left cursor-pointer';

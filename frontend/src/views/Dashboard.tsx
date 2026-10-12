@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 
 import { useAuthStore } from '../store/useAuthStore';
-import { useWorkoutStore } from '../store/useWorkoutStore';
 import { authFetch, API_URL } from '../api/client';
 
 import { Button } from '../components/ui/Button';
@@ -30,6 +29,7 @@ interface DashboardData {
 }
 
 interface DashboardProps {
+  onStartWorkout: () => void;
   onViewHistory?: () => void;
 }
 
@@ -78,13 +78,11 @@ function formatWeek(week: string): string {
   return weekNumber ? `W${Number(weekNumber)}` : week;
 }
 
-export default function Dashboard({ onViewHistory }: DashboardProps) {
+export default function Dashboard({
+  onStartWorkout,
+  onViewHistory,
+}: DashboardProps) {
   const { currentUserName } = useAuthStore();
-  const {
-    startWorkout,
-    isStarting,
-    error: workoutError,
-  } = useWorkoutStore();
 
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -102,7 +100,12 @@ export default function Dashboard({ onViewHistory }: DashboardProps) {
         const response = await authFetch(`${API_URL}/dashboard`);
 
         if (!response.ok) {
-          throw new Error(`Dashboard request failed: ${response.status}`);
+          const details = await response.text();
+          console.error('Dashboard API response:', details);
+
+          throw new Error(
+            `Dashboard request failed: ${response.status}`
+          );
         }
 
         const result = (await response.json()) as DashboardData;
@@ -130,13 +133,8 @@ export default function Dashboard({ onViewHistory }: DashboardProps) {
     };
   }, [retryKey]);
 
-  const handleStartWorkout = async () => {
-    await startWorkout({
-      name: 'Empty Workout',
-    });
-  };
-
   const weeklyVolume = data?.volume ?? [];
+
   const maxVolume = Math.max(
     1,
     ...weeklyVolume.map((point) => point.total)
@@ -204,20 +202,13 @@ export default function Dashboard({ onViewHistory }: DashboardProps) {
 
             <Button
               className="h-full flex-col justify-center py-6"
-              onClick={handleStartWorkout}
-              disabled={isStarting}
+              onClick={onStartWorkout}
             >
               <span className="text-xs font-black uppercase tracking-widest">
-                {isStarting ? 'Starting...' : 'Start Workout'}
+                Start Workout
               </span>
             </Button>
           </section>
-
-          {workoutError && (
-            <Card className="border-danger/20 bg-danger/5 p-4">
-              <p className="text-sm text-danger">{workoutError}</p>
-            </Card>
-          )}
 
           <section className="grid grid-cols-1 gap-5 lg:grid-cols-3">
             <Card className="p-5 sm:p-6">
