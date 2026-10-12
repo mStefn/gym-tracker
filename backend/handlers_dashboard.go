@@ -327,14 +327,15 @@ func GetDashboardData(c *gin.Context) {
 	heatmap := make([]string, 0)
 
 	heatmapRows, err := db.Query(`
-		SELECT DISTINCT created_at::date::text
-		FROM logs
-		WHERE user_id = $1
-		  AND created_at >= CURRENT_DATE - INTERVAL '45 days'
-		ORDER BY created_at::date ASC
-	`, userID)
+    SELECT DISTINCT created_at::date::text AS activity_date
+    FROM logs
+    WHERE user_id = $1
+      AND created_at >= CURRENT_DATE - INTERVAL '45 days'
+    ORDER BY activity_date ASC
+`, userID)
 
 	if err != nil {
+		log.Printf("GetDashboardData: failed to load workout heatmap: %v", err)
 		c.JSON(500, gin.H{"error": "Failed to load workout heatmap"})
 		return
 	}
@@ -344,6 +345,7 @@ func GetDashboardData(c *gin.Context) {
 
 		if err := heatmapRows.Scan(&date); err != nil {
 			heatmapRows.Close()
+			log.Printf("GetDashboardData: failed to scan workout heatmap: %v", err)
 			c.JSON(500, gin.H{"error": "Failed to read workout heatmap"})
 			return
 		}
@@ -353,9 +355,11 @@ func GetDashboardData(c *gin.Context) {
 
 	if err := heatmapRows.Err(); err != nil {
 		heatmapRows.Close()
+		log.Printf("GetDashboardData: failed while reading workout heatmap: %v", err)
 		c.JSON(500, gin.H{"error": "Failed to read workout heatmap"})
 		return
 	}
+
 	heatmapRows.Close()
 
 	// Weekly training volume for the current week and previous four weeks.
