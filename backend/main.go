@@ -95,18 +95,18 @@ func main() {
 		auth.GET("/exercises", GetExercises)
 		auth.POST("/exercises/find-or-create", FindOrCreateExerciseHandler)
 
-		// Dashboard and statistics.
-		auth.GET("/stats/:user_id", GetUserStats)
-		auth.POST("/weight", LogBodyWeight)
+		// Dashboard.
+		auth.GET("/dashboard", GetDashboardData)
 		auth.GET("/dashboard/:user_id", GetDashboardData)
 
-		// New endpoint: user ID comes from the authenticated token.
+		// Statistics.
+		auth.GET("/stats/:user_id", GetUserStats)
 		auth.GET("/stats/advanced", GetAdvancedStats)
-
-		// Legacy route retained for compatibility.
 		auth.GET("/stats/advanced/:user_id", GetAdvancedStats)
-
 		auth.GET("/stats/exercise/:user_id/:ex_id", GetExerciseDeepDive)
+
+		// Body weight.
+		auth.POST("/weight", LogBodyWeight)
 
 		// Account management.
 		auth.DELETE("/history/:user_id", ClearOwnLogs)
